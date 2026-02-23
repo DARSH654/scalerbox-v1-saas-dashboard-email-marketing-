@@ -265,12 +265,6 @@ interface Group {
   href?: string;
 }
 
-const aiLabMenuItems: MenuItem[] = [
-  { href: '/image-library', icon: Library, label: 'Image Library' },
-  { href: '/prompts', icon: ScrollText, label: 'Prompts' },
-  { href: '/social-accounts', icon: Users, label: 'Social Accounts' },
-];
-
 const saasOverviewMenuItems: MenuItem[] = [
   { href: '/saas-dashboard', icon: AreaChart, label: 'SaaS Dashboard' },
   { href: '/revenue-dashboard', icon: RevenueIcon, label: 'Revenue Dashboard' },
@@ -278,13 +272,6 @@ const saasOverviewMenuItems: MenuItem[] = [
   { href: '/product-dashboard', icon: Activity, label: 'Product Dashboard' },
   { href: '/customer-dashboard', icon: Users, label: 'Customer Dashboard' },
   { href: '/integrations', icon: Package, label: 'Integrations' },
-];
-
-const blogsMenuItems: MenuItem[] = [
-  { href: '/blogs/connections', icon: ConnectionsIcon, label: 'Connections' },
-  { href: '/blogs/automations', icon: Sparkles, label: 'Automations' },
-  { href: '/blogs/content', icon: FileText, label: 'Content' },
-  { href: '/blogs/scheduler', icon: SchedulerIcon, label: 'Scheduler' },
 ];
 
 const emailMarketingMenuItems: MenuItem[] = [
@@ -295,35 +282,9 @@ const emailMarketingMenuItems: MenuItem[] = [
   { href: '/email-marketing/domains', icon: DomainIcon, label: 'Domains' },
 ];
 
-const feedbackMenuItems: MenuItem[] = [
-  { href: '/feedback/board', icon: LayoutDashboard, label: 'Board' },
-
-
-  { href: '/feedback/settings', icon: Settings, label: 'Settings' },
-  { href: '/feedback/general-settings', icon: Settings, label: 'General Settings' },
-];
-
-const roadmapMenuItems: MenuItem[] = [
-  { href: '/roadmap/board', icon: Map, label: 'Roadmap' },
-  { href: '/roadmap/settings', icon: Settings, label: 'Settings' },
-  { href: '/roadmap/general-settings', icon: Settings, label: 'General Settings' },
-];
-
-const changelogMenuItems: MenuItem[] = [
-  { href: '/changelog/entries', icon: List, label: 'All Entries' },
-  { href: '/changelog/create', icon: PlusCircle, label: 'Create Entry' },
-  { href: '/changelog/settings', icon: Settings, label: 'Settings' },
-  { href: '/changelog/general-settings', icon: Settings, label: 'General Settings' },
-];
-
 const groups: Group[] = [
   { id: 'home', label: 'Home', icon: Home, href: '/home', items: [] },
-  { id: 'feedback', label: 'Feedback', icon: MessageSquarePlus, items: feedbackMenuItems },
-  { id: 'roadmap', label: 'Roadmap', icon: Map, items: roadmapMenuItems },
-  { id: 'changelog', label: 'Changelog', icon: History, items: changelogMenuItems },
-  { id: 'ai-lab', label: 'AI Lab', icon: FlaskConical, items: aiLabMenuItems },
   { id: 'saas-overview', label: 'SaaS Overview', icon: AreaChart, items: saasOverviewMenuItems },
-  { id: 'blogs', label: 'Blogs', icon: BlogsIcon, items: blogsMenuItems },
   { id: 'email-marketing', label: 'Email Marketing', icon: Mail, items: emailMarketingMenuItems },
   { id: 'team', label: 'Team', icon: Users, href: '/team', items: [] },
 
