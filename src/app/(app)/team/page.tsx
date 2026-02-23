@@ -1,26 +1,17 @@
 'use client';
 
-import Image from "next/image";
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState } from "react";
 import {
     MoreHorizontal,
     PlusCircle,
     Trash2,
-    Search,
     Mail,
-    Users2,
-    UserCog,
     ChevronDown,
-    ListFilter,
     AlertTriangle,
     Edit,
     Pencil,
-    Check,
-    User,
     Shield,
-    Eye,
     Copy,
-    BarChart,
     Loader2,
     ChevronRight,
 } from "lucide-react";
@@ -38,30 +29,17 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuLabel,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
     DialogFooter,
     DialogClose,
-} from "@/components/ui/dialog"
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+} from "@/components/ui/dialog";
 import {
     Table,
     TableBody,
@@ -82,13 +60,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useAppLayout } from "../layout";
-import { useRouter } from "next/navigation";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getAvatarBgColor, getAvatarInitial } from "@/lib/avatar-utils";
-import { useSupabaseAuth } from "@/components/supabase-auth-provider";
 
 
 type UserRole = 'Owner' | 'Admin' | 'Member';
@@ -113,14 +86,6 @@ export interface Team {
     memberIds: string[];
     ownerId: string;
     memberLimit: number;
-}
-
-interface Workspace {
-    id: string;
-    name: string;
-    avatarUrl?: string;
-    teamId: string;
-    memberIds?: string[];
 }
 
 interface Invite {
@@ -230,9 +195,6 @@ function CreateTeamDialog({ showPricing, onTeamCreated }: { showPricing: boolean
 
 export default function TeamPage() {
     const { toast } = useToast();
-    const { user } = useSupabaseAuth();
-    const { activeTeam, setActiveTeam, setActiveWorkspace } = useAppLayout();
-    const router = useRouter();
 
     const teams = demoTeams;
     const membersOfCurrentTeam = demoMembers;
@@ -253,7 +215,7 @@ export default function TeamPage() {
         setCopiedInviteId(inviteId);
         toast({ title: "Copied!", description: "Invitation link copied to clipboard." });
         setTimeout(() => setCopiedInviteId(null), 2000);
-    }
+    };
 
     return (
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
@@ -282,7 +244,7 @@ export default function TeamPage() {
                     <Button variant="destructive" onClick={() => toast({ title: "Demo Mode", description: "Team deletion is disabled in demo." })}>
                         <Trash2 className="mr-2 h-4 w-4" /> Delete Team
                     </Button>
-                    <CreateTeamDialog showPricing={false} onTeamCreated={() => {}} />
+                    <CreateTeamDialog showPricing={false} onTeamCreated={() => { }} />
                 </div>
             </div>
 
@@ -424,10 +386,10 @@ export default function TeamPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell className="text-center">{member.dateAdded || 'N/A'}</TableCell>
-                                            <TableCell className="text-center">{member.role === 'Owner' ? '—' : (member.usageLimit ? member.usageLimit.toLocaleString() : 'Not Set')}</TableCell>
-                                            <TableCell className="text-center">{member.role === 'Owner' ? '—' : (member.currentUsage ? member.currentUsage.toLocaleString() : '0')}</TableCell>
+                                            <TableCell className="text-center">{member.role === 'Owner' ? '\u2014' : (member.usageLimit ? member.usageLimit.toLocaleString() : 'Not Set')}</TableCell>
+                                            <TableCell className="text-center">{member.role === 'Owner' ? '\u2014' : (member.currentUsage ? member.currentUsage.toLocaleString() : '0')}</TableCell>
                                             <TableCell className="text-center">
-                                                {member.role === 'Owner' ? '—' : <Checkbox checked={member.allowWorkspaceCreation} disabled />}
+                                                {member.role === 'Owner' ? '\u2014' : <Checkbox checked={member.allowWorkspaceCreation} disabled />}
                                             </TableCell>
                                             <TableCell className="text-right">
                                                 {member.role !== 'Owner' && (
@@ -488,9 +450,9 @@ export default function TeamPage() {
                                                 <div className="p-4 pt-0 space-y-4">
                                                     <div className="text-sm space-y-2">
                                                         <div><strong>Date Added:</strong> {member.dateAdded || 'N/A'}</div>
-                                                        <div><strong>Usage Limit:</strong> {member.role === 'Owner' ? '—' : (member.usageLimit ? member.usageLimit.toLocaleString() : 'Not Set')}</div>
-                                                        <div><strong>Current Usage:</strong> {member.role === 'Owner' ? '—' : (member.currentUsage ? member.currentUsage.toLocaleString() : '0')}</div>
-                                                        <div className="flex items-center gap-2"><strong>Allow Workspace Creation:</strong> {member.role === 'Owner' ? '—' : <Checkbox checked={member.allowWorkspaceCreation} disabled />}</div>
+                                                        <div><strong>Usage Limit:</strong> {member.role === 'Owner' ? '\u2014' : (member.usageLimit ? member.usageLimit.toLocaleString() : 'Not Set')}</div>
+                                                        <div><strong>Current Usage:</strong> {member.role === 'Owner' ? '\u2014' : (member.currentUsage ? member.currentUsage.toLocaleString() : '0')}</div>
+                                                        <div className="flex items-center gap-2"><strong>Allow Workspace Creation:</strong> {member.role === 'Owner' ? '\u2014' : <Checkbox checked={member.allowWorkspaceCreation} disabled />}</div>
                                                     </div>
                                                     {member.role !== 'Owner' && (
                                                         <div className="flex gap-2 pt-4 border-t">
