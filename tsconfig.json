@@ -1,0 +1,68 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*",
+        "./src/lobe-chat/*"
+      ],
+      "@lobechat/*": [
+        "./src/lobe-packages/*/src"
+      ],
+      "@/database/*": [
+        "./src/lobe-packages/database/src/*",
+        "./src/lobe-chat/database/*"
+      ],
+      "@/const/*": [
+        "./src/lobe-packages/const/src/*",
+        "./src/lobe-chat/const/*"
+      ],
+      "@/utils/*": [
+        "./src/utils/*",
+        "./src/lobe-packages/utils/src/*",
+        "./src/lobe-chat/utils/*"
+      ],
+      "@/types/*": [
+        "./src/lobe-packages/types/src/*",
+        "./src/lobe-chat/types/*"
+      ]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "src/lobe-chat/**/*.ts",
+    "src/lobe-chat/**/*.tsx",
+    "src/lobe-packages/**/*.ts",
+    "src/lobe-packages/**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    "src/app_backup",
+    "src_backup"
+  ]
+}

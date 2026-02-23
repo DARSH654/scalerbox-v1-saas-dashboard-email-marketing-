@@ -1,0 +1,469 @@
+
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user's profile with associated information.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity."
+        },
+        "username": {
+          "type": "string",
+          "description": "The username of the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user.",
+          "format": "email"
+        },
+        "profilePicture": {
+          "type": "string",
+          "description": "URL of the user's profile picture, if available.",
+          "format": "uri"
+        },
+        "bio": {
+          "type": "string",
+          "description": "A short biography or description of the user."
+        },
+        "lastSelectedModel": {
+            "type": "string",
+            "description": "The last AI model selected by the user in the chat."
+        },
+        "lastSelectedPersona": {
+            "type": "string",
+            "description": "The last AI persona selected by the user in the chat."
+        },
+        "allowWorkspaceCreation": {
+          "type": "boolean",
+          "description": "Whether the user is allowed to create workspaces within their team."
+        },
+        "wordLimit": {
+            "type": "number",
+            "description": "The user's preferred word limit for AI responses."
+        },
+        "enhancePromptWordCount": {
+            "type": "number",
+            "description": "The user's preferred word count for the enhance prompt feature."
+        },
+        "pinnedPersonaIds": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "An array of persona IDs that are pinned in the user's personal space."
+        }
+      },
+      "required": [
+        "id",
+        "username",
+        "email"
+      ]
+    },
+    "Chat": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Chat",
+      "type": "object",
+      "description": "Represents a single chat session.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the chat session."
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the chat session."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who owns the chat."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the chat was created."
+        },
+        "lastMessageAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp of the last message in the chat."
+        },
+        "lastMessageSnippet": {
+            "type": "string",
+            "description": "A short snippet of the last message."
+        },
+        "aiModels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "A list of AI models used in the chat."
+        }
+      },
+      "required": ["id", "title", "userId", "createdAt", "lastMessageAt", "lastMessageSnippet"]
+    },
+    "ChatMessage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ChatMessage",
+      "type": "object",
+      "description": "Represents a single message within a chat session.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the message."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["user", "bot"],
+          "description": "The role of the message sender."
+        },
+        "content": {
+          "type": "string",
+          "description": "The content of the message."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the message was created."
+        },
+        "modelName": {
+            "type": "string",
+            "description": "The name of the AI model that generated the response."
+        }
+      },
+      "required": ["id", "role", "content", "createdAt"]
+    },
+    "Usage": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Usage",
+        "type": "object",
+        "description": "Represents a single AI usage record.",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the usage record."
+          },
+          "userId": {
+            "type": "string",
+            "description": "The ID of the user who triggered the usage."
+          },
+          "model": {
+            "type": "string",
+            "description": "The AI model used."
+          },
+          "type": {
+            "type": "string",
+            "enum": ["chat", "image"],
+            "description": "The type of usage (e.g., chat, image generation)."
+          },
+          "tokens": {
+            "type": "number",
+            "description": "The number of tokens consumed."
+          },
+          "cost": {
+            "type": "number",
+            "description": "The estimated cost of the usage."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The timestamp when the usage occurred."
+          }
+        },
+        "required": ["id", "userId", "model", "type", "tokens", "cost", "createdAt"]
+    },
+    "Folder": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Folder",
+      "type": "object",
+      "description": "Represents a folder to organize chats.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the folder."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the folder."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who owns the folder."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the folder was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the folder was last updated."
+        },
+        "chatIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "An array of chat IDs belonging to this folder."
+        },
+        "isPinned": {
+          "type": "boolean",
+          "description": "Whether the folder is pinned."
+        }
+      },
+      "required": ["id", "name", "userId", "createdAt", "updatedAt", "chatIds"]
+    },
+    "Image": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Image",
+        "type": "object",
+        "description": "Represents an AI-generated image created by a user.",
+        "properties": {
+            "id": { "type": "string", "description": "Unique identifier for the image." },
+            "url": { "type": "string", "format": "uri", "description": "The URL of the generated image. Can be a data URI or a hosted URL." },
+            "prompt": { "type": "string", "description": "The prompt used to generate the image." },
+            "userId": { "type": "string", "description": "The ID of the user who owns the image." },
+            "createdAt": { "type": "string", "format": "date-time", "description": "The timestamp when the image was created." },
+            "isPinned": { "type": "boolean", "description": "Whether the image is pinned in the main library." },
+            "model": { "type": "string", "description": "The AI model used to generate the image." }
+        },
+        "required": ["id", "url", "prompt", "userId", "createdAt"]
+    },
+    "ImageFolder": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "ImageFolder",
+        "type": "object",
+        "description": "Represents a folder to organize images.",
+        "properties": {
+            "id": { "type": "string", "description": "Unique identifier for the folder." },
+            "name": { "type": "string", "description": "The name of the folder." },
+            "userId": { "type": "string", "description": "The ID of the user who owns the folder." },
+            "imageIds": { "type": "array", "items": { "type": "string" }, "description": "An array of image IDs belonging to this folder." },
+            "pinnedImageIds": { "type": "array", "items": { "type": "string" }, "description": "An array of image IDs that are pinned within this folder." },
+            "createdAt": { "type": "string", "format": "date-time", "description": "The timestamp when the folder was created." },
+            "updatedAt": { "type": "string", "format": "date-time", "description": "The timestamp when the folder was last updated." },
+            "isPinned": { "type": "boolean", "description": "Whether the folder is pinned." }
+        },
+        "required": ["id", "name", "userId", "imageIds", "createdAt", "updatedAt"]
+    },
+    "Prompt": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Prompt",
+      "type": "object",
+      "description": "Represents a reusable prompt created by a user.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the prompt." },
+        "title": { "type": "string", "description": "The title of the prompt." },
+        "prompt": { "type": "string", "description": "The text content of the prompt." },
+        "userId": { "type": "string", "description": "The ID of the user who owns the prompt." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "The timestamp when the prompt was created." },
+        "lastModified": { "type": "string", "format": "date-time", "description": "The timestamp when the prompt was last modified." }
+      },
+      "required": ["id", "title", "prompt", "userId", "createdAt", "lastModified"]
+    },
+    "PromptFolder": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PromptFolder",
+      "type": "object",
+      "description": "Represents a folder to organize prompts.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the prompt folder." },
+        "name": { "type": "string", "description": "The name of the folder." },
+        "userId": { "type": "string", "description": "The ID of the user who owns the folder." },
+        "promptIds": { "type": "array", "items": { "type": "string" }, "description": "An array of prompt IDs belonging to this folder." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "The timestamp when the folder was created." },
+        "isPinned": { "type": "boolean", "description": "Whether the folder is pinned." },
+        "parentId": { "type": ["string", "null"], "description": "The ID of the parent folder, or null for a root folder." }
+      },
+      "required": ["id", "name", "userId", "promptIds", "createdAt"]
+    },
+    "Workspace": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Workspace",
+      "type": "object",
+      "description": "Represents a collaborative workspace.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the workspace." },
+        "name": { "type": "string", "description": "The name of the workspace." },
+        "ownerIds": { "type": "array", "items": { "type": "string" }, "description": "An array of user IDs who are owners of this workspace." },
+        "memberIds": { "type": "array", "items": { "type": "string" }, "description": "An array of user IDs who are members of this workspace." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "The timestamp when the workspace was created." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "The timestamp when the workspace was last updated." },
+        "teamId": { "type": "string", "description": "The ID of the team this workspace belongs to." },
+        "customContext": {
+          "type": "string",
+          "description": "A custom context or instruction to be sent to the AI for all chats in this workspace."
+        }
+      },
+      "required": ["id", "name", "ownerIds", "memberIds", "createdAt", "updatedAt", "teamId"]
+    },
+    "Team": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Team",
+      "type": "object",
+      "description": "Represents a user-created team for organizing members.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the team." },
+        "name": { "type": "string", "description": "The name of the team." },
+        "ownerId": { "type": "string", "description": "The ID of the user who owns the team." },
+        "memberIds": { "type": "array", "items": { "type": "string" }, "description": "An array of user IDs who are members of this team." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp of creation." },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Timestamp of last update." },
+        "memberLimit": { "type": "number", "description": "The maximum number of members allowed in this team." }
+      },
+      "required": ["id", "name", "ownerId", "memberIds", "createdAt", "updatedAt", "memberLimit"]
+    },
+    "Invite": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Invite",
+      "type": "object",
+      "description": "Represents a pending invitation to a team.",
+      "properties": {
+        "id": { "type": "string" },
+        "teamId": { "type": "string" },
+        "teamName": { "type": "string" },
+        "workspaceIds": { "type": "array", "items": { "type": "string" } },
+        "email": { "type": "string", "format": "email" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "declined"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "inviter": { "type": "string" },
+        "allowWorkspaceCreation": { "type": "boolean", "description": "Whether the invited user is allowed to create workspaces." },
+        "usageLimit": { "type": "number", "description": "A specific usage limit set for the invited user." }
+      },
+      "required": ["teamId", "email", "status", "createdAt"]
+    },
+    "Exception": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Exception",
+      "type": "object",
+      "description": "Represents a permission exception for a group of users in a workspace.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the exception." },
+        "workspaceId": { "type": "string", "description": "The ID of the workspace this exception belongs to." },
+        "type": { "type": "string", "enum": ["Images", "Prompts", "Chats"], "description": "The type of content this exception applies to." },
+        "permission": { "type": "string", "enum": ["view", "add", "edit", "delete"], "description": "The specific permission being granted or denied." }
+      },
+      "required": ["id", "workspaceId", "type", "permission", "userIds"]
+    },
+    "BatchWrite": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "BatchWrite",
+      "type": "object",
+      "description": "Represents a job to handle a user joining a team.",
+      "properties": {
+        "teamId": { "type": "string" },
+        "workspaceIds": { "type": "array", "items": { "type": "string" } },
+        "userId": { "type": "string" },
+        "inviteId": { "type": "string" },
+        "userProfile": {
+          "type": "object",
+          "properties": {
+            "allowWorkspaceCreation": { "type": "boolean" },
+            "usageLimit": { "type": "number" }
+          }
+        }
+      },
+      "required": ["teamId", "userId", "inviteId"]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores user profile data."
+        }
+      },
+      {
+        "path": "/users/{userId}/usage/{usageId}",
+        "definition": {
+          "entityName": "Usage",
+          "schema": {
+            "$ref": "#/backend/entities/Usage"
+          },
+          "description": "Stores individual AI usage records for a user."
+        }
+      },
+      {
+        "path": "/teams/{teamId}",
+        "definition": {
+          "entityName": "Team",
+          "schema": {
+            "$ref": "#/backend/entities/Team"
+          },
+          "description": "Stores user-created teams."
+        }
+      },
+      {
+        "path": "/workspaces/{workspaceId}",
+        "definition": {
+          "entityName": "Workspace",
+          "schema": { "$ref": "#/backend/entities/Workspace" },
+          "description": "Stores collaborative workspaces within a team."
+        }
+      },
+      {
+        "path": "/workspaces/{workspaceId}/chats/{chatId}",
+        "definition": {
+          "entityName": "Chat",
+          "schema": {
+            "$ref": "#/backend/entities/Chat"
+          },
+          "description": "Stores metadata for a workspace's chat sessions."
+        }
+      },
+      {
+        "path": "/workspaces/{workspaceId}/chats/{chatId}/messages/{messageId}",
+        "definition": {
+          "entityName": "ChatMessage",
+          "schema": {
+            "$ref": "#/backend/entities/ChatMessage"
+          },
+          "description": "Stores individual messages for a specific chat session."
+        }
+      },
+      {
+        "path": "/invites/{inviteId}",
+        "definition": {
+          "entityName": "Invite",
+          "schema": {
+            "$ref": "#/backend/entities/Invite"
+          },
+          "description": "Stores pending invitations for users to join teams."
+        }
+      },
+      {
+        "path": "/workspaces/{workspaceId}/exceptions/{exceptionId}",
+        "definition": {
+          "entityName": "Exception",
+          "schema": {
+            "$ref": "#/backend/entities/Exception"
+          },
+          "description": "Stores permission exceptions for a workspace."
+        }
+      },
+      {
+        "path": "/batch-write/{jobId}",
+        "definition": {
+          "entityName": "BatchWrite",
+          "schema": {
+            "$ref": "#/backend/entities/BatchWrite"
+          },
+          "description": "A queue for processing team-join events."
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "placeholderImages": [
+    {
+      "id": "bot-avatar",
+      "description": "Avatar for the AI bot",
+      "imageUrl": "https://images.unsplash.com/photo-1683322001857-f4d932a40672?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxyb2JvdCUyMGZhY2V8ZW58MHx8fHwxNzYyMzk3OTQ4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "robot face"
+    },
+    {
+      "id": "sample-1",
+      "description": "A vibrant, abstract painting",
+      "imageUrl": "https://images.unsplash.com/photo-1541961017774-22349e4a1262?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxhYnN0cmFjdCUyMHBhaW50aW5nfGVufDB8fHx8MTc2NTM3Mjk5Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "abstract painting"
+    },
+    {
+      "id": "sample-2",
+      "description": "A futuristic cityscape at night",
+      "imageUrl": "https://images.unsplash.com/photo-1449157291145-7efd050a4d0e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxmdXR1cmlzdGljJTIwY2l0eXNjYXBlfGVufDB8fHx8MTc2NTM1NzQ3N3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "futuristic cityscape"
+    },
+    {
+      "id": "sample-3",
+      "description": "A photorealistic portrait of a cat",
+      "imageUrl": "https://images.unsplash.com/photo-1558201496-a35f22e7fb5c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjYXQlMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjU0NDY0ODN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cat portrait"
+    },
+    {
+      "id": "sample-4",
+      "description": "A serene landscape with mountains and a lake",
+      "imageUrl": "https://images.unsplash.com/photo-1636893580433-5ac59809bb13?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxzZXJlbmUlMjBsYW5kc2NhcGV8ZW58MHx8fHwxNzY1NDI4Njg4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "serene landscape"
+    },
+    {
+      "id": "sample-5",
+      "description": "A detailed 3D render of a vintage car",
+      "imageUrl": "https://images.unsplash.com/photo-1584908917822-6799d69a72cc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8dmludGFnZSUyMGNhcnxlbnwwfHx8fDE3NjU0MTkzOTN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "vintage car"
+    }
+  ]
+}
