@@ -1,37 +1,7 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import dynamic from 'next/dynamic';
-import { ThemeProvider, CssBaseline } from '@mui/material';
-
-import { Skeleton } from '@/components/ui/skeleton';
-import { GlobalLoader } from '@/components/ui/global-loader';
-import theme from '@/components/email-builder/theme';
-import { useDocument } from '@/components/email-builder/documents/editor/EditorContext';
-
-// Dynamically import the App component to disable SSR for the whole editor
-// We import the index file which exports the main App component
-const EmailBuilderApp = dynamic(() => import('@/components/email-builder/App'), {
-    ssr: false,
-    loading: () => (
-        <div className="flex items-center justify-center h-full w-full bg-[#f2f5f7]">
-            <GlobalLoader fullScreen={false} size={50} />
-        </div>
-    ),
-});
-
-// A component to listen to document changes and report back to parent
-function EditorStateListener({ onChange }: { onChange?: (doc: any) => void }) {
-    const document = useDocument();
-
-    useEffect(() => {
-        if (onChange) {
-            onChange(document);
-        }
-    }, [document, onChange]);
-
-    return null;
-}
+import React from 'react';
+import { Mail } from 'lucide-react';
 
 interface CampaignEditorProps {
     onChange: (doc: any) => void;
@@ -40,18 +10,16 @@ interface CampaignEditorProps {
 
 export function CampaignEditor({ onChange }: CampaignEditorProps) {
     return (
-        <ThemeProvider theme={theme}>
-            <CssBaseline />
-            {/* 
-        The EmailBuilder App uses fixed positioning for drawers, 
-        so we render it within this container. 
-        MUI Drawers with 'variant="persistent"' usually stay within flow or fixed.
-        We'll verify behavior visually.
-      */}
-            <div className="h-full w-full relative isolate bg-[#f2f5f7]">
-                <EmailBuilderApp />
-                <EditorStateListener onChange={onChange} />
+        <div className="h-full w-full flex items-center justify-center bg-muted/30">
+            <div className="text-center space-y-4 p-8">
+                <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Mail className="w-8 h-8 text-primary" />
+                </div>
+                <h2 className="text-xl font-semibold">Email Editor</h2>
+                <p className="text-muted-foreground max-w-md">
+                    The email builder will be integrated here. This is a placeholder while the editor is being set up.
+                </p>
             </div>
-        </ThemeProvider>
+        </div>
     );
 }
