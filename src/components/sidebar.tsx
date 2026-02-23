@@ -358,13 +358,17 @@ export function CollapsibleSidebar({ TopIcon = LogoIcon, isMobile = false, onLin
     }
   }, [isWorkspaceDialogOpen, user]);
 
-  // State for drill-down navigation
-  const [activeGroup, setActiveGroup] = useState<Group | null>(null);
+  // State for expanded dropdown groups - auto-expand active group
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(() => {
+    const activeGroup = findActiveGroup(pathname);
+    return activeGroup && activeGroup.items.length > 0 ? [activeGroup.id] : [];
+  });
 
   useEffect(() => {
-    // Determine active group on mount and path change
-    const group = findActiveGroup(pathname);
-    setActiveGroup(group);
+    const activeGroup = findActiveGroup(pathname);
+    if (activeGroup && activeGroup.items.length > 0 && !expandedGroups.includes(activeGroup.id)) {
+      setExpandedGroups(prev => [...prev, activeGroup.id]);
+    }
   }, [pathname]);
 
   // Custom scroll logic for collapsed sidebar
@@ -399,7 +403,7 @@ export function CollapsibleSidebar({ TopIcon = LogoIcon, isMobile = false, onLin
       viewport.removeEventListener('scroll', checkScroll);
       observer.disconnect();
     };
-  }, [activeGroup, showFullSidebar]); // Re-run when content structure might change
+  }, [expandedGroups, showFullSidebar]); // Re-run when content structure might change
 
   useEffect(() => {
     stopScrolling();
@@ -464,12 +468,7 @@ export function CollapsibleSidebar({ TopIcon = LogoIcon, isMobile = false, onLin
     }
   }
 
-  const handleGroupSelect = (group: Group) => {
-    setActiveGroup(group);
-    if (group.items && group.items.length > 0) {
-      handleLinkClick(group.items[0].href);
-    }
-  }
+  // handleGroupSelect removed - using inline dropdowns now
 
   const handleChatNavigation = (path: string) => {
     if (!can('add', 'Chats')) {
@@ -522,127 +521,106 @@ export function CollapsibleSidebar({ TopIcon = LogoIcon, isMobile = false, onLin
         )}
         <ScrollArea ref={scrollAreaRef} className={cn("h-full", !showFullSidebar && "[&_[data-orientation=vertical]]:hidden")}>
           <div className={cn("flex flex-col gap-2 mt-2", showFullSidebar ? "p-2" : "p-2 items-center")}>
-            {(() => {
-              // Check if we're inside a tab group
-              const currentActiveGroup = findActiveGroup(pathname);
-              const isInsideTabGroup = currentActiveGroup && currentActiveGroup.items && currentActiveGroup.items.length > 0;
+            {/* Always show all groups with inline dropdowns */}
+            <div className="flex flex-col gap-1 w-full">
+              {groups.map((group, index) => {
+                const isTabGroup = group.items && group.items.length > 0;
+                const isGroupActive = group.href
+                  ? (pathname === group.href || pathname.startsWith(group.href + '/'))
+                  : group.items.some(item => isItemActive(item, pathname));
 
-              if (isInsideTabGroup) {
-                // DRILL-DOWN VIEW: Inside a tab group
-                // Show: Home breadcrumb (Home > Tab Name) + Sub-items of that tab only
-                const activeItem = currentActiveGroup.items.find(item => isItemActive(item, pathname));
-                const currentItemLabel = activeItem?.label || currentActiveGroup.label;
+                // For groups with no sub-items (Home, Team) - render as direct link
+                if (!isTabGroup) {
+                  return (
+                    <Tooltip key={index}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={isGroupActive ? "secondary" : "ghost"}
+                          size={showFullSidebar ? "lg" : "icon"}
+                          className={cn(
+                            "relative",
+                            showFullSidebar && "w-full justify-start px-2"
+                          )}
+                          onClick={() => handleLinkClick(group.href)}
+                        >
+                          <group.icon size={20} />
+                          {showFullSidebar && <span className="ml-2 font-medium">{group.label}</span>}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" hidden={showFullSidebar || isMobile}>
+                        <p>{group.label}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                }
+
+                // For groups with sub-items (SaaS Overview, Email Marketing) - render as collapsible dropdown
+                const isExpanded = expandedGroups.includes(group.id);
 
                 return (
-                  <div className="flex flex-col gap-1 w-full animate-in fade-in slide-in-from-right-4 duration-300">
-                    {/* Home Breadcrumb: Home icon > Tab Name */}
-                    <div className={cn(
-                      "flex items-center gap-1",
-                      showFullSidebar ? "w-full px-2 h-10" : "justify-center h-10 w-10"
-                    )}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 flex-shrink-0"
-                            onClick={() => handleLinkClick('/home')}
-                          >
-                            <Home size={20} />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="right" hidden={showFullSidebar || isMobile}>
-                          <p>Home</p>
-                        </TooltipContent>
-                      </Tooltip>
-                      {showFullSidebar && (
-                        <div className="flex items-center text-muted-foreground">
-                          <ChevronRight size={14} />
-                          <span className="font-medium ml-1 text-foreground truncate">{currentActiveGroup.label}</span>
-                        </div>
-                      )}
-                    </div>
+                  <div key={index} className="flex flex-col gap-0.5">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={isGroupActive && !isExpanded ? "secondary" : "ghost"}
+                          size={showFullSidebar ? "lg" : "icon"}
+                          className={cn(
+                            "relative",
+                            showFullSidebar && "w-full justify-between px-2"
+                          )}
+                          onClick={() => {
+                            if (showFullSidebar) {
+                              setExpandedGroups(prev =>
+                                prev.includes(group.id)
+                                  ? prev.filter(id => id !== group.id)
+                                  : [...prev, group.id]
+                              );
+                            } else {
+                              handleLinkClick(group.items[0].href);
+                            }
+                          }}
+                        >
+                          <div className="flex items-center">
+                            <group.icon size={20} />
+                            {showFullSidebar && <span className="ml-2 font-medium">{group.label}</span>}
+                          </div>
+                          {showFullSidebar && (
+                            <ChevronDown size={16} className={cn(
+                              "text-muted-foreground transition-transform duration-200",
+                              isExpanded && "rotate-180"
+                            )} />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" hidden={showFullSidebar || isMobile}>
+                        <p>{group.label}</p>
+                      </TooltipContent>
+                    </Tooltip>
 
-                    {/* Sub-items of the current tab group */}
-                    {currentActiveGroup.items.map((item, index) => {
-                      const isActive = isItemActive(item, pathname);
-                      return (
-                        <Tooltip key={index}>
-                          <TooltipTrigger asChild>
+                    {/* Dropdown sub-items */}
+                    {showFullSidebar && isExpanded && (
+                      <div className="flex flex-col gap-0.5 ml-4 pl-2 border-l border-border animate-in fade-in slide-in-from-top-2 duration-200">
+                        {group.items.map((item, itemIndex) => {
+                          const isActive = isItemActive(item, pathname);
+                          return (
                             <Button
+                              key={itemIndex}
                               variant={isActive ? "secondary" : "ghost"}
-                              size={showFullSidebar ? "lg" : "icon"}
-                              className={cn(
-                                "relative",
-                                showFullSidebar && "w-full justify-start px-2"
-                              )}
+                              size="sm"
+                              className="w-full justify-start px-2 h-9"
                               onClick={() => handleLinkClick(item.href, item.target)}
                             >
-                              <item.icon size={20} />
-                              {showFullSidebar && <span className="ml-2">{item.label}</span>}
+                              <item.icon size={16} />
+                              <span className="ml-2 text-sm">{item.label}</span>
                             </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="right" hidden={showFullSidebar || isMobile}>
-                            <p>{item.label}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      );
-                    })}
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
-              } else {
-                // MAIN VIEW: On Home page or individual button pages (like Team)
-                // Show: All groups normally
-                return (
-                  <div className="flex flex-col gap-1 w-full animate-in fade-in slide-in-from-left-4 duration-300">
-                    {groups.map((group, index) => {
-                      // Check if this group is currently active
-                      const isGroupActive = group.href
-                        ? (pathname === group.href || pathname.startsWith(group.href + '/'))
-                        : group.items.some(item => isItemActive(item, pathname));
-
-                      // Check if this is a tab group (has sub-items)
-                      const isTabGroup = group.items && group.items.length > 0;
-
-                      return (
-                        <Tooltip key={index}>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant={isGroupActive ? "secondary" : "ghost"}
-                              size={showFullSidebar ? "lg" : "icon"}
-                              className={cn(
-                                "relative group",
-                                showFullSidebar && "w-full justify-between px-2"
-                              )}
-                              onClick={() => {
-                                if (group.href) {
-                                  // Individual button - navigate directly
-                                  handleLinkClick(group.href);
-                                } else if (isTabGroup) {
-                                  // Tab group - navigate to first item
-                                  handleLinkClick(group.items[0].href);
-                                }
-                              }}
-                            >
-                              <div className="flex items-center">
-                                <group.icon size={20} />
-                                {showFullSidebar && <span className="ml-2 font-medium">{group.label}</span>}
-                              </div>
-                              {showFullSidebar && isTabGroup && (
-                                <ChevronRight size={16} className="text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity" />
-                              )}
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="right" hidden={showFullSidebar || isMobile}>
-                            <p>{group.label}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      );
-                    })}
-                  </div>
-                );
-              }
-            })()}
+              })}
+            </div>
 
           </div>
         </ScrollArea>
