@@ -20,6 +20,18 @@ import {
 } from '@/components/ui/tooltip';
 import Image from 'next/image';
 import Editor from '@monaco-editor/react';
+import { useEditor, EditorContent } from '@tiptap/react';
+import { mergeAttributes } from '@tiptap/core';
+import StarterKit from '@tiptap/starter-kit';
+import Heading from '@tiptap/extension-heading';
+import Paragraph from '@tiptap/extension-paragraph';
+import Underline from '@tiptap/extension-underline';
+import TextAlign from '@tiptap/extension-text-align';
+import Subscript from '@tiptap/extension-subscript';
+import Superscript from '@tiptap/extension-superscript';
+import FontFamily from '@tiptap/extension-font-family';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { Color } from '@tiptap/extension-color';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
 
 const DomainIcon = ({ size = 20, className }: { size?: number, className?: string }) => (
@@ -39,6 +51,74 @@ const LayoutIcon = ({ size = 20, className }: { size?: number, className?: strin
         <path d="M120-520v-320h320v320H120Zm0 400v-320h320v320H120Zm400-400v-320h320v320H520Zm0 400v-320h320v320H520ZM200-600h160v-160H200v160Zm400 0h160v-160H600v160Zm0 400h160v-160H600v160Zm-400 0h160v-160H200v160Zm400-400Zm0 240Zm-240 0Zm0-240Z" />
     </svg>
 );
+
+const CustomHeading = Heading.extend({
+    renderHTML({ node, HTMLAttributes }) {
+        const hasLevel = this.options.levels.includes(node.attrs.level);
+        const level = hasLevel ? node.attrs.level : this.options.levels[0];
+        let inlineStyle = '';
+        switch (level) {
+            case 1: inlineStyle = 'font-size: 32px; font-weight: bold; margin: 0; line-height: 1.2;'; break;
+            case 2: inlineStyle = 'font-size: 24px; font-weight: bold; margin: 0; line-height: 1.2;'; break;
+            case 3: inlineStyle = 'font-size: 20px; font-weight: bold; margin: 0; line-height: 1.2;'; break;
+            case 4: inlineStyle = 'font-size: 18px; font-weight: bold; margin: 0; line-height: 1.2;'; break;
+            case 5: inlineStyle = 'font-size: 16px; font-weight: bold; margin: 0; line-height: 1.2;'; break;
+            case 6: inlineStyle = 'font-size: 14px; font-weight: bold; margin: 0; line-height: 1.2;'; break;
+            default: inlineStyle = 'font-size: 32px; font-weight: bold; margin: 0; line-height: 1.2;'; break;
+        }
+        return [`h${level}`, mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, { style: inlineStyle }), 0];
+    }
+});
+
+const CustomParagraph = Paragraph.extend({
+    renderHTML({ HTMLAttributes }) {
+        return ['p', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, { style: 'margin: 0;' }), 0];
+    }
+});
+
+const RichTextEditor = ({ boxId, isSelected, boxProperties, onEditorFocus, onEditorBlur, onTransaction }: any) => {
+    const editor = useEditor({
+        extensions: [
+            StarterKit.configure({
+                heading: false,
+                paragraph: false,
+            }),
+            CustomHeading.configure({ levels: [1, 2, 3, 4, 5, 6] }),
+            CustomParagraph,
+            Underline,
+            TextAlign.configure({ types: ['heading', 'paragraph'] }),
+            Subscript,
+            Superscript,
+            TextStyle,
+            FontFamily,
+            Color,
+        ],
+        content: '<p>Type your text and work on its text styles, add merge tags and lists</p>',
+        onFocus: ({ editor }) => onEditorFocus(editor),
+        onBlur: ({ editor }) => onEditorBlur(editor),
+        onTransaction: ({ editor }) => onTransaction(editor),
+    });
+
+    useEffect(() => {
+        if (isSelected && editor) {
+            onEditorFocus(editor);
+        }
+    }, [isSelected, editor, onEditorFocus]);
+
+    if (!editor) return null;
+
+    return (
+        <div style={{
+            textAlign: boxProperties?.textAlign || 'left',
+            color: boxProperties?.fontColor || '#333333',
+            fontSize: `${boxProperties?.fontSize || 14}px`,
+            lineHeight: boxProperties?.lineHeight || 1.5,
+            fontFamily: boxProperties?.fontFamily || 'Arial'
+        }} className="w-full h-full [&>.tiptap]:outline-none [&>.tiptap]:h-full [&>.tiptap]:w-full relative">
+            <EditorContent editor={editor} className="w-full h-full" onClick={(e) => { e.stopPropagation(); onEditorFocus(editor); }} />
+        </div>
+    );
+};
 
 export default function EmailEditorPage() {
     const router = useRouter();
@@ -97,6 +177,8 @@ export default function EmailEditorPage() {
     // Text Block Properties State
     const [textPropertiesTab, setTextPropertiesTab] = useState<'settings' | 'styles'>('settings');
     const [boxProperties, setBoxProperties] = useState<Record<string, Record<string, any>>>({});
+    const [activeEditor, setActiveEditor] = useState<any>(null);
+    const [editorUpdateTicker, setEditorUpdateTicker] = useState(0);
 
     const [history, setHistory] = useState<Record<string, string>[]>([
         { box1: 'empty', box2: 'empty', box3: 'empty', box4: 'empty', box5: 'empty' }
@@ -303,23 +385,14 @@ export default function EmailEditorPage() {
                             setSelectedLayer('block');
                         }}
                     >
-                        <textarea
-                            className="text-[14px] font-sans leading-tight bg-transparent w-full h-full resize-none outline-none overflow-hidden"
-                            defaultValue="Type your text and work on its text styles, add merge tags and lists"
-                            style={{
-                                textAlign: boxProperties[boxId]?.textAlign || 'left',
-                                fontWeight: boxProperties[boxId]?.textBold ? 'bold' : 'normal',
-                                fontStyle: boxProperties[boxId]?.textItalic ? 'italic' : 'normal',
-                                textDecoration: boxProperties[boxId]?.textUnderline ? 'underline' : (boxProperties[boxId]?.textStrikethrough ? 'line-through' : 'none'),
-                                fontSize: `${boxProperties[boxId]?.fontSize || 14}px`,
-                                color: boxProperties[boxId]?.fontColor || '#333333',
-                                lineHeight: boxProperties[boxId]?.lineHeight || 1.5,
-                                fontFamily: boxProperties[boxId]?.fontFamily || 'Arial'
-                            }}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedBoxId(boxId);
-                                setSelectedLayer('block');
+                        <RichTextEditor
+                            boxId={boxId}
+                            isSelected={isSelected && selectedLayer === 'block'}
+                            boxProperties={boxProperties[boxId]}
+                            onEditorFocus={(editor: any) => setActiveEditor(editor)}
+                            onEditorBlur={() => { }}
+                            onTransaction={(editor: any) => {
+                                if (activeEditor === editor) setEditorUpdateTicker(t => t + 1);
                             }}
                         />
                     </div>
@@ -1322,15 +1395,24 @@ export default function EmailEditorPage() {
                                             <div className="space-y-3">
                                                 <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Paragraph Style</label>
                                                 <div className="flex bg-white dark:bg-accent border-[1.5px] border-gray-200 dark:border-border rounded-[10px] overflow-hidden">
-                                                    {['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].map((t, i, arr) => (
-                                                        <div
-                                                            key={t}
-                                                            className={`flex-1 h-[38px] flex items-center justify-center text-[13px] font-medium cursor-pointer transition-colors ${i < arr.length - 1 ? 'border-r-[1.5px] border-gray-200 dark:border-border' : ''} ${boxProperties[selectedBoxId]?.paragraphStyle === t || (!boxProperties[selectedBoxId]?.paragraphStyle && t === 'P') ? 'border-[2px] border-[#10b981] text-[#10b981] bg-[#10b981]/10 rounded-[8px] m-[-1.5px] z-10' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'}`}
-                                                            onClick={() => setBoxProperties(prev => ({ ...prev, [selectedBoxId]: { ...(prev[selectedBoxId] || {}), paragraphStyle: t } }))}
-                                                        >
-                                                            {t}
-                                                        </div>
-                                                    ))}
+                                                    {['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].map((t, i, arr) => {
+                                                        const isActive = activeEditor ?
+                                                            (t === 'P' ? activeEditor.isActive('paragraph') && !activeEditor.isActive('heading') : activeEditor.isActive('heading', { level: parseInt(t.replace('H', '')) }))
+                                                            : false;
+                                                        return (
+                                                            <div
+                                                                key={t}
+                                                                className={`flex-1 h-[38px] flex items-center justify-center text-[13px] font-medium cursor-pointer transition-colors ${i < arr.length - 1 ? 'border-r-[1.5px] border-gray-200 dark:border-border' : ''} ${isActive ? 'border-[2px] border-[#10b981] text-[#10b981] bg-[#10b981]/10 rounded-[8px] m-[-1.5px] z-10' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                                                                onClick={() => {
+                                                                    if (!activeEditor) return;
+                                                                    if (t === 'P') activeEditor.chain().focus().setParagraph().run();
+                                                                    else activeEditor.chain().focus().toggleHeading({ level: parseInt(t.replace('H', '')) }).run();
+                                                                }}
+                                                            >
+                                                                {t}
+                                                            </div>
+                                                        )
+                                                    })}
                                                 </div>
                                             </div>
 
@@ -1339,28 +1421,32 @@ export default function EmailEditorPage() {
                                                 <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Text Style</label>
                                                 <div className="flex bg-white dark:bg-accent border-[1.5px] border-gray-200 dark:border-border rounded-[10px] overflow-hidden">
                                                     {[
-                                                        { id: 'textBold', label: 'B', elem: <span className="font-bold font-serif">B</span> },
-                                                        { id: 'textItalic', label: 'I', elem: <span className="italic font-serif pl-1">I</span> },
-                                                        { id: 'textUnderline', label: 'U', elem: <span className="underline font-serif">U</span> },
-                                                        { id: 'textStrikethrough', label: 'S', elem: <span className="line-through font-serif">S</span> },
-                                                        { id: 'textSubscript', label: 'X2', elem: <span className="font-serif">X<sub className="text-[10px] font-sans">2</sub></span> },
-                                                        { id: 'textSuperscript', label: 'X^2', elem: <span className="font-serif">X<sup className="text-[10px] font-sans">2</sup></span> },
-                                                        { id: 'textClear', label: 'Tx', elem: <span className="font-serif text-gray-400">T<sub className="text-[10px] font-sans">x</sub></span> }
-                                                    ].map((btn, i, arr) => (
-                                                        <div
-                                                            key={btn.id}
-                                                            className={`flex-1 h-[38px] flex items-center justify-center text-[16px] cursor-pointer transition-colors ${i < arr.length - 1 ? 'border-r-[1.5px] border-gray-200 dark:border-border' : ''} ${boxProperties[selectedBoxId]?.[btn.id] ? 'bg-gray-100 dark:bg-white/10' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'}`}
-                                                            onClick={() => {
-                                                                if (btn.id === 'textClear') {
-                                                                    setBoxProperties(prev => ({ ...prev, [selectedBoxId]: {} }));
-                                                                } else {
-                                                                    setBoxProperties(prev => ({ ...prev, [selectedBoxId]: { ...(prev[selectedBoxId] || {}), [btn.id]: !(prev[selectedBoxId]?.[btn.id]) } }));
-                                                                }
-                                                            }}
-                                                        >
-                                                            {btn.elem}
-                                                        </div>
-                                                    ))}
+                                                        { id: 'bold', command: 'toggleBold', label: 'B', elem: <span className="font-bold font-serif">B</span> },
+                                                        { id: 'italic', command: 'toggleItalic', label: 'I', elem: <span className="italic font-serif pl-1">I</span> },
+                                                        { id: 'underline', command: 'toggleUnderline', label: 'U', elem: <span className="underline font-serif">U</span> },
+                                                        { id: 'strike', command: 'toggleStrike', label: 'S', elem: <span className="line-through font-serif">S</span> },
+                                                        { id: 'subscript', command: 'toggleSubscript', label: 'X2', elem: <span className="font-serif">X<sub className="text-[10px] font-sans">2</sub></span> },
+                                                        { id: 'superscript', command: 'toggleSuperscript', label: 'X^2', elem: <span className="font-serif">X<sup className="text-[10px] font-sans">2</sup></span> },
+                                                        { id: 'clear', command: 'clear', label: 'Tx', elem: <span className="font-serif text-gray-400">T<sub className="text-[10px] font-sans">x</sub></span> }
+                                                    ].map((btn, i, arr) => {
+                                                        const isActive = activeEditor && btn.id !== 'clear' ? activeEditor.isActive(btn.id) : false;
+                                                        return (
+                                                            <div
+                                                                key={btn.id}
+                                                                className={`flex-1 h-[38px] flex items-center justify-center text-[16px] cursor-pointer transition-colors ${i < arr.length - 1 ? 'border-r-[1.5px] border-gray-200 dark:border-border' : ''} ${isActive ? 'bg-gray-100 dark:bg-white/10' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                                                                onClick={() => {
+                                                                    if (!activeEditor) return;
+                                                                    if (btn.id === 'clear') {
+                                                                        activeEditor.chain().focus().clearNodes().unsetAllMarks().run();
+                                                                    } else {
+                                                                        (activeEditor.chain().focus() as any)[btn.command]().run();
+                                                                    }
+                                                                }}
+                                                            >
+                                                                {btn.elem}
+                                                            </div>
+                                                        )
+                                                    })}
                                                 </div>
                                             </div>
 
@@ -1377,15 +1463,20 @@ export default function EmailEditorPage() {
                                                             { id: 'center', icon: 'format_align_center' },
                                                             { id: 'right', icon: 'format_align_right' },
                                                             { id: 'justify', icon: 'format_align_justify' }
-                                                        ].map((item, i, arr) => (
-                                                            <div
-                                                                key={item.id}
-                                                                className={`flex-1 h-[38px] flex items-center justify-center cursor-pointer transition-colors ${i < arr.length - 1 ? 'border-r-[1.5px] border-gray-200 dark:border-border' : ''} ${boxProperties[selectedBoxId]?.textAlign === item.id || (!boxProperties[selectedBoxId]?.textAlign && item.id === 'left') ? 'border-[2px] border-[#10b981] text-[#10b981] bg-[#10b981]/10 rounded-[8px] m-[-1.5px] z-10' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'}`}
-                                                                onClick={() => setBoxProperties(prev => ({ ...prev, [selectedBoxId]: { ...(prev[selectedBoxId] || {}), textAlign: item.id } }))}
-                                                            >
-                                                                <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
-                                                            </div>
-                                                        ))}
+                                                        ].map((item, i, arr) => {
+                                                            const isActive = activeEditor ? activeEditor.isActive({ textAlign: item.id }) : (!boxProperties[selectedBoxId]?.textAlign && item.id === 'left');
+                                                            return (
+                                                                <div
+                                                                    key={item.id}
+                                                                    className={`flex-1 h-[38px] flex items-center justify-center cursor-pointer transition-colors ${i < arr.length - 1 ? 'border-r-[1.5px] border-gray-200 dark:border-border' : ''} ${isActive ? 'border-[2px] border-[#10b981] text-[#10b981] bg-[#10b981]/10 rounded-[8px] m-[-1.5px] z-10' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                                                                    onClick={() => {
+                                                                        if (activeEditor) activeEditor.chain().focus().setTextAlign(item.id).run();
+                                                                    }}
+                                                                >
+                                                                    <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
+                                                                </div>
+                                                            )
+                                                        })}
                                                     </div>
                                                 </div>
 
@@ -1407,12 +1498,37 @@ export default function EmailEditorPage() {
                                         <div className="space-y-7 animate-in fade-in duration-200">
                                             {/* Font Family */}
                                             <div className="flex items-center justify-between">
-                                                <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Font Family</label>
-                                                <div className="h-[44px] px-4 w-[160px] border-[1.5px] border-gray-200 dark:border-border rounded-full flex items-center justify-between bg-white dark:bg-background cursor-pointer hover:border-gray-300 dark:hover:border-gray-500 transition-colors">
-                                                    <span className="text-[14px] text-gray-700 dark:text-gray-200 font-medium">{boxProperties[selectedBoxId]?.fontFamily || 'Arial'}</span>
-                                                    <span className="material-symbols-outlined text-[20px] text-gray-400">keyboard_arrow_down</span>
-                                                </div>
+                                                <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide whitespace-nowrap">Font Family</label>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <div className="h-[38px] px-4 ml-4 flex-1 border-[1.5px] border-gray-200 dark:border-border rounded-full flex items-center justify-between bg-white dark:bg-background cursor-pointer hover:border-gray-300 dark:hover:border-gray-500 transition-colors shadow-sm">
+                                                            <span className="text-[14px] text-gray-700 dark:text-gray-200 font-medium truncate mr-2">
+                                                                {activeEditor?.getAttributes('textStyle').fontFamily || 'Arial'}
+                                                            </span>
+                                                            <span className="material-symbols-outlined text-[20px] text-gray-400 flex-shrink-0">keyboard_arrow_down</span>
+                                                        </div>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent className="w-[160px] bg-white dark:bg-background z-[200] border shadow-md rounded-xl max-h-[300px] overflow-y-auto">
+                                                        {['Arial', 'Times New Roman', 'Inter', 'Roboto', 'Outfit', 'Georgia', 'Courier New', 'Comic Sans MS'].map((font) => (
+                                                            <DropdownMenuItem
+                                                                key={font}
+                                                                className="cursor-pointer"
+                                                                onClick={() => {
+                                                                    if (activeEditor) {
+                                                                        activeEditor.chain().focus().setFontFamily(font).run();
+                                                                    }
+                                                                }}
+                                                                style={{ fontFamily: font }}
+                                                            >
+                                                                {font}
+                                                            </DropdownMenuItem>
+                                                        ))}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
                                             </div>
+
+                                            {/* Divider */}
+                                            <div className="h-[1px] w-full bg-gray-200 dark:bg-border my-6"></div>
 
                                             {/* Font Size on Desktop */}
                                             <div className="flex items-center justify-between">
@@ -1420,7 +1536,7 @@ export default function EmailEditorPage() {
                                                     <div className="w-[5px] h-[5px] bg-[#10b981] rounded-full"></div>
                                                     <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Font Size on Desktop</label>
                                                 </div>
-                                                <div className="h-[44px] px-4 w-[90px] border-[1.5px] border-gray-200 dark:border-border rounded-full flex items-center justify-between bg-white dark:bg-background cursor-pointer hover:border-gray-300 dark:hover:border-gray-500 transition-colors">
+                                                <div className="h-[38px] px-4 w-[90px] border-[1.5px] border-gray-200 dark:border-border rounded-full flex items-center justify-between bg-white dark:bg-background cursor-pointer hover:border-gray-300 dark:hover:border-gray-500 transition-colors">
                                                     <span className="text-[14px] text-gray-700 dark:text-gray-200 font-medium">{boxProperties[selectedBoxId]?.fontSize || '14'}</span>
                                                     <span className="material-symbols-outlined text-[20px] text-gray-400">keyboard_arrow_down</span>
                                                 </div>
@@ -1429,8 +1545,20 @@ export default function EmailEditorPage() {
                                             {/* Font Color */}
                                             <div className="flex items-center justify-between">
                                                 <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Font Color</label>
-                                                <div className="h-[44px] px-5 w-[140px] rounded-full border border-gray-200 dark:border-border flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity" style={{ backgroundColor: boxProperties[selectedBoxId]?.fontColor || '#333333' }}>
-                                                    <span className="text-[14px] font-medium tracking-wider" style={{ color: boxProperties[selectedBoxId]?.fontColor ? '#333' : 'white' }}>{boxProperties[selectedBoxId]?.fontColor || '#333333'}</span>
+                                                <div className="h-[38px] px-5 w-[140px] rounded-full border border-gray-200 dark:border-border flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity relative overflow-hidden shadow-sm" style={{ backgroundColor: activeEditor?.getAttributes('textStyle').color || '#333333' }}>
+                                                    <input
+                                                        type="color"
+                                                        className="absolute top-[-10px] left-[-10px] w-[200px] h-[200px] opacity-0 cursor-pointer"
+                                                        value={activeEditor?.getAttributes('textStyle').color || '#333333'}
+                                                        onChange={(e) => {
+                                                            if (activeEditor) {
+                                                                activeEditor.chain().focus().setColor(e.target.value).run();
+                                                            }
+                                                        }}
+                                                    />
+                                                    <span className="text-[14px] font-medium tracking-wider mix-blend-difference text-white">
+                                                        {activeEditor?.getAttributes('textStyle').color || '#333333'}
+                                                    </span>
                                                 </div>
                                             </div>
 
@@ -1441,7 +1569,7 @@ export default function EmailEditorPage() {
                                                     <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Line Height on Desktop</label>
                                                 </div>
                                                 <div className="flex items-center gap-2">
-                                                    <div className="h-[44px] flex-1 bg-white dark:bg-accent border-[1.5px] border-gray-200 dark:border-border rounded-full flex items-center justify-between px-3.5">
+                                                    <div className="h-[38px] flex-1 bg-white dark:bg-accent border-[1.5px] border-gray-200 dark:border-border rounded-full flex items-center justify-between px-3.5">
                                                         <span
                                                             className="material-symbols-outlined text-[18px] text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer transition-colors"
                                                             onClick={() => setBoxProperties(prev => ({ ...prev, [selectedBoxId]: { ...(prev[selectedBoxId] || {}), lineHeight: Math.max(1, (prev[selectedBoxId]?.lineHeight || 1.5) - 0.1) } }))}
@@ -1458,7 +1586,7 @@ export default function EmailEditorPage() {
                                             {/* Text Background Color */}
                                             <div className="flex items-center justify-between pt-3">
                                                 <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Text Background Color</label>
-                                                <div className="h-[44px] w-[90px] rounded-full border-[1.5px] border-gray-200 dark:border-border flex items-center justify-center overflow-hidden relative cursor-pointer hover:border-gray-300 dark:hover:border-gray-500 transition-colors bg-white">
+                                                <div className="h-[38px] w-[90px] rounded-full border-[1.5px] border-gray-200 dark:border-border flex items-center justify-center overflow-hidden relative cursor-pointer hover:border-gray-300 dark:hover:border-gray-500 transition-colors bg-white">
                                                     {/* Checkerboard pattern for transparent */}
                                                     <div className="absolute inset-0 bg-transparent opacity-30" style={{ backgroundImage: 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)', backgroundSize: '10px 10px', backgroundPosition: '0 0, 0 5px, 5px -5px, -5px 0px' }}></div>
                                                 </div>
