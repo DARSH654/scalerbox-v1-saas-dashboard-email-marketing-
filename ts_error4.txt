@@ -1,0 +1,25 @@
+﻿.next/types/app/(app)/layout.ts(12,13): error TS2344: Type 'OmitWithTag<typeof import("C:/Users/DARSH/.antigravity/scalerbox-v1-saas-dashboard-email-marketing-/src/app/(app)/layout"), "default" | "metadata" | "config" | "generateStaticParams" | ... 10 more ... | "experimental_ppr", "">' does not satisfy the constraint '{ [x: string]: never; }'.
+  Property 'AppLayoutContext' is incompatible with index signature.
+    Type 'Context<AppLayoutContextType | null>' is not assignable to type 'never'.
+src/app/(app)/layout.tsx(164,47): error TS2339: Property 'customContext' does not exist on type 'never'.
+src/app/(app)/layout.tsx(183,42): error TS2339: Property 'lastSelectedModel' does not exist on type 'never'.
+src/app/(app)/layout.tsx(184,44): error TS2339: Property 'lastSelectedPersona' does not exist on type 'never'.
+src/app/(app)/usage/page.tsx(17,79): error TS2307: Cannot find module '@/firebase' or its corresponding type declarations.
+src/app/(app)/usage/page.tsx(145,53): error TS7006: Parameter 'team' implicitly has an 'any' type.
+src/app/(app)/usage/page.tsx(153,39): error TS7006: Parameter 'snap' implicitly has an 'any' type.
+src/app/(app)/usage/page.tsx(154,53): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+src/app/(app)/usage/page.tsx(154,58): error TS7006: Parameter 'doc' implicitly has an 'any' type.
+src/app/(app)/usage/page.tsx(212,63): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/app/about/page.tsx(47,32): error TS2307: Cannot find module '@/components/roadmap/waitlist-dialog' or its corresponding type declarations.
+src/app/page.tsx(42,24): error TS2307: Cannot find module '@/components/ClickSpark' or its corresponding type declarations.
+src/app/page.tsx(1851,60): error TS2339: Property 'videoUrl' does not exist on type '{ icon: ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>; title: string; description: string; posterUrl: string; }'.
+src/app/page.tsx(1872,71): error TS2339: Property 'videoUrl' does not exist on type '{ icon: ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>; title: string; description: string; posterUrl: string; }'.
+src/app/scalerboxblogs/[slug]/page.tsx(1,27): error TS2307: Cannot find module '@/lib/blog-data' or its corresponding type declarations.
+src/app/scalerboxblogs/[slug]/page.tsx(3,29): error TS2307: Cannot find module '@/components/blog-content' or its corresponding type declarations.
+src/app/scalerboxblogs/[slug]/page.tsx(6,27): error TS7006: Parameter 'post' implicitly has an 'any' type.
+src/app/scalerboxblogs/[slug]/page.tsx(13,34): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/app/scalerboxblogs/page.tsx(11,42): error TS2307: Cannot find module '@/lib/blog-data' or its corresponding type declarations.
+src/app/scalerboxblogs/page.tsx(118,33): error TS2322: Type 'unknown' is not assignable to type 'Key | null | undefined'.
+src/app/scalerboxblogs/page.tsx(120,67): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+src/app/scalerboxblogs/page.tsx(128,33): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+src/components/theme-provider.tsx(5,41): error TS2307: Cannot find module 'next-themes/dist/types' or its corresponding type declarations.
