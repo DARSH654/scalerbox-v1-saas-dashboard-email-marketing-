@@ -19,6 +19,8 @@ import { Loader2 } from 'lucide-react';
 import { GlobalLoader } from '@/components/ui/global-loader';
 import Image from 'next/image';
 import { createClient } from '@/utils/supabase/client';
+import { useSupabaseAuth } from '@/components/supabase-auth-provider';
+import { useEffect } from 'react';
 
 function LoginForm() {
   const [email, setEmail] = useState('');
@@ -32,12 +34,19 @@ function LoginForm() {
   const inviteId = searchParams.get('inviteId');
   const redirectUrl = searchParams.get('redirect');
   const supabase = createClient();
+  const { user, loading: authLoading } = useSupabaseAuth();
 
   const getRedirectPath = () => {
     if (inviteId) return `/chat?inviteId=${inviteId}`;
     if (redirectUrl) return redirectUrl;
     return '/home';
   };
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push(getRedirectPath());
+    }
+  }, [user, authLoading, router, inviteId, redirectUrl]); // Added dependencies for stability
 
   const handleSignIn = async (e: FormEvent) => {
     e.preventDefault();
@@ -80,7 +89,7 @@ function LoginForm() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: providerName,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=${getRedirectPath()}`,
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(getRedirectPath())}`,
         },
       });
 
