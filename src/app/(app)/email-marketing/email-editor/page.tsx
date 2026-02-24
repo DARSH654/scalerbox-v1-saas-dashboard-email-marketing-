@@ -94,6 +94,10 @@ export default function EmailEditorPage() {
     const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null);
     const [selectedLayer, setSelectedLayer] = useState<'block' | 'container' | 'structure' | 'stripe' | null>(null);
 
+    // Text Block Properties State
+    const [textPropertiesTab, setTextPropertiesTab] = useState<'settings' | 'styles'>('settings');
+    const [boxProperties, setBoxProperties] = useState<Record<string, Record<string, any>>>({});
+
     const [history, setHistory] = useState<Record<string, string>[]>([
         { box1: 'empty', box2: 'empty', box3: 'empty', box4: 'empty', box5: 'empty' }
     ]);
@@ -300,9 +304,23 @@ export default function EmailEditorPage() {
                         }}
                     >
                         <textarea
-                            className="text-[14px] text-gray-700 font-sans leading-tight bg-transparent w-full h-full resize-none outline-none overflow-hidden"
+                            className="text-[14px] font-sans leading-tight bg-transparent w-full h-full resize-none outline-none overflow-hidden"
                             defaultValue="Type your text and work on its text styles, add merge tags and lists"
-                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                                textAlign: boxProperties[boxId]?.textAlign || 'left',
+                                fontWeight: boxProperties[boxId]?.textBold ? 'bold' : 'normal',
+                                fontStyle: boxProperties[boxId]?.textItalic ? 'italic' : 'normal',
+                                textDecoration: boxProperties[boxId]?.textUnderline ? 'underline' : (boxProperties[boxId]?.textStrikethrough ? 'line-through' : 'none'),
+                                fontSize: `${boxProperties[boxId]?.fontSize || 14}px`,
+                                color: boxProperties[boxId]?.fontColor || '#333333',
+                                lineHeight: boxProperties[boxId]?.lineHeight || 1.5,
+                                fontFamily: boxProperties[boxId]?.fontFamily || 'Arial'
+                            }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedBoxId(boxId);
+                                setSelectedLayer('block');
+                            }}
                         />
                     </div>
                 </div>
@@ -735,6 +753,48 @@ export default function EmailEditorPage() {
                             </TooltipTrigger>
                             <TooltipContent>Share</TooltipContent>
                         </Tooltip>
+
+                        {/* User Profile */}
+                        <DropdownMenu>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <DropdownMenuTrigger asChild>
+                                        <div className="h-[36px] w-[36px] rounded-full overflow-hidden cursor-pointer border-[1.5px] border-transparent hover:border-gray-200 transition-all shadow-sm">
+                                            <Image
+                                                src="https://qsehqxombjgqhabdcxpt.supabase.co/storage/v1/object/public/firebase-images/llm_icons_image_for_magai_2.0/a86f1e84-18fa-4e73-b230-cbcfda5b201f.jpg"
+                                                alt="User Profile"
+                                                width={36}
+                                                height={36}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                    </DropdownMenuTrigger>
+                                </TooltipTrigger>
+                                <TooltipContent>Profile</TooltipContent>
+                            </Tooltip>
+                            <DropdownMenuContent align="end" className="w-56 mt-2 bg-white dark:bg-background border shadow-xl rounded-xl z-[200]">
+                                <DropdownMenuItem onClick={() => router.push('/team')} className="cursor-pointer py-2">
+                                    <div className="flex items-center">
+                                        <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-accent flex items-center justify-center mr-3">
+                                            <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor" className="text-gray-500">
+                                                <path d="M500-482q29-32 44.5-73t15.5-85q0-44-15.5-85T500-798q60 8 100 53t40 105q0 60-40 105t-100 53Zm220 322v-120q0-36-16-68.5T662-406q51 18 94.5 46.5T800-280v120h-80Zm80-280v-80h-80v-80h80v-80h80v80h80v80h-80v80h-80Zm-593-87q-47-47-47-113t47-113q47-47 113-47t113 47q47 47 47 113t-47 113q-47 47-113 47t-113-47ZM0-160v-112q0-34 17.5-62.5T64-378q62-31 126-46.5T320-440q66 0 130 15.5T576-378q29 15 46.5 43.5T640-272v112H0Zm320-400q33 0 56.5-23.5T400-640q0-33-23.5-56.5T320-720q-33 0-56.5 23.5T240-640q0 33 23.5 56.5T320-560ZM80-240h480v-32q0-11-5.5-20T540-306q-54-27-109-40.5T320-360q-56 0-111 13.5T100-306q-9 5-14.5 14T80-272v32Zm240-400Zm0 400Z" />
+                                            </svg>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-medium">Add Member</span>
+                                            <span className="text-[11px] text-muted-foreground">Invite to workspace</span>
+                                        </div>
+                                    </div>
+                                </DropdownMenuItem>
+                                <div className="h-[1px] bg-gray-100 dark:bg-border my-1"></div>
+                                <DropdownMenuItem onClick={() => router.push('/settings/profile')} className="cursor-pointer">
+                                    <Settings className="w-4 h-4 mr-2" /> Settings
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => router.push('/logout')} className="cursor-pointer text-red-500 focus:text-red-500">
+                                    Logout
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </TooltipProvider>
             </header>
@@ -1230,159 +1290,340 @@ export default function EmailEditorPage() {
                         </div>
                     )}
                     <div className="pointer-events-auto flex flex-col h-full w-full">
-                        {/* Separate Tabs Pill Container */}
-                        <div className="w-full h-[54px] bg-[#e5e7eb] dark:bg-accent/40 p-[5px] rounded-[27px] flex items-center shadow-inner relative flex-shrink-0 mb-3">
-                            <TooltipProvider delayDuration={0}>
-                                {/* Tab 1: General Styles */}
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <div className="flex-1 h-full flex justify-center items-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer transition-colors">
-                                            <span className="material-symbols-outlined text-[20px]">chrome_reader_mode</span>
-                                        </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent>General Styles</TooltipContent>
-                                </Tooltip>
-
-                                {/* Tab 2: Message Settings (Active) */}
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <div className="flex-[1.1] h-[44px] flex justify-center items-center bg-white dark:bg-background rounded-[22px] shadow-[0_1px_3px_rgba(0,0,0,0.1)] text-gray-700 dark:text-foreground cursor-pointer transition-all">
-                                            <span className="material-symbols-outlined text-[20px]">chat_bubble_outline</span>
-                                        </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Message Settings</TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                        </div>
-
-                        {/* Separate Content Area Card */}
-                        <div className="flex-1 bg-white dark:bg-background rounded-[24px] shadow-sm flex flex-col overflow-hidden">
-                            <div className="flex-1 overflow-y-auto p-5 space-y-7 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-track]:my-5 [&::-webkit-scrollbar-thumb]:rounded-full">
-
-                                {/* Subject / Title */}
-                                <div className="space-y-3">
-                                    <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Subject / Title</label>
-                                    <div className="relative bg-[#f1f5f9] dark:bg-accent/30 rounded-[16px] p-4 pb-10 min-h-[140px] transition-colors focus-within:ring-2 focus-within:ring-primary shadow-inner overflow-hidden group">
-                                        <textarea
-                                            value={subjectText}
-                                            onChange={(e) => setSubjectText(e.target.value)}
-                                            placeholder="65 characters recommended"
-                                            className="w-[calc(100%-30px)] bg-transparent border-none outline-none text-[15px] resize-none text-gray-800 dark:text-foreground font-medium placeholder:text-gray-400"
-                                            rows={3}
-                                        />
-                                        <div className="absolute top-3 right-3 text-[#10b981] dark:text-[#10b981] hover:opacity-80 transition-opacity cursor-pointer flex flex-col gap-3 items-center">
-                                            <span className="material-symbols-outlined text-[20px]">auto_fix_high</span>
-                                            <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center mt-6">
-                                                <span className="material-symbols-outlined text-[22px] text-gray-600 dark:text-gray-300 hover:text-gray-800 transition-colors">sentiment_satisfied</span>
-                                            </div>
-                                        </div>
-                                        <div className="absolute bottom-3 right-[18px] flex flex-col items-center">
-                                            <span className="text-[13px] text-gray-400 dark:text-gray-500 font-medium tracking-wide">{subjectText.length}</span>
-                                        </div>
-                                    </div>
+                        {selectedBoxId && selectedLayer === 'block' && boxStates[selectedBoxId] === 'text' ? (
+                            <div className="flex-1 bg-white dark:bg-background rounded-[24px] shadow-sm flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
+                                {/* Text Block Header */}
+                                <div className="pt-[10px] pb-[10px] flex items-center justify-between px-5 border-b border-gray-100 dark:border-border flex-shrink-0">
+                                    <span className="material-symbols-outlined text-[15px] font-medium text-gray-400 hover:text-gray-600 cursor-pointer" onClick={() => setSelectedBoxId(null)}>close</span>
+                                    <span className="font-medium text-[15px] text-gray-700 dark:text-foreground">Text Block</span>
+                                    <span className="material-symbols-outlined text-[15px] font-medium text-gray-400 cursor-pointer">keyboard_double_arrow_up</span>
                                 </div>
 
-                                {/* Hidden Preheader */}
-                                <div className="space-y-3">
-                                    <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Hidden Preheader</label>
-                                    <div className="relative bg-[#f1f5f9] dark:bg-accent/30 rounded-[16px] p-4 pb-10 min-h-[140px] transition-colors focus-within:ring-2 focus-within:ring-primary shadow-inner overflow-hidden group">
-                                        <textarea
-                                            value={preheaderText}
-                                            onChange={(e) => setPreheaderText(e.target.value)}
-                                            placeholder="50 - 100 characters"
-                                            className="w-[calc(100%-30px)] bg-transparent border-none outline-none text-[14px] resize-none text-gray-800 dark:text-foreground placeholder:text-gray-400"
-                                            rows={3}
-                                        />
-                                        <div className="absolute top-3 right-3 text-[#10b981] dark:text-[#10b981] hover:opacity-80 transition-opacity cursor-pointer flex flex-col gap-3 items-center">
-                                            <span className="material-symbols-outlined text-[20px]">auto_fix_high</span>
-                                            <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center mt-1">
-                                                <span className="material-symbols-outlined text-[22px] text-gray-600 dark:text-gray-300 hover:text-gray-800 transition-colors">sentiment_satisfied</span>
-                                            </div>
-                                            <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center mt-1">
-                                                <span className="material-symbols-outlined text-[22px] text-gray-500 dark:text-gray-400 hover:text-gray-700 transition-colors rotate-90 scale-x-[-1]">open_in_new</span>
-                                            </div>
-                                        </div>
-                                        <div className="absolute bottom-3 right-[18px] flex flex-col items-center">
-                                            <span className="text-[13px] text-gray-400 dark:text-gray-500 font-medium tracking-wide">{preheaderText.length}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Email annotations for Gmail */}
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between pl-1 pr-1">
-                                        <label className="text-[14px] font-medium text-gray-600 dark:text-foreground/80 tracking-wide">Email annotations for Gmail</label>
+                                <div className="flex-1 overflow-y-auto p-5 pt-3 space-y-7 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-track]:my-5 [&::-webkit-scrollbar-thumb]:rounded-full">
+                                    {/* Settings / Styles Tabs */}
+                                    <div className="w-full bg-[#f1f5f9] dark:bg-accent/40 rounded-full p-1 flex mt-0 h-[38px]">
                                         <div
-                                            onClick={() => setIsGmailAnnotationEnabled(!isGmailAnnotationEnabled)}
-                                            className={`w-[42px] h-[24px] rounded-full relative cursor-pointer shadow-inner transition-colors duration-200 ${isGmailAnnotationEnabled ? 'bg-[#10b981]' : 'bg-gray-200 dark:bg-accent/60 hover:bg-gray-300'}`}
+                                            className={`flex-1 flex items-center justify-center rounded-full text-[13px] font-medium cursor-pointer transition-colors ${textPropertiesTab === 'settings' ? 'bg-white shadow-sm text-gray-700 dark:bg-background dark:text-foreground' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
+                                            onClick={() => setTextPropertiesTab('settings')}
                                         >
-                                            <div className={`w-[20px] h-[20px] bg-white rounded-full absolute top-[2px] shadow-sm transition-transform duration-200 ${isGmailAnnotationEnabled ? 'translate-x-[20px]' : 'translate-x-[2px]'}`}></div>
+                                            Settings
+                                        </div>
+                                        <div
+                                            className={`flex-1 flex items-center justify-center rounded-full text-[13px] font-medium cursor-pointer transition-colors ${textPropertiesTab === 'styles' ? 'bg-white shadow-sm text-gray-700 dark:bg-background dark:text-foreground' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'}`}
+                                            onClick={() => setTextPropertiesTab('styles')}
+                                        >
+                                            Styles
                                         </div>
                                     </div>
 
-                                    {isGmailAnnotationEnabled && (
-                                        <div className="space-y-6 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                                            <p className="text-[13.5px] text-gray-400 leading-relaxed px-1">
-                                                This feature lets you showcase your deals, discounts, or offer directly in recipient's inbox before they open the email. Effective on mobile device in Gmail promotion folder.
-                                            </p>
-
-                                            <div className="space-y-2">
-                                                <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Annotation</label>
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <div className="w-full bg-[#f8fafc] dark:bg-accent/30 border-[2px] border-gray-200 dark:border-border rounded-[14px] p-3.5 flex items-center justify-between cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
-                                                            <span className="text-[14.5px] font-medium text-gray-700 dark:text-foreground">Product Carousel</span>
-                                                            <span className="material-symbols-outlined text-[20px] text-gray-400">keyboard_arrow_down</span>
+                                    {textPropertiesTab === 'settings' && (
+                                        <div className="space-y-7 animate-in fade-in duration-200">
+                                            {/* Paragraph Style */}
+                                            <div className="space-y-3">
+                                                <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Paragraph Style</label>
+                                                <div className="flex bg-white dark:bg-accent border-[1.5px] border-gray-200 dark:border-border rounded-[10px] overflow-hidden">
+                                                    {['P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'].map((t, i, arr) => (
+                                                        <div
+                                                            key={t}
+                                                            className={`flex-1 h-[38px] flex items-center justify-center text-[13px] font-medium cursor-pointer transition-colors ${i < arr.length - 1 ? 'border-r-[1.5px] border-gray-200 dark:border-border' : ''} ${boxProperties[selectedBoxId]?.paragraphStyle === t || (!boxProperties[selectedBoxId]?.paragraphStyle && t === 'P') ? 'border-[2px] border-[#10b981] text-[#10b981] bg-[#10b981]/10 rounded-[8px] m-[-1.5px] z-10' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                                                            onClick={() => setBoxProperties(prev => ({ ...prev, [selectedBoxId]: { ...(prev[selectedBoxId] || {}), paragraphStyle: t } }))}
+                                                        >
+                                                            {t}
                                                         </div>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent className="w-[320px] rounded-xl shadow-lg mt-1 p-2">
-                                                        <DropdownMenuItem className="py-2.5 px-3 rounded-lg cursor-pointer bg-green-50/50 dark:bg-green-900/10 text-green-700 dark:text-green-500 font-medium">Product Carousel</DropdownMenuItem>
-                                                        <DropdownMenuItem className="py-2.5 px-3 rounded-lg cursor-pointer text-gray-600 dark:text-gray-300">Deal Annotation</DropdownMenuItem>
-                                                        <DropdownMenuItem className="py-2.5 px-3 rounded-lg cursor-pointer text-gray-600 dark:text-gray-300">Single image preview</DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
-                                            </div>
-
-                                            {/* Preview Block Placeholder */}
-                                            <div className="space-y-2">
-                                                <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Preview</label>
-                                                <div className="w-full h-[100px] bg-[#f8fafc] dark:bg-accent/30 border border-gray-100 dark:border-border rounded-[14px] flex items-center justify-center border-dashed text-gray-400">
-                                                    <span className="text-sm font-medium opacity-60">Mobile Preview Wrapper</span>
+                                                    ))}
                                                 </div>
                                             </div>
 
-                                            {/* Sender's Logo Toggle */}
-                                            <div className="flex items-center justify-between pl-1 pr-1 pt-2">
-                                                <label className="text-[14px] font-medium text-gray-600 dark:text-foreground/80 tracking-wide">Sender's logo</label>
-                                                <div
-                                                    onClick={() => setIsSenderLogoEnabled(!isSenderLogoEnabled)}
-                                                    className={`w-[42px] h-[24px] rounded-full relative cursor-pointer shadow-inner transition-colors duration-200 ${isSenderLogoEnabled ? 'bg-[#10b981]' : 'bg-gray-200 dark:bg-accent/60 hover:bg-gray-300'}`}
-                                                >
-                                                    <div className={`w-[20px] h-[20px] bg-white rounded-full absolute top-[2px] shadow-sm transition-transform duration-200 ${isSenderLogoEnabled ? 'translate-x-[20px]' : 'translate-x-[2px]'}`}></div>
+                                            {/* Text Style */}
+                                            <div className="space-y-3">
+                                                <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Text Style</label>
+                                                <div className="flex bg-white dark:bg-accent border-[1.5px] border-gray-200 dark:border-border rounded-[10px] overflow-hidden">
+                                                    {[
+                                                        { id: 'textBold', label: 'B', elem: <span className="font-bold font-serif">B</span> },
+                                                        { id: 'textItalic', label: 'I', elem: <span className="italic font-serif pl-1">I</span> },
+                                                        { id: 'textUnderline', label: 'U', elem: <span className="underline font-serif">U</span> },
+                                                        { id: 'textStrikethrough', label: 'S', elem: <span className="line-through font-serif">S</span> },
+                                                        { id: 'textSubscript', label: 'X2', elem: <span className="font-serif">X<sub className="text-[10px] font-sans">2</sub></span> },
+                                                        { id: 'textSuperscript', label: 'X^2', elem: <span className="font-serif">X<sup className="text-[10px] font-sans">2</sup></span> },
+                                                        { id: 'textClear', label: 'Tx', elem: <span className="font-serif text-gray-400">T<sub className="text-[10px] font-sans">x</sub></span> }
+                                                    ].map((btn, i, arr) => (
+                                                        <div
+                                                            key={btn.id}
+                                                            className={`flex-1 h-[38px] flex items-center justify-center text-[16px] cursor-pointer transition-colors ${i < arr.length - 1 ? 'border-r-[1.5px] border-gray-200 dark:border-border' : ''} ${boxProperties[selectedBoxId]?.[btn.id] ? 'bg-gray-100 dark:bg-white/10' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                                                            onClick={() => {
+                                                                if (btn.id === 'textClear') {
+                                                                    setBoxProperties(prev => ({ ...prev, [selectedBoxId]: {} }));
+                                                                } else {
+                                                                    setBoxProperties(prev => ({ ...prev, [selectedBoxId]: { ...(prev[selectedBoxId] || {}), [btn.id]: !(prev[selectedBoxId]?.[btn.id]) } }));
+                                                                }
+                                                            }}
+                                                        >
+                                                            {btn.elem}
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
 
-                                            {/* Sender's Logo Uploader (When Enabled) */}
-                                            {isSenderLogoEnabled && (
-                                                <div className="w-full bg-[#f8fafc] dark:bg-accent/30 border-2 border-dashed border-gray-200 dark:border-border hover:border-green-400 dark:hover:border-green-500 rounded-[16px] p-6 flex flex-col items-center justify-center text-center gap-3 transition-colors cursor-pointer animate-in fade-in slide-in-from-top-2 duration-300">
-                                                    <div className="w-12 h-12 bg-white dark:bg-background rounded-full shadow-sm flex items-center justify-center flex-shrink-0">
-                                                        <span className="material-symbols-outlined text-[24px] text-blue-500">add_photo_alternate</span>
+                                            {/* Text Alignment on Desktop & Indent */}
+                                            <div className="flex items-start justify-between gap-4">
+                                                <div className="space-y-3 flex-1 flex flex-col">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="w-[4.5px] h-[4.5px] bg-[#10b981] rounded-full"></div>
+                                                        <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Text Alignment on Desktop</label>
                                                     </div>
-                                                    <div className="space-y-1">
-                                                        <p className="text-[14px] font-medium text-gray-700 dark:text-foreground">
-                                                            Drag and drop your image or <span className="text-blue-500 hover:underline">paste URL</span>
-                                                        </p>
-                                                        <p className="text-[12px] text-gray-400 px-2 leading-relaxed">
-                                                            You can also paste your image PNG, JPG or GIF from keyboard or browse your files.
-                                                        </p>
+                                                    <div className="flex bg-white dark:bg-accent border-[1.5px] border-gray-200 dark:border-border rounded-[10px] overflow-hidden">
+                                                        {[
+                                                            { id: 'left', icon: 'format_align_left' },
+                                                            { id: 'center', icon: 'format_align_center' },
+                                                            { id: 'right', icon: 'format_align_right' },
+                                                            { id: 'justify', icon: 'format_align_justify' }
+                                                        ].map((item, i, arr) => (
+                                                            <div
+                                                                key={item.id}
+                                                                className={`flex-1 h-[38px] flex items-center justify-center cursor-pointer transition-colors ${i < arr.length - 1 ? 'border-r-[1.5px] border-gray-200 dark:border-border' : ''} ${boxProperties[selectedBoxId]?.textAlign === item.id || (!boxProperties[selectedBoxId]?.textAlign && item.id === 'left') ? 'border-[2px] border-[#10b981] text-[#10b981] bg-[#10b981]/10 rounded-[8px] m-[-1.5px] z-10' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                                                                onClick={() => setBoxProperties(prev => ({ ...prev, [selectedBoxId]: { ...(prev[selectedBoxId] || {}), textAlign: item.id } }))}
+                                                            >
+                                                                <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
+                                                            </div>
+                                                        ))}
                                                     </div>
                                                 </div>
-                                            )}
+
+                                                <div className="space-y-3 w-[84px] flex flex-col items-start -mt-[5px]">
+                                                    <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide mt-[4px]">Indent</label>
+                                                    <div className="flex bg-white dark:bg-accent border-[1.5px] border-gray-200 dark:border-border rounded-[10px] overflow-hidden w-full">
+                                                        {['format_indent_decrease', 'format_indent_increase'].map((icon, i) => (
+                                                            <div key={icon} className={`flex-1 h-[38px] flex items-center justify-center cursor-pointer transition-colors ${i === 0 ? 'border-r-[1.5px] border-gray-200 dark:border-border' : ''} text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5`}>
+                                                                <span className="material-symbols-outlined text-[18px]">{icon}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {textPropertiesTab === 'styles' && (
+                                        <div className="space-y-7 animate-in fade-in duration-200">
+                                            {/* Font Family */}
+                                            <div className="flex items-center justify-between">
+                                                <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Font Family</label>
+                                                <div className="h-[44px] px-4 w-[160px] border-[1.5px] border-gray-200 dark:border-border rounded-full flex items-center justify-between bg-white dark:bg-background cursor-pointer hover:border-gray-300 dark:hover:border-gray-500 transition-colors">
+                                                    <span className="text-[14px] text-gray-700 dark:text-gray-200 font-medium">{boxProperties[selectedBoxId]?.fontFamily || 'Arial'}</span>
+                                                    <span className="material-symbols-outlined text-[20px] text-gray-400">keyboard_arrow_down</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Font Size on Desktop */}
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-[5px] h-[5px] bg-[#10b981] rounded-full"></div>
+                                                    <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Font Size on Desktop</label>
+                                                </div>
+                                                <div className="h-[44px] px-4 w-[90px] border-[1.5px] border-gray-200 dark:border-border rounded-full flex items-center justify-between bg-white dark:bg-background cursor-pointer hover:border-gray-300 dark:hover:border-gray-500 transition-colors">
+                                                    <span className="text-[14px] text-gray-700 dark:text-gray-200 font-medium">{boxProperties[selectedBoxId]?.fontSize || '14'}</span>
+                                                    <span className="material-symbols-outlined text-[20px] text-gray-400">keyboard_arrow_down</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Font Color */}
+                                            <div className="flex items-center justify-between">
+                                                <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Font Color</label>
+                                                <div className="h-[44px] px-5 w-[140px] rounded-full border border-gray-200 dark:border-border flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity" style={{ backgroundColor: boxProperties[selectedBoxId]?.fontColor || '#333333' }}>
+                                                    <span className="text-[14px] font-medium tracking-wider" style={{ color: boxProperties[selectedBoxId]?.fontColor ? '#333' : 'white' }}>{boxProperties[selectedBoxId]?.fontColor || '#333333'}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Line Height on Desktop */}
+                                            <div className="space-y-4">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-[5px] h-[5px] bg-[#10b981] rounded-full"></div>
+                                                    <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Line Height on Desktop</label>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="h-[44px] flex-1 bg-white dark:bg-accent border-[1.5px] border-gray-200 dark:border-border rounded-full flex items-center justify-between px-3.5">
+                                                        <span
+                                                            className="material-symbols-outlined text-[18px] text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer transition-colors"
+                                                            onClick={() => setBoxProperties(prev => ({ ...prev, [selectedBoxId]: { ...(prev[selectedBoxId] || {}), lineHeight: Math.max(1, (prev[selectedBoxId]?.lineHeight || 1.5) - 0.1) } }))}
+                                                        >remove</span>
+                                                        <span className="text-[14px] text-gray-700 dark:text-gray-200 font-medium">{(boxProperties[selectedBoxId]?.lineHeight || 1.5).toFixed(1)}</span>
+                                                        <span
+                                                            className="material-symbols-outlined text-[18px] text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer transition-colors"
+                                                            onClick={() => setBoxProperties(prev => ({ ...prev, [selectedBoxId]: { ...(prev[selectedBoxId] || {}), lineHeight: (prev[selectedBoxId]?.lineHeight || 1.5) + 0.1 } }))}
+                                                        >add</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Text Background Color */}
+                                            <div className="flex items-center justify-between pt-3">
+                                                <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Text Background Color</label>
+                                                <div className="h-[44px] w-[90px] rounded-full border-[1.5px] border-gray-200 dark:border-border flex items-center justify-center overflow-hidden relative cursor-pointer hover:border-gray-300 dark:hover:border-gray-500 transition-colors bg-white">
+                                                    {/* Checkerboard pattern for transparent */}
+                                                    <div className="absolute inset-0 bg-transparent opacity-30" style={{ backgroundImage: 'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)', backgroundSize: '10px 10px', backgroundPosition: '0 0, 0 5px, 5px -5px, -5px 0px' }}></div>
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
                             </div>
-                        </div>
+                        ) : (
+                            <>
+                                {/* Separate Tabs Pill Container */}
+                                <div className="w-full h-[54px] bg-[#e5e7eb] dark:bg-accent/40 p-[5px] rounded-[27px] flex items-center shadow-inner relative flex-shrink-0 mb-3">
+                                    <TooltipProvider delayDuration={0}>
+                                        {/* Tab 1: General Styles */}
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <div className="flex-1 h-full flex justify-center items-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer transition-colors">
+                                                    <span className="material-symbols-outlined text-[20px]">chrome_reader_mode</span>
+                                                </div>
+                                            </TooltipTrigger>
+                                            <TooltipContent>General Styles</TooltipContent>
+                                        </Tooltip>
+
+                                        {/* Tab 2: Message Settings (Active) */}
+                                        <Tooltip>
+                                            <TooltipTrigger asChild>
+                                                <div className="flex-[1.1] h-[44px] flex justify-center items-center bg-white dark:bg-background rounded-[22px] shadow-[0_1px_3px_rgba(0,0,0,0.1)] text-gray-700 dark:text-foreground cursor-pointer transition-all">
+                                                    <span className="material-symbols-outlined text-[20px]">chat_bubble_outline</span>
+                                                </div>
+                                            </TooltipTrigger>
+                                            <TooltipContent>Message Settings</TooltipContent>
+                                        </Tooltip>
+                                    </TooltipProvider>
+                                </div>
+
+                                {/* Separate Content Area Card */}
+                                <div className="flex-1 bg-white dark:bg-background rounded-[24px] shadow-sm flex flex-col overflow-hidden">
+                                    <div className="flex-1 overflow-y-auto p-5 space-y-7 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-track]:my-5 [&::-webkit-scrollbar-thumb]:rounded-full">
+
+                                        {/* Subject / Title */}
+                                        <div className="space-y-3">
+                                            <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Subject / Title</label>
+                                            <div className="relative bg-[#f1f5f9] dark:bg-accent/30 rounded-[16px] p-4 pb-10 min-h-[140px] transition-colors focus-within:ring-2 focus-within:ring-primary shadow-inner overflow-hidden group">
+                                                <textarea
+                                                    value={subjectText}
+                                                    onChange={(e) => setSubjectText(e.target.value)}
+                                                    placeholder="65 characters recommended"
+                                                    className="w-[calc(100%-30px)] bg-transparent border-none outline-none text-[15px] resize-none text-gray-800 dark:text-foreground font-medium placeholder:text-gray-400"
+                                                    rows={3}
+                                                />
+                                                <div className="absolute top-3 right-3 text-[#10b981] dark:text-[#10b981] hover:opacity-80 transition-opacity cursor-pointer flex flex-col gap-3 items-center">
+                                                    <span className="material-symbols-outlined text-[20px]">auto_fix_high</span>
+                                                    <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center mt-6">
+                                                        <span className="material-symbols-outlined text-[22px] text-gray-600 dark:text-gray-300 hover:text-gray-800 transition-colors">sentiment_satisfied</span>
+                                                    </div>
+                                                </div>
+                                                <div className="absolute bottom-3 right-[18px] flex flex-col items-center">
+                                                    <span className="text-[13px] text-gray-400 dark:text-gray-500 font-medium tracking-wide">{subjectText.length}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Hidden Preheader */}
+                                        <div className="space-y-3">
+                                            <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Hidden Preheader</label>
+                                            <div className="relative bg-[#f1f5f9] dark:bg-accent/30 rounded-[16px] p-4 pb-10 min-h-[140px] transition-colors focus-within:ring-2 focus-within:ring-primary shadow-inner overflow-hidden group">
+                                                <textarea
+                                                    value={preheaderText}
+                                                    onChange={(e) => setPreheaderText(e.target.value)}
+                                                    placeholder="50 - 100 characters"
+                                                    className="w-[calc(100%-30px)] bg-transparent border-none outline-none text-[14px] resize-none text-gray-800 dark:text-foreground placeholder:text-gray-400"
+                                                    rows={3}
+                                                />
+                                                <div className="absolute top-3 right-3 text-[#10b981] dark:text-[#10b981] hover:opacity-80 transition-opacity cursor-pointer flex flex-col gap-3 items-center">
+                                                    <span className="material-symbols-outlined text-[20px]">auto_fix_high</span>
+                                                    <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center mt-1">
+                                                        <span className="material-symbols-outlined text-[22px] text-gray-600 dark:text-gray-300 hover:text-gray-800 transition-colors">sentiment_satisfied</span>
+                                                    </div>
+                                                    <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center mt-1">
+                                                        <span className="material-symbols-outlined text-[22px] text-gray-500 dark:text-gray-400 hover:text-gray-700 transition-colors rotate-90 scale-x-[-1]">open_in_new</span>
+                                                    </div>
+                                                </div>
+                                                <div className="absolute bottom-3 right-[18px] flex flex-col items-center">
+                                                    <span className="text-[13px] text-gray-400 dark:text-gray-500 font-medium tracking-wide">{preheaderText.length}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Email annotations for Gmail */}
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between pl-1 pr-1">
+                                                <label className="text-[14px] font-medium text-gray-600 dark:text-foreground/80 tracking-wide">Email annotations for Gmail</label>
+                                                <div
+                                                    onClick={() => setIsGmailAnnotationEnabled(!isGmailAnnotationEnabled)}
+                                                    className={`w-[42px] h-[24px] rounded-full relative cursor-pointer shadow-inner transition-colors duration-200 ${isGmailAnnotationEnabled ? 'bg-[#10b981]' : 'bg-gray-200 dark:bg-accent/60 hover:bg-gray-300'}`}
+                                                >
+                                                    <div className={`w-[20px] h-[20px] bg-white rounded-full absolute top-[2px] shadow-sm transition-transform duration-200 ${isGmailAnnotationEnabled ? 'translate-x-[20px]' : 'translate-x-[2px]'}`}></div>
+                                                </div>
+                                            </div>
+
+                                            {isGmailAnnotationEnabled && (
+                                                <div className="space-y-6 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                    <p className="text-[13.5px] text-gray-400 leading-relaxed px-1">
+                                                        This feature lets you showcase your deals, discounts, or offer directly in recipient's inbox before they open the email. Effective on mobile device in Gmail promotion folder.
+                                                    </p>
+
+                                                    <div className="space-y-2">
+                                                        <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Annotation</label>
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <div className="w-full bg-[#f8fafc] dark:bg-accent/30 border-[2px] border-gray-200 dark:border-border rounded-[14px] p-3.5 flex items-center justify-between cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+                                                                    <span className="text-[14.5px] font-medium text-gray-700 dark:text-foreground">Product Carousel</span>
+                                                                    <span className="material-symbols-outlined text-[20px] text-gray-400">keyboard_arrow_down</span>
+                                                                </div>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent className="w-[320px] rounded-xl shadow-lg mt-1 p-2">
+                                                                <DropdownMenuItem className="py-2.5 px-3 rounded-lg cursor-pointer bg-green-50/50 dark:bg-green-900/10 text-green-700 dark:text-green-500 font-medium">Product Carousel</DropdownMenuItem>
+                                                                <DropdownMenuItem className="py-2.5 px-3 rounded-lg cursor-pointer text-gray-600 dark:text-gray-300">Deal Annotation</DropdownMenuItem>
+                                                                <DropdownMenuItem className="py-2.5 px-3 rounded-lg cursor-pointer text-gray-600 dark:text-gray-300">Single image preview</DropdownMenuItem>
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
+                                                    </div>
+
+                                                    {/* Preview Block Placeholder */}
+                                                    <div className="space-y-2">
+                                                        <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Preview</label>
+                                                        <div className="w-full h-[100px] bg-[#f8fafc] dark:bg-accent/30 border border-gray-100 dark:border-border rounded-[14px] flex items-center justify-center border-dashed text-gray-400">
+                                                            <span className="text-sm font-medium opacity-60">Mobile Preview Wrapper</span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Sender's Logo Toggle */}
+                                                    <div className="flex items-center justify-between pl-1 pr-1 pt-2">
+                                                        <label className="text-[14px] font-medium text-gray-600 dark:text-foreground/80 tracking-wide">Sender's logo</label>
+                                                        <div
+                                                            onClick={() => setIsSenderLogoEnabled(!isSenderLogoEnabled)}
+                                                            className={`w-[42px] h-[24px] rounded-full relative cursor-pointer shadow-inner transition-colors duration-200 ${isSenderLogoEnabled ? 'bg-[#10b981]' : 'bg-gray-200 dark:bg-accent/60 hover:bg-gray-300'}`}
+                                                        >
+                                                            <div className={`w-[20px] h-[20px] bg-white rounded-full absolute top-[2px] shadow-sm transition-transform duration-200 ${isSenderLogoEnabled ? 'translate-x-[20px]' : 'translate-x-[2px]'}`}></div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Sender's Logo Uploader (When Enabled) */}
+                                                    {isSenderLogoEnabled && (
+                                                        <div className="w-full bg-[#f8fafc] dark:bg-accent/30 border-2 border-dashed border-gray-200 dark:border-border hover:border-green-400 dark:hover:border-green-500 rounded-[16px] p-6 flex flex-col items-center justify-center text-center gap-3 transition-colors cursor-pointer animate-in fade-in slide-in-from-top-2 duration-300">
+                                                            <div className="w-12 h-12 bg-white dark:bg-background rounded-full shadow-sm flex items-center justify-center flex-shrink-0">
+                                                                <span className="material-symbols-outlined text-[24px] text-blue-500">add_photo_alternate</span>
+                                                            </div>
+                                                            <div className="space-y-1">
+                                                                <p className="text-[14px] font-medium text-gray-700 dark:text-foreground">
+                                                                    Drag and drop your image or <span className="text-blue-500 hover:underline">paste URL</span>
+                                                                </p>
+                                                                <p className="text-[12px] text-gray-400 px-2 leading-relaxed">
+                                                                    You can also paste your image PNG, JPG or GIF from keyboard or browse your files.
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>                {/* Code Editor Slide-Up Slider (Full Screen Width Overlay) */}
