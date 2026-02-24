@@ -19,6 +19,8 @@ import { Loader2 } from 'lucide-react';
 import { GlobalLoader } from '@/components/ui/global-loader';
 import Image from 'next/image';
 import { createClient } from '@/utils/supabase/client';
+import { useSupabaseAuth } from '@/components/supabase-auth-provider';
+import { useEffect } from 'react';
 
 function SignupForm() {
   const [email, setEmail] = useState('');
@@ -32,6 +34,7 @@ function SignupForm() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const supabase = createClient();
+  const { user, loading: authLoading } = useSupabaseAuth();
 
   const inviteId = searchParams.get('inviteId');
 
@@ -39,6 +42,12 @@ function SignupForm() {
     if (inviteId) return `/chat?inviteId=${inviteId}`;
     return '/home';
   };
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push(getRedirectPath());
+    }
+  }, [user, authLoading, router, inviteId]);
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEmail(e.target.value);
@@ -117,7 +126,7 @@ function SignupForm() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: providerName,
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=${getRedirectPath()}`,
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(getRedirectPath())}`,
         },
       });
 
@@ -269,6 +278,17 @@ function SignupForm() {
             >
               Login
             </Link>
+          </div>
+          <div className="mt-4 text-center text-xs text-muted-foreground">
+            By signing up, you agree with our{' '}
+            <Link href="/privacy-policy" className="underline hover:text-foreground">
+              Privacy Policy
+            </Link>{' '}
+            and{' '}
+            <Link href="/terms-of-service" className="underline hover:text-foreground">
+              Terms and Conditions
+            </Link>
+            .
           </div>
         </CardContent>
       </Card>
