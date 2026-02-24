@@ -762,6 +762,40 @@ h2 {
   }
 }
 
+/* Structures Panel Circular Reveal Animation */
+@keyframes structures-panel-open {
+  from {
+    clip-path: circle(0% at 0px 32px);
+    opacity: 0;
+  }
+
+  to {
+    clip-path: circle(150% at 0px 32px);
+    opacity: 1;
+  }
+}
+
+@keyframes structures-panel-close {
+  from {
+    clip-path: circle(150% at 0px 32px);
+    opacity: 1;
+  }
+
+  to {
+    clip-path: circle(0% at 0px 32px);
+    opacity: 0;
+  }
+}
+
+.structures-panel-open {
+  animation: structures-panel-open 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.structures-panel-close {
+  animation: structures-panel-close 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  pointer-events: none;
+}
+
 /* Benefit Card Animation */
 .benefit-card {
   transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
