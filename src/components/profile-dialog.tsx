@@ -123,6 +123,16 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
 
     const handleSaveProfile = async () => {
         if (!user) return;
+
+        if (username.length > 30) {
+            toast({
+                title: "Name too long",
+                description: "Name must be 30 characters or less.",
+                variant: "destructive"
+            });
+            return;
+        }
+
         setIsSubmitting(true);
 
         try {
@@ -136,14 +146,14 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                 // Upload to Supabase Storage
                 // upsert: true will overwrite if exists
                 const { error: uploadError } = await supabase.storage
-                    .from('avatars')
+                    .from('user-profiles')
                     .upload(filePath, avatarFile, { upsert: true });
 
                 if (uploadError) throw uploadError;
 
                 // Get public URL
                 const { data: { publicUrl } } = supabase.storage
-                    .from('avatars')
+                    .from('user-profiles')
                     .getPublicUrl(filePath);
 
                 // Add timestamp to avoid caching issues immediately after upload
@@ -248,6 +258,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             placeholder="Enter your name"
+                            maxLength={30}
                         />
                     </div>
 
