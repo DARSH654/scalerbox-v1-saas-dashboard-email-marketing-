@@ -122,7 +122,18 @@ const RichTextEditor = ({ boxId, isSelected, boxProperties, onEditorFocus, onEdi
     );
 };
 
-const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onMoveDragStart, onMoveDragEnd, isDraggingLayout, topOffset = "-2px", isTopRow, hideSecondaryControls, children }: { id?: string, isSelected?: boolean, onSelect?: () => void, onDelete?: () => void, onDuplicate?: () => void, onMoveDragStart?: (e: React.DragEvent) => void, onMoveDragEnd?: () => void, isDraggingLayout?: boolean, topOffset?: string, isTopRow?: boolean, hideSecondaryControls?: boolean, children: React.ReactNode }) => {
+const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onMoveDragStart, onMoveDragEnd, isDraggingLayout, topOffset = "-2px", isTopRow, hideSecondaryControls, children,
+    setSelectedBackdropRowId,
+    setSelectedBoxId,
+    setSelectedLayer,
+    setActiveRightSidebarTab
+}: {
+    id?: string, isSelected?: boolean, onSelect?: () => void, onDelete?: () => void, onDuplicate?: () => void, onMoveDragStart?: (e: React.DragEvent) => void, onMoveDragEnd?: () => void, isDraggingLayout?: boolean, topOffset?: string, isTopRow?: boolean, hideSecondaryControls?: boolean, children: React.ReactNode,
+    setSelectedBackdropRowId: (id: string | null) => void,
+    setSelectedBoxId: (id: string | null) => void,
+    setSelectedLayer: (layer: 'block' | 'container' | 'structure' | 'backdrop' | null) => void,
+    setActiveRightSidebarTab: (tab: 'general' | 'message') => void
+}) => {
     const [isOpen, setIsOpen] = useState(false);
 
     useEffect(() => {
@@ -370,7 +381,7 @@ export default function EmailEditorPage() {
     const [isDraggingStructures, setIsDraggingStructures] = useState(false);
     const [isDragOverRight, setIsDragOverRight] = useState(false);
     const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
-    const [draggingTool, setDraggingTool] = useState<{ icon: string; type?: string; component?: string; columns?: number[] } | null>(null);
+    const [draggingTool, setDraggingTool] = useState<{ icon: string; type?: string; component?: string; columns?: number[]; id?: string } | null>(null);
     const [dynamicRows, setDynamicRows] = useState<{ id: string; columns: number[]; height?: string }[]>([
         { id: 'row1', columns: [0.3, 0.7] },
         { id: 'row2', columns: [1] },
@@ -607,7 +618,7 @@ export default function EmailEditorPage() {
         const overlayContent = (
             <div className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${isSelected ? 'opacity-100 z-[60]' : 'opacity-0 z-30 group-hover:opacity-100 group-hover/active:opacity-100'}`}>
                 {/* Layer Labels (Breadcrumb-like) */}
-                <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[34px]' : '-top-[32px]'} left-[28px] w-auto flex flex-col items-start transition-opacity duration-300 ${isSelected && hoveredItem !== null && !(hoveredItem?.type === 'container' && hoveredItem?.id === boxId) ? 'opacity-0 pointer-events-none' : isSelected ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto'} z-50`}>
+                <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[34px]' : '-top-[32px]'} left-[28px] w-auto flex flex-col items-start transition-opacity duration-300 ${isSelected && hoveredItem !== null && !(hoveredItem?.id === boxId) ? 'opacity-0 pointer-events-none' : isSelected ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto'} z-50`}>
                     {[
                         { id: 'container', label: 'Container', color: colors.container },
                         { id: 'structure', label: 'Structure', color: '#9a5353' }, // Maroon/brick as per image
@@ -719,7 +730,7 @@ export default function EmailEditorPage() {
 
                 {/* Bottom Left Drag Pill */}
                 <div
-                    className={`absolute -bottom-[20px] left-[16px] text-white rounded-[12px] w-[36px] h-[24px] flex items-center justify-center pointer-events-auto cursor-grab active:cursor-grabbing shadow-md hover:scale-105 transition-all bg-[#4b5b75] ${hoveredItem !== null && !(hoveredItem?.type === 'block' && hoveredItem?.id === boxId) ? 'opacity-0 pointer-events-none' : ''}`}
+                    className={`absolute -bottom-[20px] left-[16px] text-white rounded-[12px] w-[36px] h-[24px] flex items-center justify-center pointer-events-auto cursor-grab active:cursor-grabbing shadow-md hover:scale-105 transition-all bg-[#4b5b75] ${hoveredItem !== null && !(hoveredItem?.id === boxId) ? 'opacity-0 pointer-events-none' : ''}`}
                     onClick={(e) => { e.stopPropagation(); }}
                 >
                     <span className="material-symbols-outlined text-[18px] rotate-90">drag_indicator</span>
@@ -1873,7 +1884,7 @@ export default function EmailEditorPage() {
                                         <>
                                             {/* Backdrop Pill — same positioning as Structure pill */}
                                             <div
-                                                className={`absolute left-[-60px] z-[20] pointer-events-auto animate-in fade-in duration-200 transition-opacity ${selectedBackdropRowId === row.id && hoveredItem !== null && !(hoveredItem?.type === 'backdrop' && hoveredItem?.id === row.id) ? 'opacity-0 pointer-events-none' : ''}`}
+                                                className={`absolute left-[-60px] z-[20] pointer-events-auto animate-in fade-in duration-200 transition-opacity ${selectedBackdropRowId === row.id && hoveredItem !== null && !(hoveredItem?.id === row.id || hoveredItem?.id?.startsWith(row.id + '-')) ? 'opacity-0 pointer-events-none' : ''}`}
                                                 style={index === 0
                                                     ? { bottom: '-37px', left: '20px' }   /* top row: beside plus, at bottom */
                                                     : { top: '-54px' }                    /* other rows: above border, left strip */
@@ -1898,7 +1909,7 @@ export default function EmailEditorPage() {
                                             </div>
 
                                             {/* Plus Button — same position as Structure's add button (-bottom-[44px]) */}
-                                            <div className={`absolute -bottom-[44px] left-[-60px] z-[20] pointer-events-auto transition-opacity duration-200 ${selectedBackdropRowId === row.id && hoveredItem !== null && !(hoveredItem?.type === 'backdrop' && hoveredItem?.id === row.id) ? 'opacity-0 pointer-events-none' : ''}`}>
+                                            <div className={`absolute -bottom-[44px] left-[-60px] z-[20] pointer-events-auto transition-opacity duration-200 ${selectedBackdropRowId === row.id && hoveredItem !== null && !(hoveredItem?.id === row.id || hoveredItem?.id?.startsWith(row.id + '-')) ? 'opacity-0 pointer-events-none' : ''}`}>
                                                 <div
                                                     className="w-[36px] h-[36px] rounded-[12px] text-white flex items-center justify-center cursor-pointer shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
                                                     style={{ backgroundColor: selectedBackdropRowId === row.id ? '#475569' : '#64748b' }}
@@ -1988,7 +1999,11 @@ export default function EmailEditorPage() {
                                             isDraggingLayout={dropInsertIndex !== null}
                                             topOffset={index === 0 ? "-34px" : "-26px"}
                                             isTopRow={index === 0}
-                                            hideSecondaryControls={selectedBoxId === row.id && selectedLayer === 'structure' && hoveredItem !== null && !(hoveredItem?.type === 'structure' && hoveredItem?.id === row.id)}
+                                            hideSecondaryControls={selectedBoxId === row.id && selectedLayer === 'structure' && hoveredItem !== null && !(hoveredItem?.id === row.id || hoveredItem?.id?.startsWith(row.id + '-'))}
+                                            setSelectedBackdropRowId={setSelectedBackdropRowId}
+                                            setSelectedBoxId={setSelectedBoxId}
+                                            setSelectedLayer={setSelectedLayer}
+                                            setActiveRightSidebarTab={setActiveRightSidebarTab}
                                         >
                                             <div className="flex gap-4 w-full items-start" style={{ height: 'auto' }}>
                                                 {row.columns.map((colFrac, i) => (
