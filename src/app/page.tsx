@@ -55,6 +55,7 @@ import { KineticIntegrationGrid } from '@/components/landing/kinetic-integration
 import { FeaturesMegaMenu } from '@/components/landing/features-mega-menu';
 import { Footer } from '@/components/footer';
 import { supabase } from '@/lib/supabase';
+import { useSupabaseAuth } from '@/components/supabase-auth-provider';
 import { UnfairAdvantage } from '@/components/landing/unfair-advantage';
 import { SectionBackgroundEffect } from '@/components/landing/section-background-effect';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -414,6 +415,7 @@ const teamCollaborationFeatures = [
 ];
 
 export default function LandingPage() {
+  const { user, loading: authLoading } = useSupabaseAuth();
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annually'>('annually');
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -763,6 +765,19 @@ export default function LandingPage() {
             </Link>
           </nav>
           <div className="flex items-center gap-2">
+            {!authLoading && (
+              <>
+                {user ? (
+                  <Button variant="ghost" className="hidden lg:flex rounded-full text-sm font-medium" asChild>
+                    <Link href="/home">Dashboard</Link>
+                  </Button>
+                ) : (
+                  <Button variant="ghost" className="hidden lg:flex rounded-full text-sm font-medium" asChild>
+                    <Link href="/login">Login</Link>
+                  </Button>
+                )}
+              </>
+            )}
             <StarBorder className="rounded-full" color="#8b5cf6" speed="6s">
               <GlareHover width="auto" height="auto" background="transparent" borderRadius="9999px" borderColor="transparent" glareColor="rgba(255, 255, 255, 0.3)">
                 <Button variant="default" className="hidden lg:flex rounded-full" onClick={handleJoinWaitlistClick}>
@@ -787,6 +802,13 @@ export default function LandingPage() {
                   <Link href="#faq" className="font-medium" prefetch={false} onClick={(e) => handleLinkClick(e, '#faq')}>FAQs</Link>
                   <Link href="/scalerboxreviews" className="font-medium" prefetch={false}>Reviews</Link>
                   <Link href="#benefits" className="font-medium" prefetch={false} onClick={(e) => handleLinkClick(e, '#benefits')}>Primary Benefits</Link>
+                  {!authLoading && (
+                    user ? (
+                      <Link href="/home" className="font-medium">Dashboard</Link>
+                    ) : (
+                      <Link href="/login" className="font-medium">Login</Link>
+                    )
+                  )}
                   <Button
                     className="w-full mt-4 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 hover:opacity-90 text-white"
                     onClick={(e) => {

@@ -193,7 +193,7 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
                                 backgroundColor: layer.color,
                                 borderColor: layer.color
                             }}
-                            className={`px-3 py-[3px] rounded-full border-[1.5px] text-white text-[10.5px] font-medium shadow-sm flex items-center justify-start transition-all duration-300 ease-in-out hover:scale-105 active:scale-95 ${index === 0
+                            className={`px-3 py-[3px] rounded-full border-0 text-white text-[10.5px] font-medium shadow-sm flex items-center justify-start transition-all duration-300 ease-in-out hover:scale-105 active:scale-95 ${index === 0
                                 ? 'relative z-50 cursor-grab active:cursor-grabbing'
                                 : 'absolute top-0 left-0 z-40 opacity-0 pointer-events-none group-hover/layerpill:top-[30px] group-hover/layerpill:opacity-100 group-hover/layerpill:pointer-events-auto cursor-pointer'
                                 }`}
@@ -662,7 +662,7 @@ export default function EmailEditorPage() {
                                 borderColor: layer.color,
                                 zIndex: 30 - index
                             }}
-                            className={`px-3 py-[3px] rounded-full border-[1.5px] text-[10.5px] font-medium transition-all duration-300 ease-in-out shadow-sm flex items-center justify-start hover:scale-105 active:scale-95 ${index === 0
+                            className={`px-3 py-[3px] rounded-full border-0 text-[10.5px] font-medium transition-all duration-300 ease-in-out shadow-sm flex items-center justify-start hover:scale-105 active:scale-95 ${index === 0
                                 ? 'relative cursor-pointer'
                                 : '-mt-[26px] opacity-0 pointer-events-none group-hover/layerpill:mt-[4px] group-hover/layerpill:opacity-100 group-hover/layerpill:pointer-events-auto cursor-grab active:cursor-grabbing'
                                 }`}
@@ -709,6 +709,9 @@ export default function EmailEditorPage() {
 
     const BlockOverlay = ({ boxId, isSelected, selectedLayer }: { boxId: string, isSelected: boolean, selectedLayer: string | null }) => {
         if (!isSelected || selectedLayer !== 'block') return null;
+
+        const isTopRow = boxId.startsWith('row1-');
+
         return (
             <div className="absolute inset-[-2px] pointer-events-none z-[75]">
                 {/* 2px Solid Dark Grey Border matching container bounds */}
@@ -728,9 +731,9 @@ export default function EmailEditorPage() {
                     </div>
                 </div>
 
-                {/* Bottom Left Drag Pill */}
+                {/* Drag Pill */}
                 <div
-                    className={`absolute -bottom-[20px] left-[16px] text-white rounded-[12px] w-[36px] h-[24px] flex items-center justify-center pointer-events-auto cursor-grab active:cursor-grabbing shadow-md hover:scale-105 transition-all bg-[#4b5b75] ${hoveredItem !== null && !(hoveredItem?.id === boxId) ? 'opacity-0 pointer-events-none' : ''}`}
+                    className={`absolute ${isTopRow ? '-bottom-[28px] w-[36px] h-[36px]' : '-top-[32px] w-[36px] h-[24px]'} left-[16px] text-white rounded-[12px] flex items-center justify-center pointer-events-auto cursor-grab active:cursor-grabbing shadow-md hover:scale-105 transition-all bg-[#4b5b75] ${hoveredItem !== null && !(hoveredItem?.id === boxId) ? 'opacity-0 pointer-events-none' : ''}`}
                     onClick={(e) => { e.stopPropagation(); }}
                 >
                     <span className="material-symbols-outlined text-[18px] rotate-90">drag_indicator</span>
