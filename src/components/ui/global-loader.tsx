@@ -26,47 +26,58 @@ export function GlobalLoader({
     }, [fullScreen]);
 
     const loader = (
-        <svg
-            width={size}
-            height={size}
-            viewBox="0 0 100 100"
-            className={cn("animate-spin", className)}
-            style={{ animationDuration: '1.2s' }}
-        >
-            {/* Background track - dark in light mode, white in dark mode */}
-            <circle
-                cx="50"
-                cy="50"
-                r="42"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="8"
-                className="text-gray-300 dark:text-white/90"
-            />
-            {/* Primary gradient spinner segment */}
-            <defs>
-                <linearGradient id="loader-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="hsl(221, 83%, 53%)" />
-                    <stop offset="100%" stopColor="hsl(270, 70%, 55%)" />
-                </linearGradient>
-            </defs>
-            <circle
-                cx="50"
-                cy="50"
-                r="42"
-                fill="none"
-                stroke="url(#loader-gradient)"
-                strokeWidth="8"
-                strokeLinecap="round"
-                strokeDasharray="66 198"
-                strokeDashoffset="0"
-            />
-        </svg>
+        <div className="relative flex items-center justify-center">
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                @keyframes global-spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+                .animate-global-spin {
+                    animation: global-spin 1.2s linear infinite !important;
+                }
+            `}} />
+            <svg
+                width={size}
+                height={size}
+                viewBox="0 0 100 100"
+                className={cn("animate-global-spin", className)}
+            >
+                {/* Background track - dark in light mode, white in dark mode */}
+                <circle
+                    cx="50"
+                    cy="50"
+                    r="42"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="8"
+                    className="text-gray-200 dark:text-gray-700 opacity-30"
+                />
+                {/* Primary gradient spinner segment */}
+                <defs>
+                    <linearGradient id="loader-gradient-unique" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#436DDD" />
+                        <stop offset="100%" stopColor="#7B4EE8" />
+                    </linearGradient>
+                </defs>
+                <circle
+                    cx="50"
+                    cy="50"
+                    r="42"
+                    fill="none"
+                    stroke="url(#loader-gradient-unique)"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray="66 198"
+                    strokeDashoffset="0"
+                />
+            </svg>
+        </div>
     );
 
     if (fullScreen) {
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/90 dark:bg-black/90 backdrop-blur-md">
                 {loader}
             </div>
         );

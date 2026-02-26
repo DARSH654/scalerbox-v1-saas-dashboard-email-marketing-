@@ -52,19 +52,21 @@ const LayoutIcon = ({ size = 20, className }: { size?: number, className?: strin
     </svg>
 );
 
+import { ColorPicker } from '@/components/ui/color-picker';
+
 const CustomHeading = Heading.extend({
     renderHTML({ node, HTMLAttributes }) {
         const hasLevel = this.options.levels.includes(node.attrs.level);
         const level = hasLevel ? node.attrs.level : this.options.levels[0];
         let inlineStyle = '';
         switch (level) {
-            case 1: inlineStyle = 'font-size: 32px; font-weight: bold; margin: 0; line-height: 1.2;'; break;
-            case 2: inlineStyle = 'font-size: 24px; font-weight: bold; margin: 0; line-height: 1.2;'; break;
-            case 3: inlineStyle = 'font-size: 20px; font-weight: bold; margin: 0; line-height: 1.2;'; break;
-            case 4: inlineStyle = 'font-size: 18px; font-weight: bold; margin: 0; line-height: 1.2;'; break;
-            case 5: inlineStyle = 'font-size: 16px; font-weight: bold; margin: 0; line-height: 1.2;'; break;
-            case 6: inlineStyle = 'font-size: 14px; font-weight: bold; margin: 0; line-height: 1.2;'; break;
-            default: inlineStyle = 'font-size: 32px; font-weight: bold; margin: 0; line-height: 1.2;'; break;
+            case 1: inlineStyle = 'font-size: 36px; font-weight: bold; margin: 0; line-height: 1.2;'; break;
+            case 2: inlineStyle = 'font-size: 32px; font-weight: bold; margin: 0; line-height: 1.2;'; break;
+            case 3: inlineStyle = 'font-size: 28px; font-weight: bold; margin: 0; line-height: 1.2;'; break;
+            case 4: inlineStyle = 'font-size: 24px; font-weight: bold; margin: 0; line-height: 1.2;'; break;
+            case 5: inlineStyle = 'font-size: 20px; font-weight: bold; margin: 0; line-height: 1.2;'; break;
+            case 6: inlineStyle = 'font-size: 18px; font-weight: bold; margin: 0; line-height: 1.2;'; break;
+            default: inlineStyle = 'font-size: 36px; font-weight: bold; margin: 0; line-height: 1.2;'; break;
         }
         return [`h${level}`, mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, { style: inlineStyle }), 0];
     }
@@ -120,6 +122,229 @@ const RichTextEditor = ({ boxId, isSelected, boxProperties, onEditorFocus, onEdi
     );
 };
 
+const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onMoveDragStart, onMoveDragEnd, isDraggingLayout, topOffset = "-2px", isTopRow, hideSecondaryControls, children }: { id?: string, isSelected?: boolean, onSelect?: () => void, onDelete?: () => void, onDuplicate?: () => void, onMoveDragStart?: (e: React.DragEvent) => void, onMoveDragEnd?: () => void, isDraggingLayout?: boolean, topOffset?: string, isTopRow?: boolean, hideSecondaryControls?: boolean, children: React.ReactNode }) => {
+    const [isOpen, setIsOpen] = useState(false);
+
+    useEffect(() => {
+        if (isOpen && onSelect) {
+            onSelect();
+        }
+    }, [isOpen, onSelect]);
+
+    return (
+        <div
+            className={`relative group/structure w-full h-full px-8 hover:z-50 ${isSelected ? 'z-[60]' : ''}`}
+            onClick={(e) => {
+                if (onSelect) {
+                    e.stopPropagation();
+                    onSelect();
+                }
+            }}
+        >
+            {/* Invisible Hitbox Extension - ensures hover/click works in the extended border area */}
+            <div
+                style={{ top: topOffset, bottom: '0' }}
+                className="absolute inset-x-0 z-0 pointer-events-auto"
+            ></div>
+            {/* The Border Layer - absolute inset so it covers the full width of the white canvas */}
+            <div
+                style={{ top: topOffset, bottom: '0' }}
+                className={`absolute inset-x-0 rounded-[4px] border-[2px] transition-colors pointer-events-none ${isSelected || isOpen ? 'z-[70]' : 'z-10 group-hover/structure:z-40'} ${isDraggingLayout ? 'border-[#93c5fd]' : isSelected || isOpen ? 'border-[#6b3737]' : 'border-transparent group-hover/structure:border-[#9a5353] group-has-[.structure-container:hover]/structure:!border-transparent'}`}
+            ></div>
+
+            {/* Structure Overlay on Hover */}
+            <div
+                style={{ top: topOffset, bottom: '0' }}
+                className={`absolute inset-x-0 pointer-events-none transition-opacity duration-300 z-40 ${isSelected || isOpen ? 'opacity-100' : 'opacity-0 group-hover/structure:opacity-100 group-has-[.structure-container:hover]/structure:!opacity-0'}`}
+            >
+                {/* Structure Layer Stack (Top Left usually, Bottom Left for top row) */}
+                <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[37px] left-[76px]' : '-top-[36px] left-[32px]'} w-auto flex flex-col items-start pointer-events-auto transition-all duration-200 ${hideSecondaryControls ? 'opacity-0 pointer-events-none' : ''}`}>
+                    {[
+                        { id: 'structure', label: 'Structure', color: isSelected || isOpen ? '#6b3737' : '#9a5353' },
+                        { id: 'backdrop', label: 'Backdrop', color: '#64748b' }
+                    ].map((layer, index) => (
+                        <div
+                            key={layer.id}
+                            onClick={(e) => {
+                                if (onSelect && layer.id === 'structure') {
+                                    e.stopPropagation();
+                                    onSelect();
+                                }
+                                if (layer.id === 'backdrop') {
+                                    e.stopPropagation();
+                                    setSelectedBackdropRowId(id || null);
+                                    setSelectedBoxId(null);
+                                    setSelectedLayer('backdrop');
+                                    setActiveRightSidebarTab('general');
+                                }
+                            }}
+                            style={{
+                                backgroundColor: layer.color,
+                                borderColor: layer.color
+                            }}
+                            className={`px-3 py-[3px] rounded-full border-[1.5px] text-white text-[10.5px] font-medium shadow-sm flex items-center justify-start transition-all duration-300 ease-in-out hover:scale-105 active:scale-95 ${index === 0
+                                ? 'relative z-50 cursor-grab active:cursor-grabbing'
+                                : 'absolute top-0 left-0 z-40 opacity-0 pointer-events-none group-hover/layerpill:top-[30px] group-hover/layerpill:opacity-100 group-hover/layerpill:pointer-events-auto cursor-pointer'
+                                }`}
+                        >
+                            <span className="capitalize tracking-wide">{layer.label}</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor" className="opacity-80 rotate-90 ml-1.5 -mr-1">
+                                <path d="M360-160q-33 0-56.5-23.5T280-240q0-33 23.5-56.5T360-320q33 0 56.5 23.5T440-240q0 33-23.5 56.5T360-160Zm240 0q-33 0-56.5-23.5T520-240q0-33 23.5-56.5T600-320q33 0 56.5 23.5T680-240q0 33-23.5 56.5T600-160ZM360-400q-33 0-56.5-23.5T280-480q0-33 23.5-56.5T360-560q33 0 56.5 23.5T440-480q0 33-23.5 56.5T360-400Zm240 0q-33 0-56.5-23.5T520-480q0-33 23.5-56.5T600-560q33 0 56.5 23.5T680-480q0 33-23.5 56.5T600-400ZM360-640q-33 0-56.5-23.5T280-720q0-33 23.5-56.5T360-800q33 0 56.5 23.5T440-720q0 33-23.5 56.5T360-640Zm240 0q-33 0-56.5-23.5T520-720q0-33 23.5-56.5T600-800q33 0 56.5 23.5T680-720q0 33-23.5 56.5T600-640Z" />
+                            </svg>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Add Icon Dropdown (Bottom Left) */}
+                <div className={`absolute -bottom-[44px] left-[32px] pointer-events-auto transition-all duration-200 ${hideSecondaryControls ? 'opacity-0 pointer-events-none' : ''}`}>
+                    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+                        <DropdownMenuTrigger asChild>
+                            <div
+                                style={{ backgroundColor: isSelected || isOpen ? '#6b3737' : '#9a5353' }}
+                                className="w-[36px] h-[36px] rounded-[12px] text-white flex items-center justify-center cursor-pointer shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
+                            >
+                                <span className={`material-symbols-outlined text-[20px] transition-transform duration-200 ${isOpen ? 'rotate-90' : 'rotate-0'}`}>{isOpen ? 'close' : 'add'}</span>
+                            </div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent side="bottom" align="start" sideOffset={12} className="w-[200px] p-2 rounded-[16px] z-[100] shadow-xl">
+                            <div className="grid grid-cols-3 gap-1.5">
+                                {/* Left Heavy (1:2) */}
+                                <div className="h-[34px] bg-white dark:bg-background border border-gray-200 dark:border-border rounded-[2px] p-1 cursor-pointer hover:border-primary hover:bg-gray-50 flex gap-0.5 shadow-sm transition-colors">
+                                    <div className="w-[33%] h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
+                                    <div className="flex-1 h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
+                                </div>
+                                {/* Right Heavy (2:1) */}
+                                <div className="h-[34px] bg-white dark:bg-background border border-gray-200 dark:border-border rounded-[2px] p-1 cursor-pointer hover:border-primary hover:bg-gray-50 flex gap-0.5 shadow-sm transition-colors">
+                                    <div className="flex-1 h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
+                                    <div className="w-[33%] h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
+                                </div>
+                                {/* Center Heavy (1:2:1) */}
+                                <div className="h-[34px] bg-white dark:bg-background border border-gray-200 dark:border-border rounded-[2px] p-1 cursor-pointer hover:border-primary hover:bg-gray-50 flex gap-0.5 shadow-sm transition-colors">
+                                    <div className="w-[25%] h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
+                                    <div className="flex-1 h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
+                                    <div className="w-[25%] h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
+                                </div>
+                                {/* Left Heavy Double (2:1:1) */}
+                                <div className="h-[34px] bg-white dark:bg-background border border-gray-200 dark:border-border rounded-[2px] p-1 cursor-pointer hover:border-primary hover:bg-gray-50 flex gap-0.5 shadow-sm transition-colors">
+                                    <div className="flex-1 h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
+                                    <div className="w-[25%] h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
+                                    <div className="w-[25%] h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
+                                </div>
+                                {/* Right Heavy Double (1:1:2) */}
+                                <div className="h-[34px] bg-white dark:bg-background border border-gray-200 dark:border-border rounded-[2px] p-1 cursor-pointer hover:border-primary hover:bg-gray-50 flex gap-0.5 shadow-sm transition-colors">
+                                    <div className="w-[25%] h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
+                                    <div className="w-[25%] h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
+                                    <div className="flex-1 h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
+                                </div>
+                                {/* Splits (1:1:1:3) */}
+                                <div className="h-[34px] bg-white dark:bg-background border border-gray-200 dark:border-border rounded-[2px] p-1 cursor-pointer hover:border-primary hover:bg-gray-50 flex gap-0.5 shadow-sm transition-colors">
+                                    <div className="w-[16%] h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
+                                    <div className="w-[16%] h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
+                                    <div className="w-[16%] h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
+                                    <div className="flex-1 h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
+                                </div>
+                            </div>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+
+                {/* 3 Dot Menu (Right Centered) with hover slide-in action panel */}
+                <div className="absolute top-1/2 -translate-y-1/2 right-0 translate-x-[44px] pointer-events-auto group/structurebtn flex items-center">
+                    {/* Main button row: slide panel + 3-dot (reversed) */}
+                    <div className="flex flex-row-reverse items-center">
+                        {/* 3-dot / Save-as-module button — always visible, anchored at right */}
+                        <TooltipProvider delayDuration={0}>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div
+                                        style={{ backgroundColor: isSelected || isOpen ? '#6b3737' : '#9a5353' }}
+                                        className="w-[36px] h-[36px] rounded-[12px] text-white flex items-center justify-center cursor-pointer shadow-md hover:scale-105 active:scale-95 transition-all duration-200 flex-shrink-0 relative overflow-hidden"
+                                    >
+                                        {/* 3 dots — visible when NOT hovered */}
+                                        <div className="absolute inset-0 flex items-center justify-center gap-[3px] transition-opacity duration-200 opacity-100 group-hover/structurebtn:opacity-0">
+                                            <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
+                                            <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
+                                            <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
+                                        </div>
+                                        {/* Save as Module icon — visible on hover */}
+                                        <div className="absolute inset-0 flex items-center justify-center transition-opacity duration-200 opacity-0 group-hover/structurebtn:opacity-100">
+                                            <svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="currentColor">
+                                                <path d="M800-160H160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h400v80H160v480h640v-280h80v280q0 33-23.5 56.5T800-160ZM240-320h280v-120H240v120Zm0-200h280v-120H240v120Zm360 200h120v-200H600v200Zm-440 80v-480 480Zm560-360v-80h-80v-80h80v-80h80v80h80v80h-80v80h-80Z" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="right" sideOffset={8}>Save as Module</TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+
+                        {/* Slide-in action panel — expands to the LEFT of the 3-dot on hover */}
+                        <div
+                            className="flex items-center gap-[6px] mr-[6px] overflow-hidden transition-all duration-200 ease-out max-w-0 opacity-0 group-hover/structurebtn:max-w-[124px] group-hover/structurebtn:opacity-100"
+                        >
+                            {/* Delete icon */}
+                            <TooltipProvider delayDuration={0}>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div
+                                            style={{ backgroundColor: isSelected || isOpen ? '#6b3737' : '#9a5353' }}
+                                            className="w-[32px] h-[32px] rounded-[10px] text-white flex items-center justify-center cursor-pointer shadow-md hover:brightness-110 active:scale-90 transition-all duration-150 flex-shrink-0"
+                                            onClick={(e) => { e.stopPropagation(); if (onDelete) onDelete(); }}
+                                        >
+                                            <span className="material-symbols-outlined text-[16px]">delete_outline</span>
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" sideOffset={8}>Delete Structure</TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+
+                            {/* Duplicate icon */}
+                            <TooltipProvider delayDuration={0}>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div
+                                            style={{ backgroundColor: isSelected || isOpen ? '#6b3737' : '#9a5353' }}
+                                            className="w-[32px] h-[32px] rounded-[10px] text-white flex items-center justify-center cursor-pointer shadow-md hover:brightness-110 active:scale-90 transition-all duration-150 flex-shrink-0"
+                                            onClick={(e) => { e.stopPropagation(); if (onDuplicate) onDuplicate(); }}
+                                        >
+                                            <span className="material-symbols-outlined text-[16px]">content_copy</span>
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" sideOffset={8}>Duplicate Structure</TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+
+                            {/* Move icon — between Duplicate and Save as Module */}
+                            <TooltipProvider delayDuration={0}>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <div
+                                            style={{ backgroundColor: isSelected || isOpen ? '#6b3737' : '#9a5353' }}
+                                            className="w-[32px] h-[32px] rounded-[10px] text-white flex items-center justify-center cursor-grab active:cursor-grabbing shadow-md hover:brightness-110 active:scale-90 transition-all duration-150 flex-shrink-0"
+                                            onClick={(e) => { e.stopPropagation(); }}
+                                            draggable
+                                            onDragStart={(e) => { if (onMoveDragStart) onMoveDragStart(e); }}
+                                            onDragEnd={() => { if (onMoveDragEnd) onMoveDragEnd(); }}
+                                        >
+                                            <span className="material-symbols-outlined text-[16px]">open_with</span>
+                                        </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" sideOffset={8}>Move</TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Content properly z-indexed so border doesn't block interactions */}
+            <div className="relative w-full h-full z-auto">
+                {children}
+            </div>
+        </div>
+    );
+};
+
 export default function EmailEditorPage() {
     const router = useRouter();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -135,14 +360,25 @@ export default function EmailEditorPage() {
     const [isStructuresPanelOpen, setIsStructuresPanelOpen] = useState(false);
     const [isStructuresPanelClosing, setIsStructuresPanelClosing] = useState(false);
     const [structuresTab, setStructuresTab] = useState<'general' | 'current-layout' | 'my-modules'>('general');
+    const [activeRightSidebarTab, setActiveRightSidebarTab] = useState<'general' | 'message'>('message');
+    const [rowBackdropColors, setRowBackdropColors] = useState<Record<string, string>>({});
+    const [isBackdropColorPickerOpen, setIsBackdropColorPickerOpen] = useState(false);
+    const [selectedBackdropRowId, setSelectedBackdropRowId] = useState<string | null>(null);
+    const [hoveredItem, setHoveredItem] = useState<{ type: 'block' | 'container' | 'structure' | 'backdrop'; id: string } | null>(null);
     const structuresPanelRef = useRef<HTMLDivElement>(null);
     const [structuresPanelPosition, setStructuresPanelPosition] = useState<'left' | 'right'>('left');
     const [isDraggingStructures, setIsDraggingStructures] = useState(false);
     const [isDragOverRight, setIsDragOverRight] = useState(false);
     const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
     const [draggingTool, setDraggingTool] = useState<{ icon: string; type?: string; component?: string; columns?: number[] } | null>(null);
-    const [dynamicRows, setDynamicRows] = useState<{ id: string; columns: number[] }[]>([]);
+    const [dynamicRows, setDynamicRows] = useState<{ id: string; columns: number[]; height?: string }[]>([
+        { id: 'row1', columns: [0.3, 0.7] },
+        { id: 'row2', columns: [1] },
+        { id: 'row3', columns: [1, 1], height: '140px' },
+    ]);
     const wasDraggingRef = useRef(false);
+    const canvasRef = useRef<HTMLDivElement>(null);
+    const [dropInsertIndex, setDropInsertIndex] = useState<number | null>(null);
 
     // Track cursor position during drag for the floating ghost
     useEffect(() => {
@@ -164,15 +400,15 @@ export default function EmailEditorPage() {
 
     // Add state for Canvas elements (simplified for these specific boxes)
     const [boxStatesInternal, setBoxStatesInternal] = useState<Record<string, string>>({
-        box1: 'empty',
-        box2: 'empty',
-        box3: 'empty',
-        box4: 'empty',
-        box5: 'empty',
+        'row1-col0': 'empty',
+        'row1-col1': 'empty',
+        'row2-col0': 'empty',
+        'row3-col0': 'empty',
+        'row3-col1': 'empty',
     });
     const [draggedOverBox, setDraggedOverBox] = useState<string | null>(null);
     const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null);
-    const [selectedLayer, setSelectedLayer] = useState<'block' | 'container' | 'structure' | 'stripe' | null>(null);
+    const [selectedLayer, setSelectedLayer] = useState<'block' | 'container' | 'structure' | 'backdrop' | null>(null);
 
     // Text Block Properties State
     const [textPropertiesTab, setTextPropertiesTab] = useState<'settings' | 'styles'>('settings');
@@ -181,7 +417,7 @@ export default function EmailEditorPage() {
     const [editorUpdateTicker, setEditorUpdateTicker] = useState(0);
 
     const [history, setHistory] = useState<Record<string, string>[]>([
-        { box1: 'empty', box2: 'empty', box3: 'empty', box4: 'empty', box5: 'empty' }
+        { 'row1-col0': 'empty', 'row1-col1': 'empty', 'row2-col0': 'empty', 'row3-col0': 'empty', 'row3-col1': 'empty' }
     ]);
     const [historyIndex, setHistoryIndex] = useState(0);
 
@@ -200,6 +436,53 @@ export default function EmailEditorPage() {
             }
             return nextBoxStates;
         });
+    };
+
+    const handleDeleteContainer = (boxId: string) => {
+        const parts = boxId.split('-col');
+        if (parts.length !== 2) return;
+        const rowId = parts[0];
+        const colIndex = parseInt(parts[1], 10);
+
+        setDynamicRows(prevRows => {
+            const rowItems = [...prevRows];
+            const rowIndex = rowItems.findIndex(r => r.id === rowId);
+            if (rowIndex === -1) return prevRows;
+
+            const row = rowItems[rowIndex];
+            const nextColumns = [...row.columns];
+            nextColumns.splice(colIndex, 1);
+
+            if (nextColumns.length === 0) {
+                rowItems.splice(rowIndex, 1);
+            } else {
+                // Re-normalize columns so they sum to 1
+                const remainingSum = nextColumns.reduce((sum, val) => sum + val, 0);
+                const normalizedColumns = nextColumns.map(val => val / remainingSum);
+                rowItems[rowIndex] = { ...row, columns: normalizedColumns };
+            }
+            return rowItems;
+        });
+
+        // Shift box states left by 1 for any columns that came after the deleted one
+        setBoxStatesInternal((prevBoxStates) => {
+            const next = { ...prevBoxStates };
+            let i = colIndex;
+            while (next[`${rowId}-col${i + 1}`] !== undefined || next[`${rowId}-col${i}`] !== undefined) {
+                if (next[`${rowId}-col${i + 1}`] !== undefined) {
+                    next[`${rowId}-col${i}`] = next[`${rowId}-col${i + 1}`];
+                } else {
+                    delete next[`${rowId}-col${i}`];
+                }
+                i++;
+            }
+            return next;
+        });
+
+        if (selectedBoxId === boxId || selectedBoxId?.startsWith(rowId + '-col')) {
+            setSelectedBoxId(null);
+            setSelectedLayer(null);
+        }
     };
 
     const handleUndo = () => {
@@ -246,6 +529,50 @@ export default function EmailEditorPage() {
         setBoxStates((prev: Record<string, string>) => ({ ...prev, [boxId]: type }));
     };
 
+    const handleDeleteStructure = (rowId: string) => {
+        setDynamicRows(prev => prev.filter(r => r.id !== rowId));
+        // Optional: cleaning up state for removed boxes
+    };
+
+    const handleDuplicateStructure = (rowId: string) => {
+        const rowIndex = dynamicRows.findIndex(r => r.id === rowId);
+        if (rowIndex === -1) return;
+
+        const rowToCopy = dynamicRows[rowIndex];
+        const newRowId = `row-${Date.now()}`;
+        const newRow = { ...rowToCopy, id: newRowId };
+
+        // Copy content states
+        setBoxStatesInternal(prev => {
+            const next = { ...prev };
+            rowToCopy.columns.forEach((_, i) => {
+                const oldColId = `${rowId}-col${i}`;
+                const newColId = `${newRowId}-col${i}`;
+                if (prev[oldColId]) {
+                    next[newColId] = prev[oldColId];
+                }
+            });
+            return next;
+        });
+
+        // Copy properties
+        setBoxProperties(prev => {
+            const next = { ...prev };
+            rowToCopy.columns.forEach((_, i) => {
+                const oldColId = `${rowId}-col${i}`;
+                const newColId = `${newRowId}-col${i}`;
+                if (prev[oldColId]) {
+                    next[newColId] = JSON.parse(JSON.stringify(prev[oldColId]));
+                }
+            });
+            return next;
+        });
+
+        const updatedRows = [...dynamicRows];
+        updatedRows.splice(rowIndex + 1, 0, newRow);
+        setDynamicRows(updatedRows);
+    };
+
     const handleLayoutDragStart = (e: React.DragEvent, columns: number[]) => {
         setIsDraggingStructures(true);
         setDraggingTool({ type: 'layout', icon: 'layout', component: 'layout', columns });
@@ -266,46 +593,76 @@ export default function EmailEditorPage() {
     };
 
     const ContainerOverlay = ({ boxId, isSelected, selectedLayer }: { boxId: string, isSelected: boolean, selectedLayer: string | null }) => {
-        const isTopRow = boxId === 'box1' || boxId === 'box2';
+        const isTopRow = boxId.startsWith('row1-');
 
-        // Colors from user requirements
         const colors = {
             block: '#4b5b75',     // Requested Gray-Blue
-            container: '#60a5fa', // Sky Blue (blue-400)
+            container: (isSelected && selectedLayer === 'container') ? '#3b82f6' : '#60a5fa',
             structure: '#800000', // Maroon
-            stripe: '#22c55e'    // Green
+            backdrop: '#22c55e'    // Green
         };
 
-        const activeColor = selectedLayer ? colors[selectedLayer as keyof typeof colors] : colors.container;
+        const activeColor = selectedLayer ? colors[selectedLayer as keyof typeof colors] : (isSelected && selectedLayer === 'container' ? '#3b82f6' : '#60a5fa');
 
-        return (
-            <div className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${isSelected ? 'opacity-100 z-40' : 'opacity-0 z-30 group-hover:opacity-100 group-hover/active:opacity-100'}`}>
+        const overlayContent = (
+            <div className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${isSelected ? 'opacity-100 z-[60]' : 'opacity-0 z-30 group-hover:opacity-100 group-hover/active:opacity-100'}`}>
                 {/* Layer Labels (Breadcrumb-like) */}
-                <div className={`absolute ${isTopRow ? '-bottom-[36px]' : '-top-[36px]'} left-0 flex gap-1 pointer-events-auto`}>
+                <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[34px]' : '-top-[32px]'} left-[28px] w-auto flex flex-col items-start transition-opacity duration-300 ${isSelected && hoveredItem !== null && !(hoveredItem?.type === 'container' && hoveredItem?.id === boxId) ? 'opacity-0 pointer-events-none' : isSelected ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto'} z-50`}>
                     {[
-                        { id: 'stripe', label: 'Stripe', color: colors.stripe },
-                        { id: 'structure', label: 'Structure', color: colors.structure },
                         { id: 'container', label: 'Container', color: colors.container },
-                        { id: 'block', label: 'Block', color: colors.block }
-                    ].map((layer) => (
-                        layer.id === 'block' || layer.id === 'container' ? (
-                            <div
-                                key={layer.id}
-                                onClick={(e) => {
-                                    e.stopPropagation();
+                        { id: 'structure', label: 'Structure', color: '#9a5353' }, // Maroon/brick as per image
+                        { id: 'backdrop', label: 'Backdrop', color: '#64748b' } // Slate/gray as per image
+                    ].map((layer, index) => (
+                        <div
+                            key={layer.id}
+                            draggable={layer.id === 'structure'}
+                            onDragStart={(e) => {
+                                if (layer.id === 'structure') {
+                                    e.dataTransfer.effectAllowed = 'move';
+                                    const img = new window.Image();
+                                    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                                    e.dataTransfer.setDragImage(img, 0, 0);
+                                    setDraggingTool({ icon: 'layout', type: 'move_layout', id: boxId.split('-col')[0] });
+                                }
+                            }}
+                            onDragEnd={() => {
+                                if (layer.id === 'structure') {
+                                    setDraggingTool(null);
+                                    setDropInsertIndex(null);
+                                }
+                            }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (layer.id === 'backdrop') {
+                                    const rowId = boxId.split('-col')[0];
+                                    setSelectedBackdropRowId(rowId);
+                                    setSelectedBoxId(null);
+                                    setSelectedLayer('backdrop');
+                                    setActiveRightSidebarTab('general');
+                                } else {
                                     setSelectedBoxId(boxId);
                                     setSelectedLayer(layer.id as any);
-                                }}
-                                style={{
-                                    backgroundColor: selectedLayer === layer.id ? layer.color : 'transparent',
-                                    color: selectedLayer === layer.id ? 'white' : layer.color,
-                                    borderColor: layer.color
-                                }}
-                                className={`px-3 py-0.5 rounded-full border-[1.5px] text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95 ${selectedLayer === layer.id ? 'opacity-100' : 'opacity-40 hover:opacity-100'}`}
-                            >
-                                {layer.label}
-                            </div>
-                        ) : null // Hide structure and stripe for now as requested
+                                    setSelectedBackdropRowId(null);
+                                }
+                            }}
+                            style={{
+                                backgroundColor: layer.color,
+                                color: 'white',
+                                borderColor: layer.color,
+                                zIndex: 30 - index
+                            }}
+                            className={`px-3 py-[3px] rounded-full border-[1.5px] text-[10.5px] font-medium transition-all duration-300 ease-in-out shadow-sm flex items-center justify-start hover:scale-105 active:scale-95 ${index === 0
+                                ? 'relative cursor-pointer'
+                                : '-mt-[26px] opacity-0 pointer-events-none group-hover/layerpill:mt-[4px] group-hover/layerpill:opacity-100 group-hover/layerpill:pointer-events-auto cursor-grab active:cursor-grabbing'
+                                }`}
+                        >
+                            <span className="capitalize tracking-wide">{layer.label}</span>
+                            {index !== 0 && (
+                                <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor" className="opacity-80 rotate-90 ml-1.5 -mr-1 pointer-events-none">
+                                    <path d="M360-160q-33 0-56.5-23.5T280-240q0-33 23.5-56.5T360-320q33 0 56.5 23.5T440-240q0 33-23.5 56.5T360-160Zm240 0q-33 0-56.5-23.5T520-240q0-33 23.5-56.5T600-320q33 0 56.5 23.5T680-240q0 33-23.5 56.5T600-160ZM360-400q-33 0-56.5-23.5T280-480q0-33 23.5-56.5T360-560q33 0 56.5 23.5T440-480q0 33-23.5 56.5T360-400Zm240 0q-33 0-56.5-23.5T520-480q0-33 23.5-56.5T600-560q33 0 56.5 23.5T680-480q0 33-23.5 56.5T600-400ZM360-640q-33 0-56.5-23.5T280-720q0-33 23.5-56.5T360-800q33 0 56.5 23.5T440-720q0 33-23.5 56.5T360-640Zm240 0q-33 0-56.5-23.5T520-720q0-33 23.5-56.5T600-800q33 0 56.5 23.5T680-720q0 33-23.5 56.5T600-640Z" />
+                                </svg>
+                            )}
+                        </div>
                     ))}
                 </div>
 
@@ -315,24 +672,57 @@ export default function EmailEditorPage() {
                     className="absolute top-1/2 -translate-y-1/2 -left-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-transform group/btn"
                     onClick={(e) => {
                         e.stopPropagation();
-                        setBoxStates((prev: Record<string, string>) => ({ ...prev, [boxId]: 'empty' }));
+                        handleDeleteContainer(boxId);
                     }}
                 >
                     <TooltipProvider delayDuration={0}>
                         <Tooltip>
                             <TooltipTrigger asChild>
                                 <div className="flex items-center justify-center w-full h-full relative">
-                                    <div className="flex items-center justify-center gap-[4px] absolute transition-opacity duration-200 group-hover/btn:opacity-0 opacity-100">
-                                        <div className="w-[4.5px] h-[4.5px] rounded-full bg-white"></div>
-                                        <div className="w-[4.5px] h-[4.5px] rounded-full bg-white"></div>
-                                        <div className="w-[4.5px] h-[4.5px] rounded-full bg-white"></div>
+                                    <div className="flex items-center justify-center gap-[3px] absolute transition-opacity duration-200 group-hover/btn:opacity-0 opacity-100 group-active/btn:opacity-0">
+                                        <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
+                                        <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
+                                        <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
                                     </div>
-                                    <span className="material-symbols-outlined text-[20px] absolute transition-opacity duration-200 group-hover/btn:opacity-100 opacity-0">delete_outline</span>
+                                    <span className="material-symbols-outlined text-[18px] absolute transition-opacity duration-200 group-hover/btn:opacity-100 opacity-0 group-active/btn:opacity-100">delete_outline</span>
                                 </div>
                             </TooltipTrigger>
-                            <TooltipContent side="left" sideOffset={12}>Clear container</TooltipContent>
+                            <TooltipContent side="left" sideOffset={12}>Delete Container</TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
+                </div>
+            </div>
+        );
+        return overlayContent;
+    };
+
+    const BlockOverlay = ({ boxId, isSelected, selectedLayer }: { boxId: string, isSelected: boolean, selectedLayer: string | null }) => {
+        if (!isSelected || selectedLayer !== 'block') return null;
+        return (
+            <div className="absolute inset-[-2px] pointer-events-none z-[75]">
+                {/* 2px Solid Dark Grey Border matching container bounds */}
+                <div className="absolute inset-0 border-[2px] border-[#4b5b75] rounded-[4px]"></div>
+
+                {/* Right 3-dot Box */}
+                <div
+                    className="absolute top-1/2 -translate-y-1/2 -right-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-transform group/btn bg-[#4b5b75]"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                    }}
+                >
+                    <div className="flex gap-[3px]">
+                        <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
+                        <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
+                        <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
+                    </div>
+                </div>
+
+                {/* Bottom Left Drag Pill */}
+                <div
+                    className={`absolute -bottom-[20px] left-[16px] text-white rounded-[12px] w-[36px] h-[24px] flex items-center justify-center pointer-events-auto cursor-grab active:cursor-grabbing shadow-md hover:scale-105 transition-all bg-[#4b5b75] ${hoveredItem !== null && !(hoveredItem?.type === 'block' && hoveredItem?.id === boxId) ? 'opacity-0 pointer-events-none' : ''}`}
+                    onClick={(e) => { e.stopPropagation(); }}
+                >
+                    <span className="material-symbols-outlined text-[18px] rotate-90">drag_indicator</span>
                 </div>
             </div>
         );
@@ -344,21 +734,28 @@ export default function EmailEditorPage() {
         if (state === 'image') {
             return (
                 <div
-                    className={`w-full h-full relative border-[2px] rounded-[8px] bg-[#f9fafb] flex items-center justify-center transition-all group/container cursor-pointer ${isSelected && selectedLayer === 'container' ? 'border-blue-400 z-40' : 'border-blue-400/20 hover:border-blue-400/40'}`}
+                    className={`structure-container w-full relative border-[2px] rounded-[4px] bg-[#f9fafb] flex items-center justify-center group/container cursor-pointer min-h-[120px] ${isSelected ? 'z-[60] hover:z-[65]' : 'hover:z-[65]'} ${isSelected && selectedLayer === 'container' ? 'border-blue-400' : 'border-blue-400/20 hover:border-blue-400/40'}`}
                     onClick={(e) => {
                         e.stopPropagation();
                         setSelectedBoxId(boxId);
                         setSelectedLayer('container');
+                        setSelectedBackdropRowId(null);
                     }}
+                    onMouseEnter={() => setHoveredItem({ type: 'container', id: boxId })}
+                    onMouseLeave={() => setHoveredItem(null)}
                 >
-                    <ContainerOverlay boxId={boxId} isSelected={isSelected} selectedLayer={selectedLayer} />
+                    {ContainerOverlay({ boxId, isSelected, selectedLayer })}
+                    {BlockOverlay({ boxId, isSelected, selectedLayer })}
                     <div
-                        className={`flex-1 h-full flex items-center justify-center transition-all ${isSelected && selectedLayer === 'block' ? 'border-[2px] border-[#4b5b75] rounded-[4px] m-[2px]' : ''}`}
+                        className="w-full h-full flex items-center justify-center"
                         onClick={(e) => {
                             e.stopPropagation();
                             setSelectedBoxId(boxId);
                             setSelectedLayer('block');
+                            setSelectedBackdropRowId(null);
                         }}
+                        onMouseEnter={() => setHoveredItem({ type: 'block', id: boxId })}
+                        onMouseLeave={() => setHoveredItem({ type: 'container', id: boxId })}
                     >
                         <span className="material-symbols-outlined text-[24px] text-gray-400">image</span>
                     </div>
@@ -369,27 +766,39 @@ export default function EmailEditorPage() {
         if (state === 'text') {
             return (
                 <div
-                    className={`w-full h-full relative border-[2px] rounded-[8px] bg-white transition-all group/container cursor-text flex flex-col ${isSelected && selectedLayer === 'container' ? 'border-blue-400 z-40' : 'border-blue-400/10 hover:border-blue-400/30'}`}
+                    className={`structure-container w-full relative border-[2px] rounded-[4px] bg-white group/container cursor-text flex flex-col ${isSelected ? 'z-[60] hover:z-[65]' : 'hover:z-[65]'} ${isSelected && selectedLayer === 'container' ? 'border-blue-400' : 'border-blue-400/10 hover:border-blue-400/30'}`}
                     onClick={(e) => {
                         e.stopPropagation();
                         setSelectedBoxId(boxId);
                         setSelectedLayer('container');
+                        setSelectedBackdropRowId(null);
                     }}
+                    onMouseEnter={() => setHoveredItem({ type: 'container', id: boxId })}
+                    onMouseLeave={() => setHoveredItem(null)}
                 >
-                    <ContainerOverlay boxId={boxId} isSelected={isSelected} selectedLayer={selectedLayer} />
+                    {ContainerOverlay({ boxId, isSelected, selectedLayer })}
+                    {BlockOverlay({ boxId, isSelected, selectedLayer })}
                     <div
-                        className={`flex-1 m-[2px] p-3 transition-all ${isSelected && selectedLayer === 'block' ? 'border-[2px] border-[#4b5b75] rounded-[4px]' : ''}`}
+                        className="flex-1 p-3 w-full"
                         onClick={(e) => {
                             e.stopPropagation();
                             setSelectedBoxId(boxId);
                             setSelectedLayer('block');
+                            setSelectedBackdropRowId(null);
                         }}
+                        onMouseEnter={() => setHoveredItem({ type: 'block', id: boxId })}
+                        onMouseLeave={() => setHoveredItem({ type: 'container', id: boxId })}
                     >
                         <RichTextEditor
                             boxId={boxId}
                             isSelected={isSelected && selectedLayer === 'block'}
                             boxProperties={boxProperties[boxId]}
-                            onEditorFocus={(editor: any) => setActiveEditor(editor)}
+                            onEditorFocus={(editor: any) => {
+                                setActiveEditor(editor);
+                                setSelectedBoxId(boxId);
+                                setSelectedLayer('block');
+                                setSelectedBackdropRowId(null);
+                            }}
                             onEditorBlur={() => { }}
                             onTransaction={(editor: any) => {
                                 if (activeEditor === editor) setEditorUpdateTicker(t => t + 1);
@@ -403,21 +812,28 @@ export default function EmailEditorPage() {
         if (state === 'button') {
             return (
                 <div
-                    className={`w-full py-5 relative border-[2px] rounded-[8px] bg-white flex items-center justify-center transition-all group/container cursor-pointer ${isSelected && selectedLayer === 'container' ? 'border-blue-400 z-40' : 'border-blue-400/10 hover:border-blue-400/30'}`}
+                    className={`structure-container w-full py-5 relative border-[2px] rounded-[4px] bg-white flex items-center justify-center group/container cursor-pointer ${isSelected ? 'z-[60] hover:z-[65]' : 'hover:z-[65]'} ${isSelected && selectedLayer === 'container' ? 'border-blue-400' : 'border-blue-400/10 hover:border-blue-400/30'}`}
                     onClick={(e) => {
                         e.stopPropagation();
                         setSelectedBoxId(boxId);
                         setSelectedLayer('container');
+                        setSelectedBackdropRowId(null);
                     }}
+                    onMouseEnter={() => setHoveredItem({ type: 'container', id: boxId })}
+                    onMouseLeave={() => setHoveredItem(null)}
                 >
-                    <ContainerOverlay boxId={boxId} isSelected={isSelected} selectedLayer={selectedLayer} />
+                    {ContainerOverlay({ boxId, isSelected, selectedLayer })}
+                    {BlockOverlay({ boxId, isSelected, selectedLayer })}
                     <div
-                        className={`px-8 py-2 transition-all ${isSelected && selectedLayer === 'block' ? 'border-[2px] border-[#4b5b75] rounded-[4px]' : ''}`}
+                        className="px-8 py-2 w-full flex justify-center"
                         onClick={(e) => {
                             e.stopPropagation();
                             setSelectedBoxId(boxId);
                             setSelectedLayer('block');
+                            setSelectedBackdropRowId(null);
                         }}
+                        onMouseEnter={() => setHoveredItem({ type: 'block', id: boxId })}
+                        onMouseLeave={() => setHoveredItem({ type: 'container', id: boxId })}
                     >
                         <button className="bg-[#22c55e] hover:bg-[#16a34a] text-white px-8 py-2.5 rounded-[12px] font-medium text-[15px] transition-colors border shadow-sm pointer-events-none">
                             Button
@@ -432,12 +848,15 @@ export default function EmailEditorPage() {
         // Default empty state
         return (
             <div
-                className={`w-full h-full group border-[2px] rounded-[8px] flex flex-col items-center justify-center cursor-pointer relative transition-all duration-300 ${isSelected ? 'border-solid border-blue-400 bg-blue-50/50 text-blue-500/90' : (isDragOver ? 'border-solid border-blue-400 bg-blue-50 dark:bg-blue-900/40 text-blue-500' : 'border-dashed border-blue-400/20 hover:border-solid hover:border-blue-400/50 hover:bg-blue-50 dark:hover:bg-blue-900/20 bg-[#f0f7ff] dark:bg-blue-900/10 text-blue-400')}`}
+                className={`structure-container w-full min-h-[120px] group border-[2px] rounded-[4px] flex flex-col items-center justify-center cursor-pointer relative transition-all duration-300 flex-1 ${isSelected ? 'z-[60] hover:z-[65] border-solid border-blue-400 bg-blue-50/50 text-blue-500/90' : (isDragOver ? 'hover:z-[65] border-solid border-blue-400 bg-blue-50 dark:bg-blue-900/40 text-blue-500' : 'hover:z-[65] border-dashed border-blue-400/20 hover:border-solid hover:border-blue-400/50 hover:bg-blue-50 dark:hover:bg-blue-900/20 bg-[#f0f7ff] dark:bg-blue-900/10 text-blue-400')}`}
                 onClick={(e) => {
                     e.stopPropagation();
                     setSelectedBoxId(boxId);
                     setSelectedLayer('container');
+                    setSelectedBackdropRowId(null);
                 }}
+                onMouseEnter={() => setHoveredItem({ type: 'container', id: boxId })}
+                onMouseLeave={() => setHoveredItem(null)}
                 onDragOver={(e) => {
                     e.preventDefault();
                     if (e.dataTransfer.types.includes('application/tool-type')) {
@@ -459,11 +878,10 @@ export default function EmailEditorPage() {
                     }
                 }}
             >
-                <ContainerOverlay boxId={boxId} isSelected={isSelected} selectedLayer={selectedLayer} />
+                {ContainerOverlay({ boxId, isSelected, selectedLayer })}
                 {isDragOver ? (
-                    <div className="bg-blue-500 text-white px-5 py-2 rounded-full shadow-md transition-all scale-105 flex items-center gap-2 pointer-events-none">
-                        <span className="material-symbols-outlined text-[18px]">download</span>
-                        <span className="text-[13px] font-medium">Drop here</span>
+                    <div className="bg-[#333] text-white text-[11px] font-medium px-3 py-1 rounded-full shadow-md whitespace-nowrap pointer-events-none z-[65]">
+                        Drop here
                     </div>
                 ) : (
                     <>
@@ -568,7 +986,9 @@ export default function EmailEditorPage() {
     };
 
     return (
-        <div className="fixed inset-0 z-[40] h-full w-full flex flex-col overflow-hidden bg-[#f3f4f6] dark:bg-background">
+        <div
+            className="fixed inset-0 z-[40] h-full w-full flex flex-col overflow-hidden bg-[#f3f4f6] dark:bg-background"
+        >
             {/* Header Area */}
             <header className="h-[56px] border-b px-3 flex items-center justify-between bg-white dark:bg-background z-10 relative">
                 <TooltipProvider delayDuration={0}>
@@ -872,14 +1292,16 @@ export default function EmailEditorPage() {
                 </TooltipProvider>
             </header>
 
-            <div className="flex-1 overflow-hidden relative w-full h-full flex bg-[#f3f4f6] dark:bg-background">
+            <div
+                className="flex-1 overflow-hidden relative w-full h-full flex bg-[#f3f4f6] dark:bg-background"
+            >
 
                 {/* Sidebar Toolbar Area */}
                 <div className={`${structuresPanelPosition === 'right' ? 'absolute right-[9px] top-0 h-full z-30' : 'relative'} w-[72px] h-full flex-shrink-0 flex flex-col items-center pt-[20px] pb-4 z-30`}>
 
                     {/* Combined Toolbar Area (for ghost and drag boundary) */}
                     <div id="left-toolbar-container" className="w-[60px] h-full flex flex-col items-center gap-4 relative">
-                        {isDraggingStructures && (
+                        {isDraggingStructures && !draggingTool && (
                             <div className="absolute top-0 bottom-0 left-0 right-0 border-2 border-dashed border-primary rounded-t-[16px] rounded-b-[20px] pointer-events-none z-50"></div>
                         )}
 
@@ -999,7 +1421,7 @@ export default function EmailEditorPage() {
                 {(isStructuresPanelOpen || isStructuresPanelClosing) && (
                     <div
                         ref={structuresPanelRef}
-                        className={`absolute ${structuresPanelPosition === 'right' ? 'right-[6px]' : 'left-[6px]'} top-[6px] w-[480px] z-50 ${isStructuresPanelClosing ? 'structures-panel-close' : 'structures-panel-open'} transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)]`}
+                        className={`absolute ${structuresPanelPosition === 'right' ? 'right-[6px]' : 'left-[6px]'} top-[6px] w-[480px] z-[70] ${isStructuresPanelClosing ? 'structures-panel-close' : 'structures-panel-open'} transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)]`}
                         style={{ height: 'calc(100% - 12px)' }}
                     >
                         <div className="h-full w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[24px] shadow-xl flex flex-col overflow-hidden">
@@ -1064,16 +1486,18 @@ export default function EmailEditorPage() {
                                                 <TooltipContent>My Modules</TooltipContent>
                                             </Tooltip>
 
-                                            {/* Tab 4: Extensions */}
+                                            {/* Tab 4: Template Modules */}
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
                                                     <div
                                                         className="h-[40px] flex-1 flex items-center justify-center rounded-full cursor-pointer transition-all duration-200 text-gray-400 dark:text-muted-foreground hover:text-gray-600 dark:hover:text-gray-300"
                                                     >
-                                                        <span className="material-symbols-outlined text-[22px]">apps</span>
+                                                        <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor">
+                                                            <path d="M240-320h280v-120H240v120Zm360 0h120v-320H600v320ZM240-520h280v-120H240v120Zm-80 360q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm0-80h640v-480H160v480Zm0 0v-480 480Z" />
+                                                        </svg>
                                                     </div>
                                                 </TooltipTrigger>
-                                                <TooltipContent>Extensions</TooltipContent>
+                                                <TooltipContent>Template Modules</TooltipContent>
                                             </Tooltip>
                                         </TooltipProvider>
                                     </div>
@@ -1268,65 +1692,325 @@ export default function EmailEditorPage() {
 
                 {/* Editor Canvas Area */}
                 <div
-                    className={`flex-1 relative flex flex-col py-6 ${structuresPanelPosition === 'right' ? 'pr-[90px] pl-[384px]' : 'pl-6 pr-[384px]'} overflow-y-auto h-full items-center [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full`}
-                    onClick={() => setSelectedBoxId(null)}
+                    className={`flex-1 relative flex flex-col pt-0 pb-6 ${structuresPanelPosition === 'right' ? 'pr-[90px] pl-[384px]' : 'pl-6 pr-[384px]'} overflow-y-auto h-full items-center [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full`}
+                    onClick={() => { setSelectedBoxId(null); setSelectedBackdropRowId(null); }}
                 >
 
                     {/* The Canvas Page Layout Block */}
                     <div
-                        className={`w-full max-w-[750px] bg-white dark:bg-accent shadow-sm flex flex-col p-8 gap-6 relative transition-all duration-300`}
+                        ref={canvasRef}
+                        className={`w-full max-w-[620px] bg-white dark:bg-accent shadow-sm flex flex-col pt-[34px] pb-8 gap-6 relative transition-all duration-300`}
                         onClick={(e) => e.stopPropagation()}
                         onDragOver={(e) => {
-                            if (draggingTool?.type === 'layout') {
+                            if (draggingTool?.type === 'layout' || draggingTool?.type === 'move_layout') {
                                 e.preventDefault();
-                                e.dataTransfer.dropEffect = 'copy';
+                                e.dataTransfer.dropEffect = draggingTool.type === 'move_layout' ? 'move' : 'copy';
+
+                                // Calculate nearest gap
+                                const canvas = canvasRef.current;
+                                if (!canvas) return;
+                                const children = Array.from(canvas.querySelectorAll(':scope > [data-structure-row]'));
+                                const mouseY = e.clientY;
+
+                                if (children.length === 0) {
+                                    setDropInsertIndex(0);
+                                    return;
+                                }
+
+                                // Check gaps: before first, between each pair, after last
+                                let closestIndex = 0;
+                                let closestDist = Infinity;
+
+                                // Gap before first row
+                                const firstRect = children[0].getBoundingClientRect();
+                                const distToTop = Math.abs(mouseY - firstRect.top);
+                                if (distToTop < closestDist) {
+                                    closestDist = distToTop;
+                                    closestIndex = 0;
+                                }
+
+                                // Gaps between rows
+                                for (let i = 0; i < children.length - 1; i++) {
+                                    const bottomOfCurrent = children[i].getBoundingClientRect().bottom;
+                                    const topOfNext = children[i + 1].getBoundingClientRect().top;
+                                    const gapCenter = (bottomOfCurrent + topOfNext) / 2;
+                                    const dist = Math.abs(mouseY - gapCenter);
+                                    if (dist < closestDist) {
+                                        closestDist = dist;
+                                        closestIndex = i + 1;
+                                    }
+                                }
+
+                                // Gap after last row
+                                const lastRect = children[children.length - 1].getBoundingClientRect();
+                                const distToBottom = Math.abs(mouseY - lastRect.bottom);
+                                if (distToBottom < closestDist) {
+                                    closestIndex = children.length;
+                                }
+
+                                setDropInsertIndex(closestIndex);
+                            }
+                        }}
+                        onDragLeave={(e) => {
+                            // Only clear if leaving the canvas entirely
+                            if (!canvasRef.current?.contains(e.relatedTarget as Node)) {
+                                setDropInsertIndex(null);
                             }
                         }}
                         onDrop={(e) => {
-                            if (draggingTool?.type === 'layout' && draggingTool.columns) {
+                            if ((draggingTool?.type === 'layout' || draggingTool?.type === 'move_layout') && dropInsertIndex !== null) {
                                 e.preventDefault();
-                                const newRowId = `row-${Date.now()}`;
-                                setDynamicRows(prev => [...prev, { id: newRowId, columns: draggingTool.columns! }]);
+
+                                if (draggingTool.type === 'move_layout' && draggingTool.id) {
+                                    // Handle moving existing row
+                                    const draggedId = draggingTool.id;
+                                    setDynamicRows(prev => {
+                                        const currentIndex = prev.findIndex(r => r.id === draggedId);
+                                        if (currentIndex === -1) return prev;
+
+                                        // Calculate the effective insertion index after removing the item from its original position
+                                        // If dropping *after* its current position, the target index shifts down by 1 because the item itself is removed first
+                                        const effectiveInsertAt = dropInsertIndex > currentIndex ? dropInsertIndex - 1 : dropInsertIndex;
+
+                                        const next = [...prev];
+                                        const [draggedRow] = next.splice(currentIndex, 1);
+                                        next.splice(effectiveInsertAt, 0, draggedRow);
+                                        return next;
+                                    });
+                                } else if (draggingTool.columns) {
+                                    // Handle new row from menu
+                                    const newRowId = `row-${Date.now()}`;
+                                    setDynamicRows(prev => {
+                                        const next = [...prev];
+                                        next.splice(dropInsertIndex, 0, { id: newRowId, columns: draggingTool.columns! });
+                                        return next;
+                                    });
+                                }
+
+                                setDropInsertIndex(null);
+                                setDraggingTool(null);
                             }
                         }}
                     >
-                        {/* Row 1 */}
-                        <div className="flex gap-4 h-[120px]">
-                            <div className="w-[30%]">
-                                {renderBoxContent(boxStates.box1, 'box1')}
-                            </div>
-                            <div className="w-[70%]">
-                                {renderBoxContent(boxStates.box2, 'box2')}
-                            </div>
-                        </div>
+                        {/* Rendered Rows (Unified) with drop indicators */}
+                        {dynamicRows.map((row, index) => {
+                            const hasContent = row.columns.some((_, i) => boxStatesInternal[`${row.id}-col${i}`] && boxStatesInternal[`${row.id}-col${i}`] !== 'empty');
+                            return (
+                                <div key={row.id} data-structure-row className="relative">
+                                    {/* Drop indicator AT TOP of this row (only for first row, index 0) */}
+                                    {dropInsertIndex === 0 && index === 0 && (
+                                        <>
+                                            <div className="absolute top-[-34px] left-[2px] right-[2px] h-[2px] bg-[#333] rounded-full z-[65] pointer-events-none" />
+                                            <div className={`absolute top-[-34px] -translate-y-1/2 z-[65] pointer-events-none transition-all ${draggingTool?.type === 'layout' ? (structuresPanelPosition === 'left' ? 'left-[calc(50%+80px)]' : 'left-[calc(50%-80px)]') : 'left-1/2'} -translate-x-1/2`}>
+                                                <div className="bg-[#333] text-white text-[11px] font-medium px-3 py-1 rounded-full shadow-md whitespace-nowrap">Drop here</div>
+                                            </div>
+                                        </>
+                                    )}
 
-                        {/* Row 2 (Full Width) */}
-                        <div className="flex gap-4 h-[120px]">
-                            <div className="w-full">
-                                {renderBoxContent(boxStates.box3, 'box3')}
-                            </div>
-                        </div>
+                                    {/* Backdrop Full-Width Color Strip — spans the entire display area behind the canvas */}
+                                    {rowBackdropColors[row.id] && (
+                                        <div
+                                            className="absolute pointer-events-none z-[3]"
+                                            style={{
+                                                top: index === 0 ? '-34px' : '-26px',
+                                                bottom: 0,
+                                                left: '50%',
+                                                transform: 'translateX(-50%)',
+                                                width: '100vw',
+                                                backgroundColor: rowBackdropColors[row.id]
+                                            }}
+                                        />
+                                    )}
 
-                        {/* Row 3 (50/50) */}
-                        <div className="flex gap-4 h-[140px]">
-                            <div className="w-1/2">
-                                {renderBoxContent(boxStates.box4, 'box4')}
-                            </div>
-                            <div className="w-1/2">
-                                {renderBoxContent(boxStates.box5, 'box5')}
-                            </div>
-                        </div>
+                                    {/* Backdrop Border Overlay — sits on top of the color strip at -60px width */}
+                                    <div
+                                        className={`absolute -inset-x-[60px] rounded-[4px] border-[2px] transition-all duration-150 pointer-events-none z-[5] ${selectedBackdropRowId === row.id
+                                            ? 'border-[#64748b]'
+                                            : (hoveredItem?.type === 'backdrop' && hoveredItem?.id === row.id)
+                                                ? 'border-[#94a3b8]'
+                                                : 'border-transparent'
+                                            }`}
+                                        style={{
+                                            top: index === 0 ? '-34px' : '-26px',
+                                            bottom: 0
+                                        }}
+                                    />
 
-                        {/* Dynamic Rendered Rows from Drop */}
-                        {dynamicRows.map(row => (
-                            <div key={row.id} className="flex gap-4 h-[120px] w-full">
-                                {row.columns.map((colFrac, i) => (
-                                    <div key={i} style={{ flex: colFrac }} className="h-full">
-                                        {renderBoxContent(boxStatesInternal[`${row.id}-col${i}`] || 'empty', `${row.id}-col${i}`)}
+                                    {/* Backdrop Left Strip Hitbox — only the side strip outside the canvas */}
+                                    <div
+                                        className="absolute left-[-60px] w-[60px] z-[8] pointer-events-auto cursor-pointer"
+                                        style={{ top: index === 0 ? '-34px' : '-26px', bottom: 0 }}
+                                        onMouseEnter={() => setHoveredItem({ type: 'backdrop', id: row.id })}
+                                        onMouseLeave={() => setHoveredItem(null)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedBackdropRowId(row.id);
+                                            setSelectedBoxId(null);
+                                            setSelectedLayer('backdrop');
+                                            setActiveRightSidebarTab('general');
+                                        }}
+                                    />
+
+                                    {/* Backdrop Right Strip Hitbox — only the side strip outside the canvas */}
+                                    <div
+                                        className="absolute right-[-60px] w-[60px] z-[8] pointer-events-auto cursor-pointer"
+                                        style={{ top: index === 0 ? '-34px' : '-26px', bottom: 0 }}
+                                        onMouseEnter={() => setHoveredItem({ type: 'backdrop', id: row.id })}
+                                        onMouseLeave={() => setHoveredItem(null)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setSelectedBackdropRowId(row.id);
+                                            setSelectedBoxId(null);
+                                            setSelectedLayer('backdrop');
+                                            setActiveRightSidebarTab('general');
+                                        }}
+                                    />
+
+                                    {/* Backdrop Controls — pill, plus, 3-dot (shows on hover/select) */}
+                                    {((hoveredItem?.type === 'backdrop' && hoveredItem?.id === row.id) || selectedBackdropRowId === row.id) && (
+                                        /* Compute: should pill+plus hide? Only when selected + something ELSE is hovered */
+                                        /* 3-dot always visible when this block renders */
+                                        <>
+                                            {/* Backdrop Pill — same positioning as Structure pill */}
+                                            <div
+                                                className={`absolute left-[-60px] z-[20] pointer-events-auto animate-in fade-in duration-200 transition-opacity ${selectedBackdropRowId === row.id && hoveredItem !== null && !(hoveredItem?.type === 'backdrop' && hoveredItem?.id === row.id) ? 'opacity-0 pointer-events-none' : ''}`}
+                                                style={index === 0
+                                                    ? { bottom: '-37px', left: '20px' }   /* top row: beside plus, at bottom */
+                                                    : { top: '-54px' }                    /* other rows: above border, left strip */
+                                                }
+                                            >
+                                                <div
+                                                    className="px-3 py-[3px] rounded-full text-white text-[10.5px] font-medium shadow-sm flex items-center cursor-pointer hover:scale-105 active:scale-95 transition-all"
+                                                    style={{ backgroundColor: selectedBackdropRowId === row.id ? '#475569' : '#64748b' }}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedBackdropRowId(row.id);
+                                                        setSelectedBoxId(null);
+                                                        setSelectedLayer('backdrop');
+                                                        setActiveRightSidebarTab('general');
+                                                    }}
+                                                >
+                                                    <span className="capitalize tracking-wide">Backdrop</span>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor" className="opacity-80 rotate-90 ml-1.5 -mr-1">
+                                                        <path d="M360-160q-33 0-56.5-23.5T280-240q0-33 23.5-56.5T360-320q33 0 56.5 23.5T440-240q0 33-23.5 56.5T360-160Zm240 0q-33 0-56.5-23.5T520-240q0-33 23.5-56.5T600-320q33 0 56.5 23.5T680-240q0 33-23.5 56.5T600-160ZM360-400q-33 0-56.5-23.5T280-480q0-33 23.5-56.5T360-560q33 0 56.5 23.5T440-480q0 33-23.5 56.5T360-400Zm240 0q-33 0-56.5-23.5T520-480q0-33 23.5-56.5T600-560q33 0 56.5 23.5T680-480q0 33-23.5 56.5T600-400ZM360-640q-33 0-56.5-23.5T280-720q0-33 23.5-56.5T360-800q33 0 56.5 23.5T440-720q0 33-23.5 56.5T360-640Zm240 0q-33 0-56.5-23.5T520-720q0-33 23.5-56.5T600-800q33 0 56.5 23.5T680-720q0 33-23.5 56.5T600-640Z" />
+                                                    </svg>
+                                                </div>
+                                            </div>
+
+                                            {/* Plus Button — same position as Structure's add button (-bottom-[44px]) */}
+                                            <div className={`absolute -bottom-[44px] left-[-60px] z-[20] pointer-events-auto transition-opacity duration-200 ${selectedBackdropRowId === row.id && hoveredItem !== null && !(hoveredItem?.type === 'backdrop' && hoveredItem?.id === row.id) ? 'opacity-0 pointer-events-none' : ''}`}>
+                                                <div
+                                                    className="w-[36px] h-[36px] rounded-[12px] text-white flex items-center justify-center cursor-pointer shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
+                                                    style={{ backgroundColor: selectedBackdropRowId === row.id ? '#475569' : '#64748b' }}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <span className="material-symbols-outlined text-[20px]">add</span>
+                                                </div>
+                                            </div>
+
+                                            {/* 3-dot menu — inward in right strip, vertically aligned to same plane as Structure 3-dot */}
+                                            {/* Structure 3-dot center = rowHeight/2 - topOffset/2. Offset: -17px for row1, -13px for others */}
+                                            <div
+                                                className="absolute -translate-y-1/2 right-[-54px] z-[20] pointer-events-auto group/backdropbtn flex items-center"
+                                                style={{ top: index === 0 ? 'calc(50% - 17px)' : 'calc(50% - 13px)' }}
+                                            >
+                                                <div className="flex flex-row items-center">
+                                                    {/* Slide-in action panel — expands to the LEFT (inward) on hover */}
+                                                    <div className="flex items-center gap-[6px] mr-[6px] overflow-hidden transition-all duration-200 ease-out max-w-0 opacity-0 group-hover/backdropbtn:max-w-[80px] group-hover/backdropbtn:opacity-100">
+                                                        <TooltipProvider delayDuration={0}>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <div
+                                                                        className="w-[32px] h-[32px] rounded-[10px] text-white flex items-center justify-center cursor-pointer shadow-md hover:brightness-110 active:scale-90 transition-all duration-150 flex-shrink-0"
+                                                                        style={{ backgroundColor: selectedBackdropRowId === row.id ? '#475569' : '#64748b' }}
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setRowBackdropColors(prev => {
+                                                                                const next = { ...prev };
+                                                                                delete next[row.id];
+                                                                                return next;
+                                                                            });
+                                                                            setSelectedBackdropRowId(null);
+                                                                            setHoveredItem(null);
+                                                                        }}
+                                                                    >
+                                                                        <span className="material-symbols-outlined text-[16px]">delete_outline</span>
+                                                                    </div>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent side="top" sideOffset={8}>Clear Backdrop</TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    </div>
+
+                                                    {/* 3-dot button */}
+                                                    <div
+                                                        className="w-[36px] h-[36px] rounded-[12px] text-white flex items-center justify-center cursor-pointer shadow-md hover:scale-105 active:scale-95 transition-all duration-200 flex-shrink-0 relative overflow-hidden"
+                                                        style={{ backgroundColor: selectedBackdropRowId === row.id ? '#475569' : '#64748b' }}
+                                                    >
+                                                        <div className="absolute inset-0 flex items-center justify-center gap-[3px] transition-opacity duration-200 opacity-100 group-hover/backdropbtn:opacity-0">
+                                                            <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
+                                                            <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
+                                                            <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
+                                                        </div>
+                                                        <div className="absolute inset-0 flex items-center justify-center transition-opacity duration-200 opacity-0 group-hover/backdropbtn:opacity-100">
+                                                            <span className="material-symbols-outlined text-[16px]">palette</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    <div
+                                        onMouseEnter={() => setHoveredItem({ type: 'structure', id: row.id })}
+                                        onMouseLeave={() => setHoveredItem(null)}
+                                    >
+                                        <StructureWrapper
+                                            id={row.id}
+                                            isSelected={selectedBoxId === row.id && selectedLayer === 'structure'}
+                                            onSelect={() => { setSelectedBoxId(row.id); setSelectedLayer('structure'); setSelectedBackdropRowId(null); }}
+                                            onDelete={() => handleDeleteStructure(row.id)}
+                                            onDuplicate={() => handleDuplicateStructure(row.id)}
+                                            onMoveDragStart={(e) => {
+                                                e.dataTransfer.effectAllowed = 'move';
+
+                                                // Hide ghost image to just show border indicators
+                                                const img = new window.Image();
+                                                img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                                                e.dataTransfer.setDragImage(img, 0, 0);
+
+                                                setDraggingTool({ icon: 'layout', type: 'move_layout', id: row.id });
+                                            }}
+                                            onMoveDragEnd={() => {
+                                                setDraggingTool(null);
+                                                setDropInsertIndex(null);
+                                            }}
+                                            isDraggingLayout={dropInsertIndex !== null}
+                                            topOffset={index === 0 ? "-34px" : "-26px"}
+                                            isTopRow={index === 0}
+                                            hideSecondaryControls={selectedBoxId === row.id && selectedLayer === 'structure' && hoveredItem !== null && !(hoveredItem?.type === 'structure' && hoveredItem?.id === row.id)}
+                                        >
+                                            <div className="flex gap-4 w-full items-start" style={{ height: 'auto' }}>
+                                                {row.columns.map((colFrac, i) => (
+                                                    <div key={i} style={{ flex: colFrac }} className="w-full">
+                                                        {renderBoxContent(boxStatesInternal[`${row.id}-col${i}`] || 'empty', `${row.id}-col${i}`)}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </StructureWrapper>
                                     </div>
-                                ))}
-                            </div>
-                        ))}
+                                    {/* Drop indicator AT BOTTOM of this row (between this and next, or after last) */}
+                                    {dropInsertIndex === index + 1 && (
+                                        <>
+                                            <div className="absolute bottom-0 left-[2px] right-[2px] h-[2px] bg-[#333] rounded-full z-[65] pointer-events-none" />
+                                            <div className={`absolute bottom-0 translate-y-1/2 z-[65] pointer-events-none transition-all ${draggingTool?.type === 'layout' ? (structuresPanelPosition === 'left' ? 'left-[calc(50%+80px)]' : 'left-[calc(50%-80px)]') : 'left-1/2'} -translate-x-1/2`}>
+                                                <div className="bg-[#333] text-white text-[11px] font-medium px-3 py-1 rounded-full shadow-md whitespace-nowrap">Drop here</div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
 
 
@@ -1334,9 +2018,9 @@ export default function EmailEditorPage() {
 
                 {/* Right Sidebar Property Panel */}
                 <div
-                    className={`absolute ${structuresPanelPosition === 'right' ? 'left-0' : 'right-0'} top-0 w-[360px] h-full flex flex-col z-10 p-4 ${structuresPanelPosition === 'right' ? 'pr-0' : 'pl-0'} pointer-events-none transition-all ${isDraggingStructures ? 'z-[60]' : ''}`}
+                    className={`absolute ${structuresPanelPosition === 'right' ? 'left-0' : 'right-0'} top-0 w-[360px] h-full flex flex-col z-10 p-4 ${structuresPanelPosition === 'right' ? 'pr-0' : 'pl-0'} pointer-events-none transition-all ${isDraggingStructures && !draggingTool ? 'z-[60]' : ''}`}
                     onDragOver={(e) => {
-                        if (!isDraggingStructures) return;
+                        if (!isDraggingStructures || draggingTool) return;
                         e.preventDefault();
                         e.dataTransfer.dropEffect = 'move';
                         setIsDragOverRight(true);
@@ -1352,7 +2036,7 @@ export default function EmailEditorPage() {
                     }}
                 >
                     {/* Drop zone highlight overlay */}
-                    {isDraggingStructures && (
+                    {isDraggingStructures && !draggingTool && (
                         <div className={`absolute inset-0 rounded-[24px] m-4 ${structuresPanelPosition === 'right' ? 'mr-0' : 'ml-0'} border-2 border-dashed transition-colors pointer-events-none z-[61] ${isDragOverRight ? 'border-primary bg-primary/5' : 'border-gray-300 dark:border-white/20'}`}>
                             <div className="flex items-center justify-center h-full">
                                 <div className={`flex flex-col items-center gap-2 transition-colors ${isDragOverRight ? 'text-primary' : 'text-gray-400'}`}>
@@ -1603,17 +2287,23 @@ export default function EmailEditorPage() {
                                         {/* Tab 1: General Styles */}
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <div className="flex-1 h-full flex justify-center items-center text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer transition-colors">
+                                                <div
+                                                    onClick={() => setActiveRightSidebarTab('general')}
+                                                    className={`flex-1 h-full flex justify-center items-center rounded-full cursor-pointer transition-all ${activeRightSidebarTab === 'general' ? 'bg-white dark:bg-background shadow-[0_1px_3px_rgba(0,0,0,0.1)] text-gray-700 dark:text-foreground' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                                                >
                                                     <span className="material-symbols-outlined text-[20px]">chrome_reader_mode</span>
                                                 </div>
                                             </TooltipTrigger>
                                             <TooltipContent>General Styles</TooltipContent>
                                         </Tooltip>
 
-                                        {/* Tab 2: Message Settings (Active) */}
+                                        {/* Tab 2: Message Settings */}
                                         <Tooltip>
                                             <TooltipTrigger asChild>
-                                                <div className="flex-[1.1] h-[44px] flex justify-center items-center bg-white dark:bg-background rounded-[22px] shadow-[0_1px_3px_rgba(0,0,0,0.1)] text-gray-700 dark:text-foreground cursor-pointer transition-all">
+                                                <div
+                                                    onClick={() => setActiveRightSidebarTab('message')}
+                                                    className={`flex-[1.1] h-full flex justify-center items-center rounded-full cursor-pointer transition-all ${activeRightSidebarTab === 'message' ? 'bg-white dark:bg-background shadow-[0_1px_3px_rgba(0,0,0,0.1)] text-gray-700 dark:text-foreground' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                                                >
                                                     <span className="material-symbols-outlined text-[20px]">chat_bubble_outline</span>
                                                 </div>
                                             </TooltipTrigger>
@@ -1623,132 +2313,199 @@ export default function EmailEditorPage() {
                                 </div>
 
                                 {/* Separate Content Area Card */}
-                                <div className="flex-1 bg-white dark:bg-background rounded-[24px] shadow-sm flex flex-col overflow-hidden">
-                                    <div className="flex-1 overflow-y-auto p-5 space-y-7 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-track]:my-5 [&::-webkit-scrollbar-thumb]:rounded-full">
-
-                                        {/* Subject / Title */}
-                                        <div className="space-y-3">
-                                            <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Subject / Title</label>
-                                            <div className="relative bg-[#f1f5f9] dark:bg-accent/30 rounded-[16px] p-4 pb-10 min-h-[140px] transition-colors focus-within:ring-2 focus-within:ring-primary shadow-inner overflow-hidden group">
-                                                <textarea
-                                                    value={subjectText}
-                                                    onChange={(e) => setSubjectText(e.target.value)}
-                                                    placeholder="65 characters recommended"
-                                                    className="w-[calc(100%-30px)] bg-transparent border-none outline-none text-[15px] resize-none text-gray-800 dark:text-foreground font-medium placeholder:text-gray-400"
-                                                    rows={3}
-                                                />
-                                                <div className="absolute top-3 right-3 text-[#10b981] dark:text-[#10b981] hover:opacity-80 transition-opacity cursor-pointer flex flex-col gap-3 items-center">
-                                                    <span className="material-symbols-outlined text-[20px]">auto_fix_high</span>
-                                                    <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center mt-6">
-                                                        <span className="material-symbols-outlined text-[22px] text-gray-600 dark:text-gray-300 hover:text-gray-800 transition-colors">sentiment_satisfied</span>
+                                <div className="flex-1 bg-white dark:bg-background rounded-[24px] shadow-sm flex flex-col overflow-hidden min-h-[400px]">
+                                    {activeRightSidebarTab === 'message' ? (
+                                        <div className="flex-1 overflow-y-auto p-5 space-y-7 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-track]:my-5 [&::-webkit-scrollbar-thumb]:rounded-full animate-in fade-in duration-300">
+                                            {/* Subject / Title */}
+                                            <div className="space-y-3">
+                                                <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Subject / Title</label>
+                                                <div className="relative bg-[#f1f5f9] dark:bg-accent/30 rounded-[16px] p-4 pb-10 min-h-[140px] transition-colors focus-within:ring-2 focus-within:ring-primary shadow-inner overflow-hidden group">
+                                                    <textarea
+                                                        value={subjectText}
+                                                        onChange={(e) => setSubjectText(e.target.value)}
+                                                        placeholder="65 characters recommended"
+                                                        className="w-[calc(100%-30px)] bg-transparent border-none outline-none text-[15px] resize-none text-gray-800 dark:text-foreground font-medium placeholder:text-gray-400"
+                                                        rows={3}
+                                                    />
+                                                    <div className="absolute top-3 right-3 text-[#10b981] dark:text-[#10b981] hover:opacity-80 transition-opacity cursor-pointer flex flex-col gap-3 items-center">
+                                                        <span className="material-symbols-outlined text-[20px]">auto_fix_high</span>
+                                                        <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center mt-6">
+                                                            <span className="material-symbols-outlined text-[22px] text-gray-600 dark:text-gray-300 hover:text-gray-800 transition-colors">sentiment_satisfied</span>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div className="absolute bottom-3 right-[18px] flex flex-col items-center">
-                                                    <span className="text-[13px] text-gray-400 dark:text-gray-500 font-medium tracking-wide">{subjectText.length}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Hidden Preheader */}
-                                        <div className="space-y-3">
-                                            <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Hidden Preheader</label>
-                                            <div className="relative bg-[#f1f5f9] dark:bg-accent/30 rounded-[16px] p-4 pb-10 min-h-[140px] transition-colors focus-within:ring-2 focus-within:ring-primary shadow-inner overflow-hidden group">
-                                                <textarea
-                                                    value={preheaderText}
-                                                    onChange={(e) => setPreheaderText(e.target.value)}
-                                                    placeholder="50 - 100 characters"
-                                                    className="w-[calc(100%-30px)] bg-transparent border-none outline-none text-[14px] resize-none text-gray-800 dark:text-foreground placeholder:text-gray-400"
-                                                    rows={3}
-                                                />
-                                                <div className="absolute top-3 right-3 text-[#10b981] dark:text-[#10b981] hover:opacity-80 transition-opacity cursor-pointer flex flex-col gap-3 items-center">
-                                                    <span className="material-symbols-outlined text-[20px]">auto_fix_high</span>
-                                                    <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center mt-1">
-                                                        <span className="material-symbols-outlined text-[22px] text-gray-600 dark:text-gray-300 hover:text-gray-800 transition-colors">sentiment_satisfied</span>
+                                                    <div className="absolute bottom-3 right-[18px] flex flex-col items-center">
+                                                        <span className="text-[13px] text-gray-400 dark:text-gray-500 font-medium tracking-wide">{subjectText.length}</span>
                                                     </div>
-                                                    <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center mt-1">
-                                                        <span className="material-symbols-outlined text-[22px] text-gray-500 dark:text-gray-400 hover:text-gray-700 transition-colors rotate-90 scale-x-[-1]">open_in_new</span>
-                                                    </div>
-                                                </div>
-                                                <div className="absolute bottom-3 right-[18px] flex flex-col items-center">
-                                                    <span className="text-[13px] text-gray-400 dark:text-gray-500 font-medium tracking-wide">{preheaderText.length}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Email annotations for Gmail */}
-                                        <div className="space-y-4">
-                                            <div className="flex items-center justify-between pl-1 pr-1">
-                                                <label className="text-[14px] font-medium text-gray-600 dark:text-foreground/80 tracking-wide">Email annotations for Gmail</label>
-                                                <div
-                                                    onClick={() => setIsGmailAnnotationEnabled(!isGmailAnnotationEnabled)}
-                                                    className={`w-[42px] h-[24px] rounded-full relative cursor-pointer shadow-inner transition-colors duration-200 ${isGmailAnnotationEnabled ? 'bg-[#10b981]' : 'bg-gray-200 dark:bg-accent/60 hover:bg-gray-300'}`}
-                                                >
-                                                    <div className={`w-[20px] h-[20px] bg-white rounded-full absolute top-[2px] shadow-sm transition-transform duration-200 ${isGmailAnnotationEnabled ? 'translate-x-[20px]' : 'translate-x-[2px]'}`}></div>
                                                 </div>
                                             </div>
 
-                                            {isGmailAnnotationEnabled && (
-                                                <div className="space-y-6 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                                                    <p className="text-[13.5px] text-gray-400 leading-relaxed px-1">
-                                                        This feature lets you showcase your deals, discounts, or offer directly in recipient's inbox before they open the email. Effective on mobile device in Gmail promotion folder.
-                                                    </p>
+                                            {/* Hidden Preheader */}
+                                            <div className="space-y-3">
+                                                <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Hidden Preheader</label>
+                                                <div className="relative bg-[#f1f5f9] dark:bg-accent/30 rounded-[16px] p-4 pb-10 min-h-[140px] transition-colors focus-within:ring-2 focus-within:ring-primary shadow-inner overflow-hidden group">
+                                                    <textarea
+                                                        value={preheaderText}
+                                                        onChange={(e) => setPreheaderText(e.target.value)}
+                                                        placeholder="50 - 100 characters"
+                                                        className="w-[calc(100%-30px)] bg-transparent border-none outline-none text-[14px] resize-none text-gray-800 dark:text-foreground placeholder:text-gray-400"
+                                                        rows={3}
+                                                    />
+                                                    <div className="absolute top-3 right-3 text-[#10b981] dark:text-[#10b981] hover:opacity-80 transition-opacity cursor-pointer flex flex-col gap-3 items-center">
+                                                        <span className="material-symbols-outlined text-[20px]">auto_fix_high</span>
+                                                        <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center mt-1">
+                                                            <span className="material-symbols-outlined text-[22px] text-gray-600 dark:text-gray-300 hover:text-gray-800 transition-colors">sentiment_satisfied</span>
+                                                        </div>
+                                                        <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center mt-1">
+                                                            <span className="material-symbols-outlined text-[22px] text-gray-500 dark:text-gray-400 hover:text-gray-700 transition-colors rotate-90 scale-x-[-1]">open_in_new</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="absolute bottom-3 right-[18px] flex flex-col items-center">
+                                                        <span className="text-[13px] text-gray-400 dark:text-gray-500 font-medium tracking-wide">{preheaderText.length}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
 
-                                                    <div className="space-y-2">
-                                                        <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Annotation</label>
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <div className="w-full bg-[#f8fafc] dark:bg-accent/30 border-[2px] border-gray-200 dark:border-border rounded-[14px] p-3.5 flex items-center justify-between cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
-                                                                    <span className="text-[14.5px] font-medium text-gray-700 dark:text-foreground">Product Carousel</span>
-                                                                    <span className="material-symbols-outlined text-[20px] text-gray-400">keyboard_arrow_down</span>
+                                            {/* Email annotations for Gmail */}
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between pl-1 pr-1">
+                                                    <label className="text-[14px] font-medium text-gray-600 dark:text-foreground/80 tracking-wide">Email annotations for Gmail</label>
+                                                    <div
+                                                        onClick={() => setIsGmailAnnotationEnabled(!isGmailAnnotationEnabled)}
+                                                        className={`w-[42px] h-[24px] rounded-full relative cursor-pointer shadow-inner transition-colors duration-200 ${isGmailAnnotationEnabled ? 'bg-[#10b981]' : 'bg-gray-200 dark:bg-accent/60 hover:bg-gray-300'}`}
+                                                    >
+                                                        <div className={`w-[20px] h-[20px] bg-white rounded-full absolute top-[2px] shadow-sm transition-transform duration-200 ${isGmailAnnotationEnabled ? 'translate-x-[20px]' : 'translate-x-[2px]'}`}></div>
+                                                    </div>
+                                                </div>
+
+                                                {isGmailAnnotationEnabled && (
+                                                    <div className="space-y-6 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                        <p className="text-[13.5px] text-gray-400 leading-relaxed px-1">
+                                                            This feature lets you showcase your deals, discounts, or offer directly in recipient's inbox before they open the email. Effective on mobile device in Gmail promotion folder.
+                                                        </p>
+
+                                                        <div className="space-y-2">
+                                                            <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Annotation</label>
+                                                            <DropdownMenu>
+                                                                <DropdownMenuTrigger asChild>
+                                                                    <div className="w-full bg-[#f8fafc] dark:bg-accent/30 border-[2px] border-gray-200 dark:border-border rounded-[14px] p-3.5 flex items-center justify-between cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
+                                                                        <span className="text-[14.5px] font-medium text-gray-700 dark:text-foreground">Product Carousel</span>
+                                                                        <span className="material-symbols-outlined text-[20px] text-gray-400">keyboard_arrow_down</span>
+                                                                    </div>
+                                                                </DropdownMenuTrigger>
+                                                                <DropdownMenuContent className="w-[320px] rounded-xl shadow-lg mt-1 p-2">
+                                                                    <DropdownMenuItem className="py-2.5 px-3 rounded-lg cursor-pointer bg-green-50/50 dark:bg-green-900/10 text-green-700 dark:text-green-500 font-medium">Product Carousel</DropdownMenuItem>
+                                                                    <DropdownMenuItem className="py-2.5 px-3 rounded-lg cursor-pointer text-gray-600 dark:text-gray-300">Deal Annotation</DropdownMenuItem>
+                                                                    <DropdownMenuItem className="py-2.5 px-3 rounded-lg cursor-pointer text-gray-600 dark:text-gray-300">Single image preview</DropdownMenuItem>
+                                                                </DropdownMenuContent>
+                                                            </DropdownMenu>
+                                                        </div>
+
+                                                        {/* Preview Block Placeholder */}
+                                                        <div className="space-y-2">
+                                                            <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Preview</label>
+                                                            <div className="w-full h-[100px] bg-[#f8fafc] dark:bg-accent/30 border border-gray-100 dark:border-border rounded-[14px] flex items-center justify-center border-dashed text-gray-400">
+                                                                <span className="text-sm font-medium opacity-60">Mobile Preview Wrapper</span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Sender's Logo Toggle */}
+                                                        <div className="flex items-center justify-between pl-1 pr-1 pt-2">
+                                                            <label className="text-[14px] font-medium text-gray-600 dark:text-foreground/80 tracking-wide">Sender's logo</label>
+                                                            <div
+                                                                onClick={() => setIsSenderLogoEnabled(!isSenderLogoEnabled)}
+                                                                className={`w-[42px] h-[24px] rounded-full relative cursor-pointer shadow-inner transition-colors duration-200 ${isSenderLogoEnabled ? 'bg-[#10b981]' : 'bg-gray-200 dark:bg-accent/60 hover:bg-gray-300'}`}
+                                                            >
+                                                                <div className={`w-[20px] h-[20px] bg-white rounded-full absolute top-[2px] shadow-sm transition-transform duration-200 ${isSenderLogoEnabled ? 'translate-x-[20px]' : 'translate-x-[2px]'}`}></div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Sender's Logo Uploader (When Enabled) */}
+                                                        {isSenderLogoEnabled && (
+                                                            <div className="w-full bg-[#f8fafc] dark:bg-accent/30 border-2 border-dashed border-gray-200 dark:border-border hover:border-green-400 dark:hover:border-green-500 rounded-[16px] p-6 flex flex-col items-center justify-center text-center gap-3 transition-colors cursor-pointer animate-in fade-in slide-in-from-top-2 duration-300">
+                                                                <div className="w-12 h-12 bg-white dark:bg-background rounded-full shadow-sm flex items-center justify-center flex-shrink-0">
+                                                                    <span className="material-symbols-outlined text-[24px] text-blue-500">add_photo_alternate</span>
                                                                 </div>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent className="w-[320px] rounded-xl shadow-lg mt-1 p-2">
-                                                                <DropdownMenuItem className="py-2.5 px-3 rounded-lg cursor-pointer bg-green-50/50 dark:bg-green-900/10 text-green-700 dark:text-green-500 font-medium">Product Carousel</DropdownMenuItem>
-                                                                <DropdownMenuItem className="py-2.5 px-3 rounded-lg cursor-pointer text-gray-600 dark:text-gray-300">Deal Annotation</DropdownMenuItem>
-                                                                <DropdownMenuItem className="py-2.5 px-3 rounded-lg cursor-pointer text-gray-600 dark:text-gray-300">Single image preview</DropdownMenuItem>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </div>
-
-                                                    {/* Preview Block Placeholder */}
-                                                    <div className="space-y-2">
-                                                        <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Preview</label>
-                                                        <div className="w-full h-[100px] bg-[#f8fafc] dark:bg-accent/30 border border-gray-100 dark:border-border rounded-[14px] flex items-center justify-center border-dashed text-gray-400">
-                                                            <span className="text-sm font-medium opacity-60">Mobile Preview Wrapper</span>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Sender's Logo Toggle */}
-                                                    <div className="flex items-center justify-between pl-1 pr-1 pt-2">
-                                                        <label className="text-[14px] font-medium text-gray-600 dark:text-foreground/80 tracking-wide">Sender's logo</label>
-                                                        <div
-                                                            onClick={() => setIsSenderLogoEnabled(!isSenderLogoEnabled)}
-                                                            className={`w-[42px] h-[24px] rounded-full relative cursor-pointer shadow-inner transition-colors duration-200 ${isSenderLogoEnabled ? 'bg-[#10b981]' : 'bg-gray-200 dark:bg-accent/60 hover:bg-gray-300'}`}
-                                                        >
-                                                            <div className={`w-[20px] h-[20px] bg-white rounded-full absolute top-[2px] shadow-sm transition-transform duration-200 ${isSenderLogoEnabled ? 'translate-x-[20px]' : 'translate-x-[2px]'}`}></div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Sender's Logo Uploader (When Enabled) */}
-                                                    {isSenderLogoEnabled && (
-                                                        <div className="w-full bg-[#f8fafc] dark:bg-accent/30 border-2 border-dashed border-gray-200 dark:border-border hover:border-green-400 dark:hover:border-green-500 rounded-[16px] p-6 flex flex-col items-center justify-center text-center gap-3 transition-colors cursor-pointer animate-in fade-in slide-in-from-top-2 duration-300">
-                                                            <div className="w-12 h-12 bg-white dark:bg-background rounded-full shadow-sm flex items-center justify-center flex-shrink-0">
-                                                                <span className="material-symbols-outlined text-[24px] text-blue-500">add_photo_alternate</span>
+                                                                <div className="space-y-1">
+                                                                    <p className="text-[14px] font-medium text-gray-700 dark:text-foreground">
+                                                                        Drag and drop your image or <span className="text-blue-500 hover:underline">paste URL</span>
+                                                                    </p>
+                                                                    <p className="text-[12px] text-gray-400 px-2 leading-relaxed">
+                                                                        You can also paste your image PNG, JPG or GIF from keyboard or browse your files.
+                                                                    </p>
+                                                                </div>
                                                             </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex-1 overflow-y-auto p-6 space-y-8 animate-in fade-in duration-300">
+                                            {selectedBackdropRowId ? (
+                                                <div className="space-y-4">
+                                                    <div className="flex items-center gap-2 px-1">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-[#64748b]" />
+                                                        <label className="text-[11px] font-semibold text-gray-700 dark:text-foreground tracking-wide uppercase opacity-70">Backdrop — {selectedBackdropRowId}</label>
+                                                    </div>
+
+                                                    <div className="bg-[#f8fafc] dark:bg-accent/20 rounded-[20px] p-5 border border-gray-100 dark:border-border/50 space-y-5">
+                                                        <div className="flex items-center justify-between">
                                                             <div className="space-y-1">
-                                                                <p className="text-[14px] font-medium text-gray-700 dark:text-foreground">
-                                                                    Drag and drop your image or <span className="text-blue-500 hover:underline">paste URL</span>
-                                                                </p>
-                                                                <p className="text-[12px] text-gray-400 px-2 leading-relaxed">
-                                                                    You can also paste your image PNG, JPG or GIF from keyboard or browse your files.
-                                                                </p>
+                                                                <p className="text-[14px] font-medium text-gray-700 dark:text-foreground">Background Color</p>
+                                                                <p className="text-[12px] text-gray-400">Row backdrop color</p>
+                                                            </div>
+                                                            <div className="relative">
+                                                                <div
+                                                                    onClick={() => setIsBackdropColorPickerOpen(!isBackdropColorPickerOpen)}
+                                                                    className="w-10 h-10 rounded-full border-2 border-white dark:border-border shadow-sm cursor-pointer hover:scale-105 transition-transform"
+                                                                    style={{ backgroundColor: rowBackdropColors[selectedBackdropRowId] || '#f3f4f6' }}
+                                                                />
+
+                                                                {isBackdropColorPickerOpen && (
+                                                                    <>
+                                                                        <div className="fixed inset-0 z-[190]" onClick={() => setIsBackdropColorPickerOpen(false)} />
+                                                                        <div className="absolute right-0 top-12 z-[200] w-[280px] p-2 bg-white dark:bg-background border border-gray-100 dark:border-border rounded-[24px] shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                                                                            <div className="p-2 border-b border-gray-50 dark:border-border/50 mb-2 flex items-center justify-between">
+                                                                                <span className="text-[13px] font-medium px-2">Color Picker</span>
+                                                                                <X size={16} className="cursor-pointer opacity-40 hover:opacity-100" onClick={() => setIsBackdropColorPickerOpen(false)} />
+                                                                            </div>
+                                                                            <ColorPicker
+                                                                                value={rowBackdropColors[selectedBackdropRowId] || '#f3f4f6'}
+                                                                                onChange={(color) => setRowBackdropColors(prev => ({ ...prev, [selectedBackdropRowId!]: color }))}
+                                                                            />
+                                                                        </div>
+                                                                    </>
+                                                                )}
                                                             </div>
                                                         </div>
-                                                    )}
+
+                                                        <div className="flex flex-wrap gap-2 pt-1">
+                                                            {['#f3f4f6', '#f1f5f9', '#ffffff', '#e2e8f0', '#f8fafc', '#1e293b'].map((color) => (
+                                                                <div
+                                                                    key={color}
+                                                                    onClick={() => setRowBackdropColors(prev => ({ ...prev, [selectedBackdropRowId!]: color }))}
+                                                                    className={`w-7 h-7 rounded-lg cursor-pointer border-2 transition-all ${(rowBackdropColors[selectedBackdropRowId] || '#f3f4f6') === color ? 'border-primary ring-2 ring-primary/20 scale-110' : 'border-white dark:border-border hover:scale-110'}`}
+                                                                    style={{ backgroundColor: color }}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="flex-1 flex items-center justify-center pt-16 text-center">
+                                                    <div className="flex flex-col items-center gap-4">
+                                                        <div className="w-14 h-14 rounded-full bg-gray-50 dark:bg-accent/20 flex items-center justify-center">
+                                                            <span className="material-symbols-outlined text-[28px] text-gray-300">select_all</span>
+                                                        </div>
+                                                        <div className="space-y-1.5">
+                                                            <p className="text-[14px] font-medium text-gray-500">Select a Backdrop</p>
+                                                            <p className="text-[12px] text-gray-400/80 max-w-[200px] leading-relaxed">Click outside the canvas on a row to select its backdrop and edit its styles.</p>
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
                             </>
                         )}
