@@ -169,7 +169,7 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
                 className={`absolute inset-x-0 pointer-events-none transition-opacity duration-300 z-40 ${isSelected || isOpen ? 'opacity-100' : 'opacity-0 group-hover/structure:opacity-100 group-has-[.structure-container:hover]/structure:!opacity-0'}`}
             >
                 {/* Structure Layer Stack (Top Left usually, Bottom Left for top row) */}
-                <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[37px] left-[76px]' : '-top-[36px] left-[32px]'} w-auto flex flex-col items-start pointer-events-auto transition-all duration-200 ${hideSecondaryControls ? 'opacity-0 pointer-events-none' : ''}`}>
+                <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[28px] left-[76px]' : '-top-[32px] left-[32px]'} w-auto flex flex-col items-start pointer-events-auto transition-all duration-200 ${hideSecondaryControls ? 'opacity-0 pointer-events-none' : ''}`}>
                     {[
                         { id: 'structure', label: 'Structure', color: isSelected || isOpen ? '#6b3737' : '#9a5353' },
                         { id: 'backdrop', label: 'Backdrop', color: '#64748b' }
@@ -207,7 +207,7 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
                 </div>
 
                 {/* Add Icon Dropdown (Bottom Left) */}
-                <div className={`absolute -bottom-[44px] left-[32px] pointer-events-auto transition-all duration-200 ${hideSecondaryControls ? 'opacity-0 pointer-events-none' : ''}`}>
+                <div className={`absolute ${isTopRow ? '-bottom-[28px]' : '-bottom-[32px]'} left-[32px] pointer-events-auto transition-all duration-200 ${hideSecondaryControls ? 'opacity-0 pointer-events-none' : ''}`}>
                     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
                         <DropdownMenuTrigger asChild>
                             <div
@@ -618,7 +618,7 @@ export default function EmailEditorPage() {
         const overlayContent = (
             <div className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${isSelected ? 'opacity-100 z-[60]' : 'opacity-0 z-30 group-hover:opacity-100 group-hover/active:opacity-100'}`}>
                 {/* Layer Labels (Breadcrumb-like) */}
-                <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[34px]' : '-top-[32px]'} left-[28px] w-auto flex flex-col items-start transition-opacity duration-300 ${isSelected && hoveredItem !== null && !(hoveredItem?.id === boxId) ? 'opacity-0 pointer-events-none' : isSelected ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto'} z-50`}>
+                <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[28px]' : '-top-[32px]'} left-[28px] w-auto flex flex-col items-start transition-opacity duration-300 ${isSelected && hoveredItem !== null && !(hoveredItem?.id === boxId) ? 'opacity-0 pointer-events-none' : isSelected ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto'} z-50`}>
                     {[
                         { id: 'container', label: 'Container', color: colors.container },
                         { id: 'structure', label: 'Structure', color: '#9a5353' }, // Maroon/brick as per image
