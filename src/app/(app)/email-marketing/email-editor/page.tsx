@@ -170,6 +170,8 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
             >
                 {/* Structure Layer Stack (Top Left usually, Bottom Left for top row) */}
                 <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[28px] left-[44px]' : '-top-[27px] left-[0px]'} w-auto flex flex-col items-start pointer-events-auto transition-all duration-200 ${hideSecondaryControls ? 'opacity-0 pointer-events-none' : ''}`}>
+                    {/* Structure Pill Hitbox Extension */}
+                    <div className={`absolute inset-x-0 ${isTopRow ? 'top-[-8px] h-[30px]' : 'top-0 h-[27px]'} pointer-events-auto z-[60]`}></div>
                     {[
                         { id: 'structure', label: 'Structure', color: isSelected || isOpen ? '#6b3737' : '#9a5353' },
                         { id: 'backdrop', label: 'Backdrop', color: '#64748b' }
@@ -208,6 +210,8 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
 
                 {/* Add Icon Dropdown (Bottom Left) */}
                 <div className={`absolute ${isTopRow ? '-bottom-[42px]' : '-bottom-[41px]'} left-[0px] pointer-events-auto transition-all duration-200 ${hideSecondaryControls ? 'opacity-0 pointer-events-none' : ''}`}>
+                    {/* Plus Button Hitbox Extension */}
+                    <div className="absolute inset-0 top-[-8px] h-[44px] pointer-events-auto z-[60]"></div>
                     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
                         <DropdownMenuTrigger asChild>
                             <div
@@ -271,6 +275,8 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
                                         style={{ backgroundColor: isSelected || isOpen ? '#6b3737' : '#9a5353' }}
                                         className="w-[36px] h-[36px] rounded-[12px] text-white flex items-center justify-center cursor-pointer shadow-md hover:scale-105 active:scale-95 transition-all duration-200 flex-shrink-0 relative overflow-hidden"
                                     >
+                                        {/* 3-dot Square Hitbox Extension */}
+                                        <div className={`absolute inset-y-0 right-0 left-[-12px] top-[-8px] h-[37px] pointer-events-auto z-[60]`}></div>
                                         {/* 3 dots — visible when NOT hovered */}
                                         <div className="absolute inset-0 flex items-center justify-center gap-[3px] transition-opacity duration-200 opacity-100 group-hover/structurebtn:opacity-0">
                                             <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
@@ -675,6 +681,8 @@ export default function EmailEditorPage() {
 
                 {/* Layer Labels (Breadcrumb-like) */}
                 <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[28px]' : '-top-[28px]'} left-[28px] w-auto flex flex-col items-start transition-opacity duration-300 z-50 ${isS2 ? 'opacity-0 pointer-events-none' : ''}`}>
+                    {/* Structure Pill Hitbox Extension (aligned with structure pill at index 1) */}
+                    <div className="absolute inset-x-0 top-[28px] h-[28px] pointer-events-none group-hover/layerpill:pointer-events-auto z-[60]"></div>
                     {[
                         { id: 'container', label: 'Container', color: colors.container },
                         { id: 'structure', label: 'Structure', color: '#9a5353' }, // Maroon/brick as per image
