@@ -670,11 +670,11 @@ export default function EmailEditorPage() {
         const overlayContent = (
             <div className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${(isSelected && selectedLayer === 'container') || (hoveredItem?.id === boxId && hoveredItem?.type === 'container') ? 'opacity-100 z-[40]' : 'opacity-0 z-[30]'}`}>
                 {/* Invisible Hitbox Extensions - to bridge gaps to floating UI elements */}
-                <div className={`absolute left-[28px] w-[120px] pointer-events-auto ${isTopRow ? '-bottom-[20px] h-[20px]' : '-top-[28px] h-[28px]'}`}></div>
+                <div className={`absolute left-[28px] w-[75px] pointer-events-auto ${isTopRow ? '-bottom-[28px] h-[28px]' : '-top-[28px] h-[28px]'}`}></div>
                 <div className="absolute top-1/2 -translate-y-1/2 -left-[44px] w-[44px] h-[36px] pointer-events-auto"></div>
 
                 {/* Layer Labels (Breadcrumb-like) */}
-                <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[20px]' : '-top-[28px]'} left-[28px] w-auto flex flex-col items-start transition-opacity duration-300 z-50 ${isS2 ? 'opacity-0 pointer-events-none' : ''}`}>
+                <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[28px]' : '-top-[28px]'} left-[28px] w-auto flex flex-col items-start transition-opacity duration-300 z-50 ${isS2 ? 'opacity-0 pointer-events-none' : ''}`}>
                     {[
                         { id: 'container', label: 'Container', color: colors.container },
                         { id: 'structure', label: 'Structure', color: '#9a5353' }, // Maroon/brick as per image
