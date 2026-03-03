@@ -1406,7 +1406,7 @@ export default function EmailEditorPage() {
             >
 
                 {/* Sidebar Toolbar Area */}
-                <div className={`${structuresPanelPosition === 'right' ? 'absolute right-[9px] top-0 h-full z-30' : 'relative'} w-[72px] h-full flex-shrink-0 flex flex-col items-center pt-[20px] pb-4 z-30`}>
+                <div className={`${structuresPanelPosition === 'right' ? 'absolute right-[9px] top-0 h-full z-[800]' : 'relative'} w-[72px] h-full flex-shrink-0 flex flex-col items-center pt-[20px] pb-4 z-[800]`}>
 
                     {/* Combined Toolbar Area (for ghost and drag boundary) */}
                     <div id="left-toolbar-container" className="w-[60px] h-full flex flex-col items-center gap-4 relative">
@@ -2200,7 +2200,7 @@ export default function EmailEditorPage() {
 
                 {/* Right Sidebar Property Panel */}
                 <div
-                    className={`absolute ${structuresPanelPosition === 'right' ? 'left-0' : 'right-0'} top-0 w-[360px] h-full flex flex-col z-10 p-4 ${structuresPanelPosition === 'right' ? 'pr-0' : 'pl-0'} pointer-events-none transition-all ${isDraggingStructures && !draggingTool ? 'z-[60]' : ''}`}
+                    className={`absolute ${structuresPanelPosition === 'right' ? 'left-0' : 'right-0'} top-0 w-[360px] h-full flex flex-col z-[800] p-4 ${structuresPanelPosition === 'right' ? 'pr-0' : 'pl-0'} pointer-events-none transition-all ${isDraggingStructures && !draggingTool ? 'z-[120]' : ''}`}
                     onDragOver={(e) => {
                         if (!isDraggingStructures || draggingTool) return;
                         e.preventDefault();
