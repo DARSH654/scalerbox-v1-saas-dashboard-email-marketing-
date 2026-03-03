@@ -144,7 +144,7 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
 
     return (
         <div
-            className={`relative group/structure w-full h-full px-8 hover:z-50 ${isSelected ? 'z-[60]' : ''}`}
+            className={`relative group/structure w-full h-full px-8 z-[10]`}
             onClick={(e) => {
                 if (onSelect) {
                     e.stopPropagation();
@@ -160,13 +160,13 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
             {/* The Border Layer - absolute inset so it covers the full width of the white canvas */}
             <div
                 style={{ top: topOffset, bottom: '0' }}
-                className={`absolute inset-x-0 rounded-[4px] border-[2px] transition-colors pointer-events-none ${isSelected || isOpen ? 'z-[70]' : 'z-10 group-hover/structure:z-40'} ${isDraggingLayout ? 'border-[#93c5fd]' : isSelected || isOpen ? 'border-[#6b3737]' : 'border-transparent group-hover/structure:border-[#9a5353] group-has-[.structure-container:hover]/structure:!border-transparent'}`}
+                className={`absolute inset-x-0 rounded-[4px] border-[2px] transition-colors pointer-events-none z-[10] ${isDraggingLayout ? 'border-[#93c5fd]' : isSelected || isOpen ? 'border-[#6b3737]' : 'border-transparent group-hover/structure:border-[#9a5353] group-has-[.structure-container:hover]/structure:!border-transparent'}`}
             ></div>
 
             {/* Structure Overlay on Hover */}
             <div
                 style={{ top: topOffset, bottom: '0' }}
-                className={`absolute inset-x-0 pointer-events-none transition-opacity duration-300 z-[80] ${isSelected || isOpen ? 'opacity-100' : 'opacity-0 group-hover/structure:opacity-100 group-has-[.structure-container:hover]/structure:!opacity-0'}`}
+                className={`absolute inset-x-0 pointer-events-none transition-opacity duration-300 z-[30] ${isSelected || isOpen ? 'opacity-100' : 'opacity-0 group-hover/structure:opacity-100 group-has-[.structure-container:hover]/structure:!opacity-0'}`}
             >
                 {/* Structure Layer Stack (Top Left usually, Bottom Left for top row) */}
                 <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[28px] left-[44px]' : '-top-[27px] left-[0px]'} w-auto flex flex-col items-start pointer-events-auto transition-all duration-200 ${hideSecondaryControls ? 'opacity-0 pointer-events-none' : ''}`}>
@@ -349,7 +349,7 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
             </div>
 
             {/* Content properly z-indexed so border doesn't block interactions */}
-            <div className="relative w-full h-full z-auto">
+            <div className="relative w-full h-full z-[20]">
                 {children}
             </div>
         </div>
@@ -668,7 +668,7 @@ export default function EmailEditorPage() {
         const activeColor = selectedLayer ? colors[selectedLayer as keyof typeof colors] : (isSelected && selectedLayer === 'container' ? '#3b82f6' : '#60a5fa');
 
         const overlayContent = (
-            <div className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${isSelected ? 'opacity-100 z-[90]' : 'opacity-0 z-[80] group-hover:opacity-100 group-hover/active:opacity-100'}`}>
+            <div className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${(isSelected && selectedLayer === 'container') || (hoveredItem?.id === boxId && hoveredItem?.type === 'container') ? 'opacity-100 z-[40]' : 'opacity-0 z-[30]'}`}>
                 {/* Invisible Hitbox Extensions - to bridge gaps to floating UI elements */}
                 <div className={`absolute left-[28px] w-[120px] pointer-events-auto ${isTopRow ? '-bottom-[20px] h-[20px]' : '-top-[28px] h-[28px]'}`}></div>
                 <div className="absolute top-1/2 -translate-y-1/2 -left-[44px] w-[44px] h-[36px] pointer-events-auto"></div>
@@ -772,7 +772,7 @@ export default function EmailEditorPage() {
         const isS2 = hoveredItem !== null && !(hoveredItem.id === boxId && hoveredItem.type === 'block');
 
         return (
-            <div className="absolute inset-[-2px] pointer-events-none z-[85]">
+            <div className="absolute inset-[-2px] pointer-events-none z-[50]">
                 {/* Hover-only border (when block is hovered but not selected) */}
                 {showHoverBorder && !isSelected && (
                     <div className="absolute inset-0 border-[2px] border-[#4b5b75]/30 rounded-[4px] pointer-events-none"></div>
@@ -1905,7 +1905,17 @@ export default function EmailEditorPage() {
                         {dynamicRows.map((row, index) => {
                             const hasContent = row.columns.some((_, i) => boxStatesInternal[`${row.id}-col${i}`] && boxStatesInternal[`${row.id}-col${i}`] !== 'empty');
                             return (
-                                <div key={row.id} data-structure-row className="relative">
+                                <div 
+                                    key={row.id} 
+                                    data-structure-row 
+                                    className={`relative ${
+                                        (hoveredItem?.id === row.id || (hoveredItem?.id && hoveredItem.id.startsWith(row.id + '-'))) 
+                                            ? 'z-[100]' 
+                                            : (selectedBoxId === row.id || (selectedBoxId && selectedBoxId.startsWith(row.id + '-')) || selectedBackdropRowId === row.id) 
+                                                ? 'z-[60]' 
+                                                : 'z-[10]'
+                                    }`}
+                                >
                                     {/* Drop indicator AT TOP of this row (only for first row, index 0) */}
                                     {dropInsertIndex === 0 && index === 0 && (
                                         <>
