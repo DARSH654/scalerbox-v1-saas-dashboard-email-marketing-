@@ -276,7 +276,7 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
                                         className="w-[36px] h-[36px] rounded-[12px] text-white flex items-center justify-center cursor-pointer shadow-md hover:scale-105 active:scale-95 transition-all duration-200 flex-shrink-0 relative overflow-hidden"
                                     >
                                         {/* 3-dot Square Hitbox Extension */}
-                                        <div className={`absolute inset-y-0 right-0 left-[-12px] top-[-8px] h-[37px] pointer-events-auto z-[60]`}></div>
+                                        <div className={`absolute inset-y-0 right-0 left-[-12px] top-0 h-[37px] pointer-events-auto z-[60]`}></div>
                                         {/* 3 dots — visible when NOT hovered */}
                                         <div className="absolute inset-0 flex items-center justify-center gap-[3px] transition-opacity duration-200 opacity-100 group-hover/structurebtn:opacity-0">
                                             <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
@@ -2014,6 +2014,8 @@ export default function EmailEditorPage() {
                                                     : { top: '-53px' }                    /* other rows: above border, left strip */
                                                 }
                                             >
+                                                {/* Backdrop Pill Hitbox Extension */}
+                                                <div className={`absolute inset-x-0 ${index === 0 ? 'top-[-8px] h-[30px]' : 'top-0 h-[27px]'} pointer-events-auto z-[60]`}></div>
                                                 <div
                                                     className="px-3 py-[3px] rounded-full text-white text-[10.5px] font-medium shadow-sm flex items-center cursor-pointer hover:scale-105 active:scale-95 transition-all"
                                                     style={{ backgroundColor: selectedBackdropRowId === row.id ? '#475569' : '#64748b' }}
@@ -2034,6 +2036,8 @@ export default function EmailEditorPage() {
 
                                             {/* Plus Button — same position as Structure's add button (-bottom-[44px]) */}
                                             <div className={`absolute -bottom-[42px] left-[-60px] z-[80] pointer-events-auto transition-opacity duration-200 ${selectedBackdropRowId === row.id && hoveredItem !== null && !(hoveredItem.id === row.id && hoveredItem.type === 'backdrop') ? 'opacity-0 pointer-events-none' : ''}`}>
+                                                {/* Plus Button Hitbox Extension */}
+                                                <div className="absolute inset-0 top-[-8px] h-[44px] pointer-events-auto z-[60]"></div>
                                                 <div
                                                     className="w-[36px] h-[36px] rounded-[12px] text-white flex items-center justify-center cursor-pointer shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
                                                     style={{ backgroundColor: selectedBackdropRowId === row.id ? '#475569' : '#64748b' }}
@@ -2058,6 +2062,8 @@ export default function EmailEditorPage() {
                                                                     className="w-[36px] h-[36px] rounded-[12px] text-white flex items-center justify-center cursor-pointer shadow-md hover:scale-105 active:scale-95 transition-all duration-200 flex-shrink-0 relative overflow-hidden"
                                                                     style={{ backgroundColor: selectedBackdropRowId === row.id ? '#475569' : '#64748b' }}
                                                                 >
+                                                                    {/* 3-dot Square Hitbox Extension */}
+                                                                    <div className="absolute inset-y-0 right-0 left-[-12px] top-0 h-[37px] pointer-events-auto z-[60]"></div>
                                                                     {/* 3 dots — visible when NOT hovered */}
                                                                     <div className="absolute inset-0 flex items-center justify-center gap-[3px] transition-opacity duration-200 opacity-100 group-hover/backdropbtn:opacity-0">
                                                                         <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
