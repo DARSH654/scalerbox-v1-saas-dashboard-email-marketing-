@@ -144,7 +144,7 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
 
     return (
         <div
-            className={`relative group/structure w-full h-full px-8 z-[10]`}
+            className={`relative group/structure w-full h-full px-8`}
             onClick={(e) => {
                 if (onSelect) {
                     e.stopPropagation();
