@@ -795,6 +795,8 @@ export default function EmailEditorPage() {
                         e.stopPropagation();
                     }}
                 >
+                    {/* 3-dot Square Hitbox Extension */}
+                    <div className="absolute inset-y-0 right-0 left-[-12px] top-0 h-[37px] pointer-events-auto z-[60]"></div>
                     <div className="flex gap-[3px]">
                         <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
                         <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
@@ -807,6 +809,8 @@ export default function EmailEditorPage() {
                     className={`absolute ${isTopRow ? '-bottom-[28px]' : '-top-[32px]'} left-[16px] text-white rounded-[12px] w-[36px] h-[24px] flex items-center justify-center pointer-events-auto cursor-grab active:cursor-grabbing shadow-md hover:scale-105 transition-all bg-[#4b5b75] ${isS2 ? 'opacity-0 pointer-events-none' : ''}`}
                     onClick={(e) => { e.stopPropagation(); }}
                 >
+                    {/* Block Pill Hitbox Extension */}
+                    <div className={`absolute inset-x-0 ${isTopRow ? 'top-[-8px] h-[30px]' : 'top-0 h-[32px]'} pointer-events-auto z-[60]`}></div>
                     <span className="material-symbols-outlined text-[18px] rotate-90">drag_indicator</span>
                 </div>
             </div>
