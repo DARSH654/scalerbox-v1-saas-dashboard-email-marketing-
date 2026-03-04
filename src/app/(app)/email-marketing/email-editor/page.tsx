@@ -355,7 +355,7 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
             </div>
 
             {/* Content properly z-indexed so border doesn't block interactions */}
-            <div className="relative w-full h-full z-[20]">
+            <div className="relative w-full h-full">
                 {children}
             </div>
         </div>
@@ -823,7 +823,7 @@ export default function EmailEditorPage() {
         if (state === 'image') {
             return (
                 <div
-                    className={`structure-container w-full relative border-[2px] rounded-[4px] bg-[#f9fafb] flex items-center justify-center group/container cursor-pointer min-h-[120px] ${isSelected && selectedLayer === 'container' ? 'border-blue-400' : hoveredItem?.id === boxId && hoveredItem?.type === 'container' ? 'border-[#60a5fa]/50' : 'border-transparent'}`}
+                    className={`structure-container w-full relative border-[2px] rounded-[4px] bg-[#f9fafb] flex items-center justify-center group/container cursor-pointer min-h-[120px] ${isSelected && selectedLayer === 'container' ? 'border-blue-400' : (hoveredItem?.id === boxId && hoveredItem?.type === 'container' ? 'border-[#60a5fa]/50' : 'border-transparent')} ${isSelected ? 'z-[20]' : (hoveredItem?.id === boxId) ? 'z-[15]' : 'z-[1]'}`}
                     onClick={(e) => {
                         e.stopPropagation();
                         setSelectedBoxId(boxId);
@@ -864,7 +864,7 @@ export default function EmailEditorPage() {
         if (state === 'text') {
             return (
                 <div
-                    className={`structure-container w-full relative border-[2px] rounded-[4px] bg-white group/container cursor-text flex flex-col ${isSelected && selectedLayer === 'container' ? 'border-blue-400' : hoveredItem?.id === boxId && hoveredItem?.type === 'container' ? 'border-[#60a5fa]/50' : 'border-transparent'}`}
+                    className={`structure-container w-full relative border-[2px] rounded-[4px] bg-white group/container cursor-text flex flex-col ${isSelected && selectedLayer === 'container' ? 'border-blue-400' : (hoveredItem?.id === boxId && hoveredItem?.type === 'container' ? 'border-[#60a5fa]/50' : 'border-transparent')} ${isSelected ? 'z-[20]' : (hoveredItem?.id === boxId) ? 'z-[15]' : 'z-[1]'}`}
                     onClick={(e) => {
                         e.stopPropagation();
                         setSelectedBoxId(boxId);
@@ -919,7 +919,7 @@ export default function EmailEditorPage() {
         if (state === 'button') {
             return (
                 <div
-                    className={`structure-container w-full py-5 relative border-[2px] rounded-[4px] bg-white flex items-center justify-center group/container cursor-pointer ${isSelected && selectedLayer === 'container' ? 'border-blue-400' : hoveredItem?.id === boxId && hoveredItem?.type === 'container' ? 'border-[#60a5fa]/50' : 'border-transparent'}`}
+                    className={`structure-container w-full py-5 relative border-[2px] rounded-[4px] bg-white flex items-center justify-center group/container cursor-pointer ${isSelected && selectedLayer === 'container' ? 'border-blue-400' : (hoveredItem?.id === boxId && hoveredItem?.type === 'container' ? 'border-[#60a5fa]/50' : 'border-transparent')} ${isSelected ? 'z-[20]' : (hoveredItem?.id === boxId) ? 'z-[15]' : 'z-[1]'}`}
                     onClick={(e) => {
                         e.stopPropagation();
                         setSelectedBoxId(boxId);
@@ -964,7 +964,7 @@ export default function EmailEditorPage() {
         // Default empty state
         return (
             <div
-                className={`structure-container w-full min-h-[120px] group border-[2px] rounded-[4px] flex flex-col items-center justify-center cursor-pointer relative transition-all duration-300 flex-1 ${isSelected ? 'border-solid border-blue-400 bg-blue-50/50 text-blue-500/90' : (isDragOver ? 'border-solid border-blue-400 bg-blue-50 dark:bg-blue-900/40 text-blue-500' : hoveredItem?.id === boxId && hoveredItem?.type === 'container' ? 'border-solid border-[#60a5fa]/50 bg-[#f0f7ff] dark:bg-blue-900/10 text-blue-400' : 'border-dashed border-blue-400/20 bg-[#f0f7ff] dark:bg-blue-900/10 text-blue-400')}`}
+                className={`structure-container w-full min-h-[120px] group border-[2px] rounded-[4px] flex flex-col items-center justify-center cursor-pointer relative transition-all duration-300 flex-1 ${isSelected ? 'border-solid border-blue-400 bg-blue-50/50 text-blue-500/90' : (isDragOver ? 'border-solid border-blue-400 bg-blue-50 dark:bg-blue-900/40 text-blue-500' : (hoveredItem?.id === boxId && hoveredItem?.type === 'container' ? 'border-solid border-[#60a5fa]/50 bg-[#f0f7ff] dark:bg-blue-900/10 text-blue-400' : 'border-dashed border-blue-400/20 bg-[#f0f7ff] dark:bg-blue-900/10 text-blue-400'))} ${isSelected ? 'z-[20]' : (hoveredItem?.id === boxId) ? 'z-[15]' : 'z-[1]'}`}
                 onClick={(e) => {
                     e.stopPropagation();
                     setSelectedBoxId(boxId);
