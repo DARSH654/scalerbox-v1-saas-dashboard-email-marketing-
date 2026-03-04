@@ -1542,10 +1542,10 @@ export default function EmailEditorPage() {
                 {(isStructuresPanelOpen || isStructuresPanelClosing) && (
                     <div
                         ref={structuresPanelRef}
-                        className={`absolute ${structuresPanelPosition === 'right' ? 'right-[6px]' : 'left-[6px]'} top-[6px] w-[480px] z-[70] ${isStructuresPanelClosing ? 'structures-panel-close' : 'structures-panel-open'} transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)]`}
+                        className={`absolute ${structuresPanelPosition === 'right' ? 'right-[6px]' : 'left-[6px]'} top-[6px] w-[480px] z-[110] ${isStructuresPanelClosing ? 'structures-panel-close' : 'structures-panel-open'} transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] pointer-events-none`}
                         style={{ height: 'calc(100% - 12px)' }}
                     >
-                        <div className="h-full w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[24px] shadow-xl flex flex-col overflow-hidden">
+                        <div className="h-full w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[24px] shadow-xl flex flex-col overflow-hidden pointer-events-auto">
 
                             {/* Panel Header with Close + Tabs */}
                             <div className="flex items-center h-[60px] px-4 flex-shrink-0 gap-3">
