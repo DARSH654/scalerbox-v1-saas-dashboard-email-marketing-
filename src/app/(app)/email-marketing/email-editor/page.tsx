@@ -708,77 +708,84 @@ export default function EmailEditorPage() {
         const activeColor = selectedLayer ? colors[selectedLayer as keyof typeof colors] : (isSelected && selectedLayer === 'container' ? '#3b82f6' : '#60a5fa');
 
         const overlayContent = (
-            <div className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${(isSelected && selectedLayer === 'container') || (hoveredItem?.id === boxId && hoveredItem?.type === 'container') ? 'opacity-100 z-[40]' : 'opacity-0 z-[30]'}`}>
-                {/* Invisible Hitbox Extensions - to bridge gaps to floating UI elements */}
-                <div className={`absolute left-[28px] w-[75px] pointer-events-auto ${isTopRow ? '-bottom-[28px] h-[28px]' : '-top-[28px] h-[28px]'}`}></div>
-                <div className="absolute top-1/2 -translate-y-1/2 -left-[44px] w-[44px] h-[36px] pointer-events-auto"></div>
+            <>
+                <div className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${(isSelected && selectedLayer === 'container') || (hoveredItem?.id === boxId && hoveredItem?.type === 'container') ? 'opacity-100 z-[40]' : 'opacity-0 z-[30]'}`}>
+                    {/* Invisible Hitbox Extensions - to bridge gaps to floating UI elements */}
+                    <div className={`absolute left-[28px] w-[75px] pointer-events-auto ${isTopRow ? '-bottom-[28px] h-[28px]' : '-top-[28px] h-[28px]'}`}></div>
+                    <div className="absolute top-1/2 -translate-y-1/2 -left-[44px] w-[44px] h-[36px] pointer-events-auto"></div>
 
-                {/* Layer Labels (Breadcrumb-like) */}
-                <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[19px]' : '-top-[28px]'} left-[28px] w-auto flex flex-col items-start transition-opacity duration-300 z-50 ${isS2 ? 'opacity-0 pointer-events-none' : ''}`}>
-                    {/* Structure Pill Hitbox Extension (aligned with structure pill at index 1) */}
-                    <div className="absolute inset-x-0 top-[28px] h-[28px] pointer-events-none group-hover/layerpill:pointer-events-auto z-[60]"></div>
-                    {[
-                        { id: 'container', label: 'Container', color: colors.container },
-                        { id: 'structure', label: 'Structure', color: '#9a5353' }, // Maroon/brick as per image
-                        { id: 'backdrop', label: 'Backdrop', color: '#64748b' } // Slate/gray as per image
-                    ].map((layer, index) => (
-                        <div
-                            key={layer.id}
-                            draggable={layer.id === 'structure'}
-                            onDragStart={(e) => {
-                                if (layer.id === 'structure') {
-                                    e.dataTransfer.effectAllowed = 'move';
-                                    const img = new window.Image();
-                                    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                                    e.dataTransfer.setDragImage(img, 0, 0);
-                                    setDraggingTool({ icon: 'layout', type: 'move_layout', id: boxId.split('-col')[0] });
-                                }
-                            }}
-                            onDragEnd={() => {
-                                if (layer.id === 'structure') {
-                                    setDraggingTool(null);
-                                    setDropInsertIndex(null);
-                                }
-                            }}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                if (layer.id === 'backdrop') {
-                                    const rowId = boxId.split('-col')[0];
-                                    setSelectedBackdropRowId(rowId);
-                                    setSelectedBoxId(null);
-                                    setSelectedLayer('backdrop');
-                                    setActiveRightSidebarTab('general');
-                                } else {
-                                    setSelectedBoxId(boxId);
-                                    setSelectedLayer(layer.id as any);
-                                    setSelectedBackdropRowId(null);
-                                }
-                            }}
-                            style={{
-                                backgroundColor: layer.color,
-                                color: 'white',
-                                borderColor: layer.color,
-                                zIndex: 30 - index
-                            }}
-                            className={`px-3 py-[3px] rounded-full border-0 text-[10.5px] font-medium transition-all duration-300 ease-in-out shadow-sm flex items-center justify-start hover:scale-105 active:scale-95 ${index === 0
-                                ? 'relative cursor-pointer'
-                                : '-mt-[26px] opacity-0 pointer-events-none group-hover/layerpill:mt-[4px] group-hover/layerpill:opacity-100 group-hover/layerpill:pointer-events-auto cursor-grab active:cursor-grabbing'
-                                }`}
-                        >
-                            <span className="capitalize tracking-wide">{layer.label}</span>
-                            {index !== 0 && (
-                                <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor" className="opacity-80 rotate-90 ml-1.5 -mr-1 pointer-events-none">
-                                    <path d="M360-160q-33 0-56.5-23.5T280-240q0-33 23.5-56.5T360-320q33 0 56.5 23.5T440-240q0 33-23.5 56.5T360-160Zm240 0q-33 0-56.5-23.5T520-240q0-33 23.5-56.5T600-320q33 0 56.5 23.5T680-240q0 33-23.5 56.5T600-160ZM360-400q-33 0-56.5-23.5T280-480q0-33 23.5-56.5T360-560q33 0 56.5 23.5T440-480q0 33-23.5 56.5T360-400Zm240 0q-33 0-56.5-23.5T520-480q0-33 23.5-56.5T600-560q33 0 56.5 23.5T680-480q0 33-23.5 56.5T600-400ZM360-640q-33 0-56.5-23.5T280-720q0-33 23.5-56.5T360-800q33 0 56.5 23.5T440-720q0 33-23.5 56.5T360-640Zm240 0q-33 0-56.5-23.5T520-720q0-33 23.5-56.5T600-800q33 0 56.5 23.5T680-720q0 33-23.5 56.5T600-640Z" />
-                                </svg>
-                            )}
-                        </div>
-                    ))}
+                    {/* Layer Labels (Breadcrumb-like) */}
+                    <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[19px]' : '-top-[28px]'} left-[28px] w-auto flex flex-col items-start transition-opacity duration-300 z-50 ${isS2 ? 'opacity-0 pointer-events-none' : ''}`}>
+                        {/* Structure Pill Hitbox Extension (aligned with structure pill at index 1) */}
+                        <div className="absolute inset-x-0 top-[28px] h-[28px] pointer-events-none group-hover/layerpill:pointer-events-auto z-[60]"></div>
+                        {[
+                            { id: 'container', label: 'Container', color: colors.container },
+                            { id: 'structure', label: 'Structure', color: '#9a5353' }, // Maroon/brick as per image
+                            { id: 'backdrop', label: 'Backdrop', color: '#64748b' } // Slate/gray as per image
+                        ].map((layer, index) => (
+                            <div
+                                key={layer.id}
+                                draggable={layer.id === 'structure'}
+                                onDragStart={(e) => {
+                                    if (layer.id === 'structure') {
+                                        e.dataTransfer.effectAllowed = 'move';
+                                        const img = new window.Image();
+                                        img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                                        e.dataTransfer.setDragImage(img, 0, 0);
+                                        setDraggingTool({ icon: 'layout', type: 'move_layout', id: boxId.split('-col')[0] });
+                                    }
+                                }}
+                                onDragEnd={() => {
+                                    if (layer.id === 'structure') {
+                                        setDraggingTool(null);
+                                        setDropInsertIndex(null);
+                                    }
+                                }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (layer.id === 'backdrop') {
+                                        const rowId = boxId.split('-col')[0];
+                                        setSelectedBackdropRowId(rowId);
+                                        setSelectedBoxId(null);
+                                        setSelectedLayer('backdrop');
+                                        setActiveRightSidebarTab('general');
+                                    } else {
+                                        setSelectedBoxId(boxId);
+                                        setSelectedLayer(layer.id as any);
+                                        setSelectedBackdropRowId(null);
+                                    }
+                                }}
+                                style={{
+                                    backgroundColor: layer.color,
+                                    color: 'white',
+                                    borderColor: layer.color,
+                                    zIndex: 30 - index
+                                }}
+                                className={`px-3 py-[3px] rounded-full border-0 text-[10.5px] font-medium transition-all duration-300 ease-in-out shadow-sm flex items-center justify-start hover:scale-105 active:scale-95 ${index === 0
+                                    ? 'relative cursor-pointer'
+                                    : '-mt-[26px] opacity-0 pointer-events-none group-hover/layerpill:mt-[4px] group-hover/layerpill:opacity-100 group-hover/layerpill:pointer-events-auto cursor-grab active:cursor-grabbing'
+                                    }`}
+                            >
+                                <span className="capitalize tracking-wide">{layer.label}</span>
+                                {index !== 0 && (
+                                    <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor" className="opacity-80 rotate-90 ml-1.5 -mr-1 pointer-events-none">
+                                        <path d="M360-160q-33 0-56.5-23.5T280-240q0-33 23.5-56.5T360-320q33 0 56.5 23.5T440-240q0 33-23.5 56.5T360-160Zm240 0q-33 0-56.5-23.5T520-240q0-33 23.5-56.5T600-320q33 0 56.5 23.5T680-240q0 33-23.5 56.5T600-160ZM360-400q-33 0-56.5-23.5T280-480q0-33 23.5-56.5T360-560q33 0 56.5 23.5T440-480q0 33-23.5 56.5T360-400Zm240 0q-33 0-56.5-23.5T520-480q0-33 23.5-56.5T600-560q33 0 56.5 23.5T680-480q0 33-23.5 56.5T600-400ZM360-640q-33 0-56.5-23.5T280-720q0-33 23.5-56.5T360-800q33 0 56.5 23.5T440-720q0 33-23.5 56.5T360-640Zm240 0q-33 0-56.5-23.5T520-720q0-33 23.5-56.5T600-800q33 0 56.5 23.5T680-720q0 33-23.5 56.5T600-640Z" />
+                                    </svg>
+                                )}
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
                 {/* Delete Menu - The three dot / delete icon box - now shrunk as requested */}
                 <div
                     style={{ backgroundColor: colors.container }}
-                    className="absolute top-1/2 -translate-y-1/2 -left-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-transform group/btn"
+                    className={`absolute top-1/2 -translate-y-1/2 -left-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-all duration-300 group/btn ${
+                        (isSelected && (selectedLayer === 'container' || selectedLayer === 'block')) || 
+                        (hoveredItem?.id === boxId && (hoveredItem?.type === 'container' || hoveredItem?.type === 'block')) 
+                            ? 'opacity-100 z-[50]' 
+                            : 'opacity-0 z-[30]'
+                    }`}
                     onClick={(e) => {
                         e.stopPropagation();
                         handleDeleteContainer(boxId);
@@ -800,7 +807,7 @@ export default function EmailEditorPage() {
                         </Tooltip>
                     </TooltipProvider>
                 </div>
-            </div>
+            </>
         );
 
         const canvasRect = canvasRef.current?.getBoundingClientRect();
