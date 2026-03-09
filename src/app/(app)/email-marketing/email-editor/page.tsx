@@ -575,6 +575,8 @@ export default function EmailEditorPage() {
     const handleBoxClick = (boxId: string, type: string, e: React.MouseEvent) => {
         e.stopPropagation();
         setBoxStates((prev: Record<string, string>) => ({ ...prev, [boxId]: type }));
+        setSelectedBoxId(boxId);
+        setSelectedLayer('block');
     };
 
     const handleDeleteStructure = (rowId: string) => {
@@ -696,7 +698,7 @@ export default function EmailEditorPage() {
         if (!rect) return null;
 
         const isTopRow = boxId.startsWith('row1-');
-        const isS2 = isSelected && hoveredItem !== null && !(hoveredItem.id === boxId && hoveredItem.type === 'container');
+        const isS2 = isSelected && hoveredItem !== null && !(hoveredItem.id === boxId && (hoveredItem.type === 'container' || hoveredItem.type === 'block'));
 
         const colors = {
             block: '#4b5b75',     // Requested Gray-Blue
@@ -709,7 +711,7 @@ export default function EmailEditorPage() {
 
         const overlayContent = (
             <>
-                <div className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${(isSelected && selectedLayer === 'container') || (hoveredItem?.id === boxId && hoveredItem?.type === 'container') ? 'opacity-100 z-[40]' : 'opacity-0 z-[30]'}`}>
+                <div className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${(isSelected && selectedLayer === 'container') || (hoveredItem?.id === boxId && (hoveredItem?.type === 'container' || hoveredItem?.type === 'block') && selectedLayer !== 'block') ? 'opacity-100 z-[40]' : 'opacity-0 z-[30]'}`}>
                     {/* Invisible Hitbox Extensions - to bridge gaps to floating UI elements */}
                     <div className={`absolute left-[28px] w-[75px] pointer-events-auto ${isTopRow ? '-bottom-[28px] h-[28px]' : '-top-[28px] h-[28px]'}`}></div>
                     <div className="absolute top-1/2 -translate-y-1/2 -left-[44px] w-[44px] h-[36px] pointer-events-auto"></div>
@@ -832,20 +834,21 @@ export default function EmailEditorPage() {
         if (!rect) return null;
 
         const showHoverBorder = hoveredItem?.id === boxId && hoveredItem?.type === 'block';
-        if (!isSelected && !showHoverBorder) return null;
-        if (isSelected && selectedLayer !== 'block') return null;
-
+        const isBlockSelected = isSelected && selectedLayer === 'block';
+        
         const isTopRow = boxId.startsWith('row1-');
         const isS2 = hoveredItem !== null && !(hoveredItem.id === boxId && hoveredItem.type === 'block');
 
         const overlayContent = (
-            <div className="absolute inset-[-2px] pointer-events-none z-[50]">
-                {/* Hover-only border (when block is hovered but not selected) */}
-                {showHoverBorder && !isSelected && (
+            <div className={`absolute inset-0 pointer-events-none z-[50] transition-opacity duration-300 ${isBlockSelected || showHoverBorder ? 'opacity-100' : 'opacity-0'}`}>
+                {/* Hover-only border (when block is hovered but not selected as a block) */}
+                {showHoverBorder && !isBlockSelected && (
                     <div className="absolute inset-0 border-[2px] border-[#4b5b75]/30 rounded-[4px] pointer-events-none"></div>
                 )}
                 {/* 2px Solid Dark Grey Border matching container bounds */}
-                <div className="absolute inset-0 border-[2px] border-[#4b5b75] rounded-[4px]"></div>
+                {isBlockSelected && (
+                    <div className="absolute inset-0 border-[2px] border-[#4b5b75] rounded-[4px]"></div>
+                )}
 
                 {/* Right 3-dot Box */}
                 <div
@@ -880,10 +883,10 @@ export default function EmailEditorPage() {
             <div
                 className="absolute pointer-events-none"
                 style={{
-                    left: rect.left - (canvasRect?.left || 0) - 2, // -2 for inset-[-2px]
-                    top: rect.top - (canvasRect?.top || 0) - 2,
-                    width: rect.width + 4,
-                    height: rect.height + 4,
+                    left: rect.left - (canvasRect?.left || 0), 
+                    top: rect.top - (canvasRect?.top || 0),
+                    width: rect.width,
+                    height: rect.height,
                 }}
             >
                 {overlayContent}
@@ -895,42 +898,30 @@ export default function EmailEditorPage() {
     const renderBoxContent = (state: string, boxId: string) => {
         const isSelected = selectedBoxId === boxId;
 
+        const handleBlockSelection = (e: React.MouseEvent) => {
+            e.stopPropagation();
+            setSelectedBoxId(boxId);
+            setSelectedLayer('block');
+            setSelectedBackdropRowId(null);
+        };
+
         if (state === 'image') {
             return (
                 <div
                     ref={(el) => { containerRefs.current[boxId] = el; }}
-                    className={`structure-container w-full relative border-[2px] rounded-[4px] bg-[#f9fafb] flex items-center justify-center group/container cursor-pointer min-h-[120px] ${isSelected && selectedLayer === 'container' ? 'border-blue-400' : (hoveredItem?.id === boxId && hoveredItem?.type === 'container' ? 'border-[#60a5fa]/50' : 'border-transparent')} ${isSelected ? 'z-[20]' : (hoveredItem?.id === boxId) ? 'z-[15]' : 'z-[1]'}`}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedBoxId(boxId);
-                        setSelectedLayer('container');
-                        setSelectedBackdropRowId(null);
-                    }}
-                    onMouseEnter={() => setHoveredItem({ type: 'container', id: boxId })}
+                    className={`structure-container w-full relative border-[2px] rounded-[4px] bg-[#f9fafb] flex items-center justify-center group/container cursor-default min-h-[120px] ${isSelected && selectedLayer === 'container' ? 'border-blue-400' : (hoveredItem?.id === boxId && (hoveredItem?.type === 'container' || hoveredItem?.type === 'block') && selectedLayer !== 'block' ? 'border-[#60a5fa]/50' : 'border-transparent')} ${isSelected ? 'z-[20]' : (hoveredItem?.id === boxId) ? 'z-[15]' : 'z-[1]'}`}
+                    onMouseEnter={() => setHoveredItem({ type: 'block', id: boxId })}
                     onMouseLeave={(e) => {
                         if (!(e.relatedTarget instanceof Node) || !e.currentTarget.contains(e.relatedTarget)) {
                             const rowId = boxId.split('-col')[0];
                             setHoveredItem({ type: 'structure', id: rowId });
                         }
                     }}
+                    onClick={handleBlockSelection}
                 >
                     {ContainerOverlay({ boxId, isSelected, selectedLayer, overlayPositions })}
                     {BlockOverlay({ boxId, isSelected, selectedLayer, overlayPositions })}
-                    <div
-                        className="w-full h-full flex items-center justify-center"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedBoxId(boxId);
-                            setSelectedLayer('block');
-                            setSelectedBackdropRowId(null);
-                        }}
-                        onMouseEnter={() => setHoveredItem({ type: 'block', id: boxId })}
-                        onMouseLeave={(e) => {
-                            if (!(e.relatedTarget instanceof Node) || !e.currentTarget.contains(e.relatedTarget)) {
-                                setHoveredItem({ type: 'container', id: boxId });
-                            }
-                        }}
-                    >
+                    <div className="w-full h-full flex items-center justify-center pointer-events-none cursor-default">
                         <span className="material-symbols-outlined text-[24px] text-gray-400">image</span>
                     </div>
                 </div>
@@ -941,38 +932,19 @@ export default function EmailEditorPage() {
             return (
                 <div
                     ref={(el) => { containerRefs.current[boxId] = el; }}
-                    className={`structure-container w-full relative border-[2px] rounded-[4px] bg-white group/container cursor-text flex flex-col ${isSelected && selectedLayer === 'container' ? 'border-blue-400' : (hoveredItem?.id === boxId && hoveredItem?.type === 'container' ? 'border-[#60a5fa]/50' : 'border-transparent')} ${isSelected ? 'z-[20]' : (hoveredItem?.id === boxId) ? 'z-[15]' : 'z-[1]'}`}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedBoxId(boxId);
-                        setSelectedLayer('container');
-                        setSelectedBackdropRowId(null);
-                    }}
-                    onMouseEnter={() => setHoveredItem({ type: 'container', id: boxId })}
+                    className={`structure-container w-full relative border-[2px] rounded-[4px] bg-white group/container flex flex-col cursor-default ${isSelected && selectedLayer === 'container' ? 'border-blue-400' : (hoveredItem?.id === boxId && (hoveredItem?.type === 'container' || hoveredItem?.type === 'block') && selectedLayer !== 'block' ? 'border-[#60a5fa]/50' : 'border-transparent')} ${isSelected ? 'z-[20]' : (hoveredItem?.id === boxId) ? 'z-[15]' : 'z-[1]'}`}
+                    onMouseEnter={() => setHoveredItem({ type: 'block', id: boxId })}
                     onMouseLeave={(e) => {
                         if (!(e.relatedTarget instanceof Node) || !e.currentTarget.contains(e.relatedTarget)) {
                             const rowId = boxId.split('-col')[0];
                             setHoveredItem({ type: 'structure', id: rowId });
                         }
                     }}
+                    onClick={handleBlockSelection}
                 >
                     {ContainerOverlay({ boxId, isSelected, selectedLayer, overlayPositions })}
                     {BlockOverlay({ boxId, isSelected, selectedLayer, overlayPositions })}
-                    <div
-                        className="flex-1 p-3 w-full"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedBoxId(boxId);
-                            setSelectedLayer('block');
-                            setSelectedBackdropRowId(null);
-                        }}
-                        onMouseEnter={() => setHoveredItem({ type: 'block', id: boxId })}
-                        onMouseLeave={(e) => {
-                            if (!(e.relatedTarget instanceof Node) || !e.currentTarget.contains(e.relatedTarget)) {
-                                setHoveredItem({ type: 'container', id: boxId });
-                            }
-                        }}
-                    >
+                    <div className="flex-1 p-3 w-full cursor-default">
                         <RichTextEditor
                             boxId={boxId}
                             isSelected={isSelected && selectedLayer === 'block'}
@@ -997,39 +969,20 @@ export default function EmailEditorPage() {
             return (
                 <div
                     ref={(el) => { containerRefs.current[boxId] = el; }}
-                    className={`structure-container w-full py-5 relative border-[2px] rounded-[4px] bg-white flex items-center justify-center group/container cursor-pointer ${isSelected && selectedLayer === 'container' ? 'border-blue-400' : (hoveredItem?.id === boxId && hoveredItem?.type === 'container' ? 'border-[#60a5fa]/50' : 'border-transparent')} ${isSelected ? 'z-[20]' : (hoveredItem?.id === boxId) ? 'z-[15]' : 'z-[1]'}`}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedBoxId(boxId);
-                        setSelectedLayer('container');
-                        setSelectedBackdropRowId(null);
-                    }}
-                    onMouseEnter={() => setHoveredItem({ type: 'container', id: boxId })}
+                    className={`structure-container w-full py-5 relative border-[2px] rounded-[4px] bg-white flex items-center justify-center group/container cursor-default ${isSelected && selectedLayer === 'container' ? 'border-blue-400' : (hoveredItem?.id === boxId && (hoveredItem?.type === 'container' || hoveredItem?.type === 'block') && selectedLayer !== 'block' ? 'border-[#60a5fa]/50' : 'border-transparent')} ${isSelected ? 'z-[20]' : (hoveredItem?.id === boxId) ? 'z-[15]' : 'z-[1]'}`}
+                    onMouseEnter={() => setHoveredItem({ type: 'block', id: boxId })}
                     onMouseLeave={(e) => {
                         if (!(e.relatedTarget instanceof Node) || !e.currentTarget.contains(e.relatedTarget)) {
                             const rowId = boxId.split('-col')[0];
                             setHoveredItem({ type: 'structure', id: rowId });
                         }
                     }}
+                    onClick={handleBlockSelection}
                 >
                     {ContainerOverlay({ boxId, isSelected, selectedLayer, overlayPositions })}
                     {BlockOverlay({ boxId, isSelected, selectedLayer, overlayPositions })}
-                    <div
-                        className="px-8 py-2 w-full flex justify-center"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedBoxId(boxId);
-                            setSelectedLayer('block');
-                            setSelectedBackdropRowId(null);
-                        }}
-                        onMouseEnter={() => setHoveredItem({ type: 'block', id: boxId })}
-                        onMouseLeave={(e) => {
-                            if (!(e.relatedTarget instanceof Node) || !e.currentTarget.contains(e.relatedTarget)) {
-                                setHoveredItem({ type: 'container', id: boxId });
-                            }
-                        }}
-                    >
-                        <button className="bg-[#22c55e] hover:bg-[#16a34a] text-white px-8 py-2.5 rounded-[12px] font-medium text-[15px] transition-colors border shadow-sm pointer-events-none">
+                    <div className="px-8 py-2 w-full flex justify-center pointer-events-none cursor-default">
+                        <button className="bg-[#22c55e] hover:bg-[#16a34a] text-white px-8 py-2.5 rounded-[12px] font-medium text-[15px] transition-colors border shadow-sm">
                             Button
                         </button>
                     </div>
@@ -1043,7 +996,7 @@ export default function EmailEditorPage() {
         return (
             <div
                 ref={(el) => { containerRefs.current[boxId] = el; }}
-                className={`structure-container w-full min-h-[120px] group border-[2px] rounded-[4px] flex flex-col items-center justify-center cursor-pointer relative transition-all duration-300 flex-1 ${isSelected ? 'border-solid border-blue-400 bg-blue-50/50 text-blue-500/90' : (isDragOver ? 'border-solid border-blue-400 bg-blue-50 dark:bg-blue-900/40 text-blue-500' : (hoveredItem?.id === boxId && hoveredItem?.type === 'container' ? 'border-solid border-[#60a5fa]/50 bg-[#f0f7ff] dark:bg-blue-900/10 text-blue-400' : 'border-dashed border-blue-400/20 bg-[#f0f7ff] dark:bg-blue-900/10 text-blue-400'))} ${isSelected ? 'z-[20]' : (hoveredItem?.id === boxId) ? 'z-[15]' : 'z-[1]'}`}
+                className={`structure-container w-full min-h-[120px] group border-[2px] rounded-[4px] flex flex-col items-center justify-center cursor-default relative transition-all duration-300 flex-1 ${isSelected ? 'border-solid border-blue-400 bg-blue-50/50 text-blue-500/90' : (isDragOver ? 'border-solid border-blue-400 bg-blue-50 dark:bg-blue-900/40 text-blue-500' : (hoveredItem?.id === boxId && hoveredItem?.type === 'container' ? 'border-solid border-[#60a5fa]/50 bg-[#f0f7ff] dark:bg-blue-900/10 text-blue-400' : 'border-dashed border-blue-400/20 bg-[#f0f7ff] dark:bg-blue-900/10 text-blue-400'))} ${isSelected ? 'z-[20]' : (hoveredItem?.id === boxId) ? 'z-[15]' : 'z-[1]'}`}
                 onClick={(e) => {
                     e.stopPropagation();
                     setSelectedBoxId(boxId);
@@ -2055,7 +2008,7 @@ export default function EmailEditorPage() {
 
                                     {/* Backdrop Left Strip Hitbox — only the side strip outside the canvas */}
                                     <div
-                                        className="absolute left-[-60px] w-[60px] z-[8] pointer-events-auto cursor-pointer"
+                                        className="absolute left-[-60px] w-[60px] z-[8] pointer-events-auto cursor-default"
                                         style={{ top: index === 0 ? '-34px' : '-26px', bottom: 0 }}
                                         onMouseEnter={() => setHoveredItem({ type: 'backdrop', id: row.id })}
                                         onMouseLeave={(e) => {
@@ -2074,7 +2027,7 @@ export default function EmailEditorPage() {
 
                                     {/* Backdrop Right Strip Hitbox — only the side strip outside the canvas */}
                                     <div
-                                        className="absolute right-[-60px] w-[60px] z-[8] pointer-events-auto cursor-pointer"
+                                        className="absolute right-[-60px] w-[60px] z-[8] pointer-events-auto cursor-default"
                                         style={{ top: index === 0 ? '-34px' : '-26px', bottom: 0 }}
                                         onMouseEnter={() => setHoveredItem({ type: 'backdrop', id: row.id })}
                                         onMouseLeave={(e) => {
