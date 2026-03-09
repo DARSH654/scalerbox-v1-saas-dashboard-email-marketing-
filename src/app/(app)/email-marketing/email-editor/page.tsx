@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import {
     ChevronDown, ChevronUp, Home, Inbox, FileEdit, Repeat, SquareTerminal, Users,
@@ -397,6 +398,32 @@ export default function EmailEditorPage() {
     const canvasRef = useRef<HTMLDivElement>(null);
     const [dropInsertIndex, setDropInsertIndex] = useState<number | null>(null);
 
+    const containerRefs = useRef<Record<string, HTMLDivElement | null>>({});
+    const canvasScrollRef = useRef<HTMLDivElement>(null);
+    const [overlayPositions, setOverlayPositions] = useState<Record<string, DOMRect>>({});
+
+    const updateOverlayPositions = useCallback(() => {
+        const next: Record<string, DOMRect> = {};
+        Object.entries(containerRefs.current).forEach(([id, el]) => {
+            if (el) next[id] = el.getBoundingClientRect();
+        });
+        setOverlayPositions(next);
+    }, []);
+
+    useEffect(() => {
+        const el = canvasScrollRef.current;
+        if (!el) return;
+        el.addEventListener('scroll', updateOverlayPositions);
+        window.addEventListener('resize', updateOverlayPositions);
+        updateOverlayPositions();
+        return () => {
+            el.removeEventListener('scroll', updateOverlayPositions);
+            window.removeEventListener('resize', updateOverlayPositions);
+        };
+    }, [updateOverlayPositions]);
+
+    const [selectedLayer, setSelectedLayer] = useState<'block' | 'container' | 'structure' | 'backdrop' | null>(null);
+
     // Track cursor position during drag for the floating ghost
     useEffect(() => {
         if (!isDraggingStructures && !draggingTool) { setDragPos(null); return; }
@@ -425,7 +452,11 @@ export default function EmailEditorPage() {
     });
     const [draggedOverBox, setDraggedOverBox] = useState<string | null>(null);
     const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null);
-    const [selectedLayer, setSelectedLayer] = useState<'block' | 'container' | 'structure' | 'backdrop' | null>(null);
+
+    // Position refresh when layout changes
+    useEffect(() => {
+        updateOverlayPositions();
+    }, [dynamicRows, boxStatesInternal, selectedBoxId, hoveredItem, updateOverlayPositions]);
 
     // Text Block Properties State
     const [textPropertiesTab, setTextPropertiesTab] = useState<'settings' | 'styles'>('settings');
@@ -660,7 +691,10 @@ export default function EmailEditorPage() {
         document.addEventListener('dragend', onEnd);
     };
 
-    const ContainerOverlay = ({ boxId, isSelected, selectedLayer }: { boxId: string, isSelected: boolean, selectedLayer: string | null }) => {
+    const ContainerOverlay = ({ boxId, isSelected, selectedLayer, overlayPositions }: { boxId: string, isSelected: boolean, selectedLayer: string | null, overlayPositions: Record<string, DOMRect> }) => {
+        const rect = overlayPositions[boxId];
+        if (!rect) return null;
+
         const isTopRow = boxId.startsWith('row1-');
         const isS2 = isSelected && hoveredItem !== null && !(hoveredItem.id === boxId && hoveredItem.type === 'container');
 
@@ -768,10 +802,28 @@ export default function EmailEditorPage() {
                 </div>
             </div>
         );
-        return overlayContent;
+
+        const canvasRect = canvasRef.current?.getBoundingClientRect();
+        return createPortal(
+            <div
+                className="absolute pointer-events-none"
+                style={{
+                    left: rect.left - (canvasRect?.left || 0),
+                    top: rect.top - (canvasRect?.top || 0),
+                    width: rect.width,
+                    height: rect.height,
+                }}
+            >
+                {overlayContent}
+            </div>,
+            document.getElementById('canvas-overlay-root')!
+        );
     };
 
-    const BlockOverlay = ({ boxId, isSelected, selectedLayer }: { boxId: string, isSelected: boolean, selectedLayer: string | null }) => {
+    const BlockOverlay = ({ boxId, isSelected, selectedLayer, overlayPositions }: { boxId: string, isSelected: boolean, selectedLayer: string | null, overlayPositions: Record<string, DOMRect> }) => {
+        const rect = overlayPositions[boxId];
+        if (!rect) return null;
+
         const showHoverBorder = hoveredItem?.id === boxId && hoveredItem?.type === 'block';
         if (!isSelected && !showHoverBorder) return null;
         if (isSelected && selectedLayer !== 'block') return null;
@@ -779,7 +831,7 @@ export default function EmailEditorPage() {
         const isTopRow = boxId.startsWith('row1-');
         const isS2 = hoveredItem !== null && !(hoveredItem.id === boxId && hoveredItem.type === 'block');
 
-        return (
+        const overlayContent = (
             <div className="absolute inset-[-2px] pointer-events-none z-[50]">
                 {/* Hover-only border (when block is hovered but not selected) */}
                 {showHoverBorder && !isSelected && (
@@ -815,6 +867,22 @@ export default function EmailEditorPage() {
                 </div>
             </div>
         );
+
+        const canvasRect = canvasRef.current?.getBoundingClientRect();
+        return createPortal(
+            <div
+                className="absolute pointer-events-none"
+                style={{
+                    left: rect.left - (canvasRect?.left || 0) - 2, // -2 for inset-[-2px]
+                    top: rect.top - (canvasRect?.top || 0) - 2,
+                    width: rect.width + 4,
+                    height: rect.height + 4,
+                }}
+            >
+                {overlayContent}
+            </div>,
+            document.getElementById('canvas-overlay-root')!
+        );
     };
 
     const renderBoxContent = (state: string, boxId: string) => {
@@ -823,6 +891,7 @@ export default function EmailEditorPage() {
         if (state === 'image') {
             return (
                 <div
+                    ref={(el) => { containerRefs.current[boxId] = el; }}
                     className={`structure-container w-full relative border-[2px] rounded-[4px] bg-[#f9fafb] flex items-center justify-center group/container cursor-pointer min-h-[120px] ${isSelected && selectedLayer === 'container' ? 'border-blue-400' : (hoveredItem?.id === boxId && hoveredItem?.type === 'container' ? 'border-[#60a5fa]/50' : 'border-transparent')} ${isSelected ? 'z-[20]' : (hoveredItem?.id === boxId) ? 'z-[15]' : 'z-[1]'}`}
                     onClick={(e) => {
                         e.stopPropagation();
@@ -838,8 +907,8 @@ export default function EmailEditorPage() {
                         }
                     }}
                 >
-                    {ContainerOverlay({ boxId, isSelected, selectedLayer })}
-                    {BlockOverlay({ boxId, isSelected, selectedLayer })}
+                    {ContainerOverlay({ boxId, isSelected, selectedLayer, overlayPositions })}
+                    {BlockOverlay({ boxId, isSelected, selectedLayer, overlayPositions })}
                     <div
                         className="w-full h-full flex items-center justify-center"
                         onClick={(e) => {
@@ -864,6 +933,7 @@ export default function EmailEditorPage() {
         if (state === 'text') {
             return (
                 <div
+                    ref={(el) => { containerRefs.current[boxId] = el; }}
                     className={`structure-container w-full relative border-[2px] rounded-[4px] bg-white group/container cursor-text flex flex-col ${isSelected && selectedLayer === 'container' ? 'border-blue-400' : (hoveredItem?.id === boxId && hoveredItem?.type === 'container' ? 'border-[#60a5fa]/50' : 'border-transparent')} ${isSelected ? 'z-[20]' : (hoveredItem?.id === boxId) ? 'z-[15]' : 'z-[1]'}`}
                     onClick={(e) => {
                         e.stopPropagation();
@@ -879,8 +949,8 @@ export default function EmailEditorPage() {
                         }
                     }}
                 >
-                    {ContainerOverlay({ boxId, isSelected, selectedLayer })}
-                    {BlockOverlay({ boxId, isSelected, selectedLayer })}
+                    {ContainerOverlay({ boxId, isSelected, selectedLayer, overlayPositions })}
+                    {BlockOverlay({ boxId, isSelected, selectedLayer, overlayPositions })}
                     <div
                         className="flex-1 p-3 w-full"
                         onClick={(e) => {
@@ -919,6 +989,7 @@ export default function EmailEditorPage() {
         if (state === 'button') {
             return (
                 <div
+                    ref={(el) => { containerRefs.current[boxId] = el; }}
                     className={`structure-container w-full py-5 relative border-[2px] rounded-[4px] bg-white flex items-center justify-center group/container cursor-pointer ${isSelected && selectedLayer === 'container' ? 'border-blue-400' : (hoveredItem?.id === boxId && hoveredItem?.type === 'container' ? 'border-[#60a5fa]/50' : 'border-transparent')} ${isSelected ? 'z-[20]' : (hoveredItem?.id === boxId) ? 'z-[15]' : 'z-[1]'}`}
                     onClick={(e) => {
                         e.stopPropagation();
@@ -934,8 +1005,8 @@ export default function EmailEditorPage() {
                         }
                     }}
                 >
-                    {ContainerOverlay({ boxId, isSelected, selectedLayer })}
-                    {BlockOverlay({ boxId, isSelected, selectedLayer })}
+                    {ContainerOverlay({ boxId, isSelected, selectedLayer, overlayPositions })}
+                    {BlockOverlay({ boxId, isSelected, selectedLayer, overlayPositions })}
                     <div
                         className="px-8 py-2 w-full flex justify-center"
                         onClick={(e) => {
@@ -964,6 +1035,7 @@ export default function EmailEditorPage() {
         // Default empty state
         return (
             <div
+                ref={(el) => { containerRefs.current[boxId] = el; }}
                 className={`structure-container w-full min-h-[120px] group border-[2px] rounded-[4px] flex flex-col items-center justify-center cursor-pointer relative transition-all duration-300 flex-1 ${isSelected ? 'border-solid border-blue-400 bg-blue-50/50 text-blue-500/90' : (isDragOver ? 'border-solid border-blue-400 bg-blue-50 dark:bg-blue-900/40 text-blue-500' : (hoveredItem?.id === boxId && hoveredItem?.type === 'container' ? 'border-solid border-[#60a5fa]/50 bg-[#f0f7ff] dark:bg-blue-900/10 text-blue-400' : 'border-dashed border-blue-400/20 bg-[#f0f7ff] dark:bg-blue-900/10 text-blue-400'))} ${isSelected ? 'z-[20]' : (hoveredItem?.id === boxId) ? 'z-[15]' : 'z-[1]'}`}
                 onClick={(e) => {
                     e.stopPropagation();
@@ -999,7 +1071,7 @@ export default function EmailEditorPage() {
                     }
                 }}
             >
-                {ContainerOverlay({ boxId, isSelected, selectedLayer })}
+                {ContainerOverlay({ boxId, isSelected, selectedLayer, overlayPositions })}
                 {isDragOver ? (
                     <div className="bg-[#333] text-white text-[11px] font-medium px-3 py-1 rounded-full shadow-md whitespace-nowrap pointer-events-none z-[65]">
                         Drop here
@@ -1813,6 +1885,7 @@ export default function EmailEditorPage() {
 
                 {/* Editor Canvas Area */}
                 <div
+                    ref={canvasScrollRef}
                     className={`flex-1 relative flex flex-col pt-0 pb-6 ${structuresPanelPosition === 'right' ? 'pr-[90px] pl-[384px]' : 'pl-6 pr-[384px]'} overflow-y-auto h-full items-center [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full`}
                     onClick={() => { setSelectedBoxId(null); setSelectedBackdropRowId(null); }}
                 >
@@ -1913,6 +1986,12 @@ export default function EmailEditorPage() {
                             }
                         }}
                     >
+                        {/* THE PORTAL ROOT - Must be inside canvasRef div so absolute positioning is relative to canvas */}
+                        <div
+                            id="canvas-overlay-root"
+                            className="absolute inset-0 pointer-events-none z-[200]"
+                        />
+
                         {/* Rendered Rows (Unified) with drop indicators */}
                         {dynamicRows.map((row, index) => {
                             const hasContent = row.columns.some((_, i) => boxStatesInternal[`${row.id}-col${i}`] && boxStatesInternal[`${row.id}-col${i}`] !== 'empty');
