@@ -714,7 +714,7 @@ export default function EmailEditorPage() {
                 <div className="absolute top-1/2 -translate-y-1/2 -left-[44px] w-[44px] h-[36px] pointer-events-auto"></div>
 
                 {/* Layer Labels (Breadcrumb-like) */}
-                <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[28px]' : '-top-[28px]'} left-[28px] w-auto flex flex-col items-start transition-opacity duration-300 z-50 ${isS2 ? 'opacity-0 pointer-events-none' : ''}`}>
+                <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[19px]' : '-top-[28px]'} left-[28px] w-auto flex flex-col items-start transition-opacity duration-300 z-50 ${isS2 ? 'opacity-0 pointer-events-none' : ''}`}>
                     {/* Structure Pill Hitbox Extension (aligned with structure pill at index 1) */}
                     <div className="absolute inset-x-0 top-[28px] h-[28px] pointer-events-none group-hover/layerpill:pointer-events-auto z-[60]"></div>
                     {[
