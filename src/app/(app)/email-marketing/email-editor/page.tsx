@@ -123,13 +123,13 @@ const RichTextEditor = ({ boxId, isSelected, boxProperties, onEditorFocus, onEdi
     );
 };
 
-const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onMoveDragStart, onMoveDragEnd, isDraggingLayout, topOffset = "-2px", isTopRow, hideSecondaryControls, children,
+const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onMoveDragStart, onMoveDragEnd, isDraggingLayout, topOffset = "-2px", isTopRow, hideSecondaryControls, showComponents, children,
     setSelectedBackdropRowId,
     setSelectedBoxId,
     setSelectedLayer,
     setActiveRightSidebarTab
 }: {
-    id?: string, isSelected?: boolean, onSelect?: () => void, onDelete?: () => void, onDuplicate?: () => void, onMoveDragStart?: (e: React.DragEvent) => void, onMoveDragEnd?: () => void, isDraggingLayout?: boolean, topOffset?: string, isTopRow?: boolean, hideSecondaryControls?: boolean, children: React.ReactNode,
+    id?: string, isSelected?: boolean, onSelect?: () => void, onDelete?: () => void, onDuplicate?: () => void, onMoveDragStart?: (e: React.DragEvent) => void, onMoveDragEnd?: () => void, isDraggingLayout?: boolean, topOffset?: string, isTopRow?: boolean, hideSecondaryControls?: boolean, showComponents?: boolean, children: React.ReactNode,
     setSelectedBackdropRowId: (id: string | null) => void,
     setSelectedBoxId: (id: string | null) => void,
     setSelectedLayer: (layer: 'block' | 'container' | 'structure' | 'backdrop' | null) => void,
@@ -167,7 +167,7 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
             {/* Structure Overlay on Hover */}
             <div
                 style={{ top: topOffset, bottom: '0' }}
-                className={`absolute inset-x-0 pointer-events-none transition-opacity duration-300 z-[30] ${isSelected || isOpen ? 'opacity-100' : 'opacity-0 group-hover/structure:opacity-100 group-has-[.structure-container:hover]/structure:!opacity-0'}`}
+                className={`absolute inset-x-0 pointer-events-none transition-opacity duration-300 z-[30] ${isSelected || isOpen ? 'opacity-100' : (showComponents ? 'opacity-0 group-hover/structure:opacity-100 group-has-[.structure-container:hover]/structure:!opacity-0' : 'opacity-0')}`}
             >
                 {/* Structure Layer Stack (Top Left usually, Bottom Left for top row) */}
                 <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[28px] left-[44px]' : '-top-[27px] left-[0px]'} w-auto flex flex-col items-start pointer-events-auto transition-all duration-200 ${hideSecondaryControls ? 'opacity-0 pointer-events-none' : ''}`}>
@@ -458,6 +458,22 @@ export default function EmailEditorPage() {
         updateOverlayPositions();
     }, [dynamicRows, boxStatesInternal, selectedBoxId, hoveredItem, updateOverlayPositions]);
 
+    // Debounced hover: borders appear instantly via hoveredItem,
+    // components (pills, buttons) only appear after cursor rests for 120ms
+    const [debouncedHoveredItem, setDebouncedHoveredItem] = useState<typeof hoveredItem>(null);
+    useEffect(() => {
+        if (hoveredItem === null) {
+            setDebouncedHoveredItem(null);
+            return;
+        }
+        // Immediately clear old value to prevent stale components lingering
+        setDebouncedHoveredItem(null);
+        const timer = setTimeout(() => {
+            setDebouncedHoveredItem(hoveredItem);
+        }, 120);
+        return () => clearTimeout(timer);
+    }, [hoveredItem]);
+
     // Text Block Properties State
     const [textPropertiesTab, setTextPropertiesTab] = useState<'settings' | 'styles'>('settings');
     const [boxProperties, setBoxProperties] = useState<Record<string, Record<string, any>>>({});
@@ -711,7 +727,7 @@ export default function EmailEditorPage() {
 
         const overlayContent = (
             <>
-                <div className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${(isSelected && selectedLayer === 'container') || (hoveredItem?.id === boxId && (hoveredItem?.type === 'container' || hoveredItem?.type === 'block') && selectedLayer !== 'block') ? 'opacity-100 z-[40]' : 'opacity-0 z-[30]'}`}>
+                <div className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${(isSelected && selectedLayer === 'container') || (debouncedHoveredItem?.id === boxId && (debouncedHoveredItem?.type === 'container' || debouncedHoveredItem?.type === 'block') && selectedLayer !== 'block') ? 'opacity-100 z-[40]' : 'opacity-0 z-[30]'}`}>
                     {/* Invisible Hitbox Extensions - to bridge gaps to floating UI elements */}
                     <div className={`absolute left-[28px] w-[75px] pointer-events-auto ${isTopRow ? '-bottom-[28px] h-[28px]' : '-top-[28px] h-[28px]'}`}></div>
                     <div className="absolute top-1/2 -translate-y-1/2 -left-[44px] w-[44px] h-[36px] pointer-events-auto"></div>
@@ -782,12 +798,11 @@ export default function EmailEditorPage() {
                 {/* Delete Menu - The three dot / delete icon box - now shrunk as requested */}
                 <div
                     style={{ backgroundColor: colors.container }}
-                    className={`absolute top-1/2 -translate-y-1/2 -left-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-all duration-300 group/btn ${
-                        (isSelected && (selectedLayer === 'container' || selectedLayer === 'block')) || 
-                        (hoveredItem?.id === boxId && (hoveredItem?.type === 'container' || hoveredItem?.type === 'block')) 
-                            ? 'opacity-100 z-[50]' 
-                            : 'opacity-0 z-[30]'
-                    }`}
+                    className={`absolute top-1/2 -translate-y-1/2 -left-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-all duration-300 group/btn ${(isSelected && (selectedLayer === 'container' || selectedLayer === 'block')) ||
+                        (debouncedHoveredItem?.id === boxId && (debouncedHoveredItem?.type === 'container' || debouncedHoveredItem?.type === 'block'))
+                        ? 'opacity-100 z-[50]'
+                        : 'opacity-0 z-[30]'
+                        }`}
                     onClick={(e) => {
                         e.stopPropagation();
                         handleDeleteContainer(boxId);
@@ -835,47 +850,54 @@ export default function EmailEditorPage() {
 
         const showHoverBorder = hoveredItem?.id === boxId && hoveredItem?.type === 'block';
         const isBlockSelected = isSelected && selectedLayer === 'block';
-        
+
         const isTopRow = boxId.startsWith('row1-');
         const isS2 = hoveredItem !== null && !(hoveredItem.id === boxId && hoveredItem.type === 'block');
+        const showDebouncedBlock = debouncedHoveredItem?.id === boxId && debouncedHoveredItem?.type === 'block';
 
         const overlayContent = (
-            <div className={`absolute inset-0 pointer-events-none z-[50] transition-opacity duration-300 ${isBlockSelected || showHoverBorder ? 'opacity-100' : 'opacity-0'}`}>
-                {/* Hover-only border (when block is hovered but not selected as a block) */}
-                {showHoverBorder && !isBlockSelected && (
-                    <div className="absolute inset-0 border-[2px] border-[#4b5b75]/30 rounded-[4px] pointer-events-none"></div>
-                )}
-                {/* 2px Solid Dark Grey Border matching container bounds */}
-                {isBlockSelected && (
-                    <div className="absolute inset-0 border-[2px] border-[#4b5b75] rounded-[4px]"></div>
-                )}
+            <>
+                {/* Border layer – appears instantly on hover */}
+                <div className={`absolute inset-0 pointer-events-none z-[50] transition-opacity duration-150 ${isBlockSelected || showHoverBorder ? 'opacity-100' : 'opacity-0'}`}>
+                    {/* Hover-only border (when block is hovered but not selected as a block) */}
+                    {showHoverBorder && !isBlockSelected && (
+                        <div className="absolute inset-0 border-[2px] border-[#4b5b75] rounded-[4px] pointer-events-none"></div>
+                    )}
+                    {/* 2px Solid Dark Grey Border matching container bounds */}
+                    {isBlockSelected && (
+                        <div className="absolute inset-0 border-[2px] border-[#4b5b75] rounded-[4px]"></div>
+                    )}
+                </div>
 
-                {/* Right 3-dot Box */}
-                <div
-                    className="absolute top-1/2 -translate-y-1/2 -right-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-transform group/btn bg-[#4b5b75]"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                    }}
-                >
-                    {/* 3-dot Square Hitbox Extension */}
-                    <div className="absolute inset-y-0 right-0 left-[-12px] top-0 h-[37px] pointer-events-auto z-[60]"></div>
-                    <div className="flex gap-[3px]">
-                        <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
-                        <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
-                        <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
+                {/* Component layer – appears after debounce delay */}
+                <div className={`absolute inset-0 pointer-events-none z-[50] transition-opacity duration-300 ${isBlockSelected || showDebouncedBlock ? 'opacity-100' : 'opacity-0'}`}>
+                    {/* Right 3-dot Box */}
+                    <div
+                        className="absolute top-1/2 -translate-y-1/2 -right-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-transform group/btn bg-[#4b5b75]"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                        }}
+                    >
+                        {/* 3-dot Square Hitbox Extension */}
+                        <div className="absolute inset-y-0 right-0 left-[-12px] top-0 h-[37px] pointer-events-auto z-[60]"></div>
+                        <div className="flex gap-[3px]">
+                            <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
+                            <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
+                            <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
+                        </div>
+                    </div>
+
+                    {/* Drag Pill */}
+                    <div
+                        className={`absolute ${isTopRow ? '-bottom-[28px]' : '-top-[32px]'} left-[16px] text-white rounded-[12px] w-[36px] h-[24px] flex items-center justify-center pointer-events-auto cursor-grab active:cursor-grabbing shadow-md hover:scale-105 transition-all bg-[#4b5b75] ${isS2 ? 'opacity-0 pointer-events-none' : ''}`}
+                        onClick={(e) => { e.stopPropagation(); }}
+                    >
+                        {/* Block Pill Hitbox Extension */}
+                        <div className={`absolute inset-x-0 ${isTopRow ? 'top-[-8px] h-[30px]' : 'top-0 h-[32px]'} pointer-events-auto z-[60]`}></div>
+                        <span className="material-symbols-outlined text-[18px] rotate-90">drag_indicator</span>
                     </div>
                 </div>
-
-                {/* Drag Pill */}
-                <div
-                    className={`absolute ${isTopRow ? '-bottom-[28px]' : '-top-[32px]'} left-[16px] text-white rounded-[12px] w-[36px] h-[24px] flex items-center justify-center pointer-events-auto cursor-grab active:cursor-grabbing shadow-md hover:scale-105 transition-all bg-[#4b5b75] ${isS2 ? 'opacity-0 pointer-events-none' : ''}`}
-                    onClick={(e) => { e.stopPropagation(); }}
-                >
-                    {/* Block Pill Hitbox Extension */}
-                    <div className={`absolute inset-x-0 ${isTopRow ? 'top-[-8px] h-[30px]' : 'top-0 h-[32px]'} pointer-events-auto z-[60]`}></div>
-                    <span className="material-symbols-outlined text-[18px] rotate-90">drag_indicator</span>
-                </div>
-            </div>
+            </>
         );
 
         const canvasRect = canvasRef.current?.getBoundingClientRect();
@@ -883,7 +905,7 @@ export default function EmailEditorPage() {
             <div
                 className="absolute pointer-events-none"
                 style={{
-                    left: rect.left - (canvasRect?.left || 0), 
+                    left: rect.left - (canvasRect?.left || 0),
                     top: rect.top - (canvasRect?.top || 0),
                     width: rect.width,
                     height: rect.height,
@@ -909,7 +931,7 @@ export default function EmailEditorPage() {
             return (
                 <div
                     ref={(el) => { containerRefs.current[boxId] = el; }}
-                    className={`structure-container w-full relative border-[2px] rounded-[4px] bg-[#f9fafb] flex items-center justify-center group/container cursor-default min-h-[120px] ${isSelected && selectedLayer === 'container' ? 'border-blue-400' : (hoveredItem?.id === boxId && (hoveredItem?.type === 'container' || hoveredItem?.type === 'block') && selectedLayer !== 'block' ? 'border-[#60a5fa]/50' : 'border-transparent')} ${isSelected ? 'z-[20]' : (hoveredItem?.id === boxId) ? 'z-[15]' : 'z-[1]'}`}
+                    className={`structure-container w-full relative border-[2px] rounded-[4px] bg-[#f9fafb] flex items-center justify-center group/container cursor-default min-h-[120px] ${isSelected && selectedLayer === 'container' ? 'border-blue-500' : (hoveredItem?.id === boxId && (hoveredItem?.type === 'container' || hoveredItem?.type === 'block') && selectedLayer !== 'block' ? 'border-blue-400' : 'border-transparent')} ${isSelected ? 'z-[20]' : (hoveredItem?.id === boxId) ? 'z-[15]' : 'z-[1]'}`}
                     onMouseEnter={() => setHoveredItem({ type: 'block', id: boxId })}
                     onMouseLeave={(e) => {
                         if (!(e.relatedTarget instanceof Node) || !e.currentTarget.contains(e.relatedTarget)) {
@@ -932,7 +954,7 @@ export default function EmailEditorPage() {
             return (
                 <div
                     ref={(el) => { containerRefs.current[boxId] = el; }}
-                    className={`structure-container w-full relative border-[2px] rounded-[4px] bg-white group/container flex flex-col cursor-default ${isSelected && selectedLayer === 'container' ? 'border-blue-400' : (hoveredItem?.id === boxId && (hoveredItem?.type === 'container' || hoveredItem?.type === 'block') && selectedLayer !== 'block' ? 'border-[#60a5fa]/50' : 'border-transparent')} ${isSelected ? 'z-[20]' : (hoveredItem?.id === boxId) ? 'z-[15]' : 'z-[1]'}`}
+                    className={`structure-container w-full relative border-[2px] rounded-[4px] bg-white group/container flex flex-col cursor-default ${isSelected && selectedLayer === 'container' ? 'border-blue-500' : (hoveredItem?.id === boxId && (hoveredItem?.type === 'container' || hoveredItem?.type === 'block') && selectedLayer !== 'block' ? 'border-blue-400' : 'border-transparent')} ${isSelected ? 'z-[20]' : (hoveredItem?.id === boxId) ? 'z-[15]' : 'z-[1]'}`}
                     onMouseEnter={() => setHoveredItem({ type: 'block', id: boxId })}
                     onMouseLeave={(e) => {
                         if (!(e.relatedTarget instanceof Node) || !e.currentTarget.contains(e.relatedTarget)) {
@@ -969,7 +991,7 @@ export default function EmailEditorPage() {
             return (
                 <div
                     ref={(el) => { containerRefs.current[boxId] = el; }}
-                    className={`structure-container w-full py-5 relative border-[2px] rounded-[4px] bg-white flex items-center justify-center group/container cursor-default ${isSelected && selectedLayer === 'container' ? 'border-blue-400' : (hoveredItem?.id === boxId && (hoveredItem?.type === 'container' || hoveredItem?.type === 'block') && selectedLayer !== 'block' ? 'border-[#60a5fa]/50' : 'border-transparent')} ${isSelected ? 'z-[20]' : (hoveredItem?.id === boxId) ? 'z-[15]' : 'z-[1]'}`}
+                    className={`structure-container w-full py-5 relative border-[2px] rounded-[4px] bg-white flex items-center justify-center group/container cursor-default ${isSelected && selectedLayer === 'container' ? 'border-blue-500' : (hoveredItem?.id === boxId && (hoveredItem?.type === 'container' || hoveredItem?.type === 'block') && selectedLayer !== 'block' ? 'border-blue-400' : 'border-transparent')} ${isSelected ? 'z-[20]' : (hoveredItem?.id === boxId) ? 'z-[15]' : 'z-[1]'}`}
                     onMouseEnter={() => setHoveredItem({ type: 'block', id: boxId })}
                     onMouseLeave={(e) => {
                         if (!(e.relatedTarget instanceof Node) || !e.currentTarget.contains(e.relatedTarget)) {
@@ -996,7 +1018,7 @@ export default function EmailEditorPage() {
         return (
             <div
                 ref={(el) => { containerRefs.current[boxId] = el; }}
-                className={`structure-container w-full min-h-[120px] group border-[2px] rounded-[4px] flex flex-col items-center justify-center cursor-default relative transition-all duration-300 flex-1 ${isSelected ? 'border-solid border-blue-400 bg-blue-50/50 text-blue-500/90' : (isDragOver ? 'border-solid border-blue-400 bg-blue-50 dark:bg-blue-900/40 text-blue-500' : (hoveredItem?.id === boxId && hoveredItem?.type === 'container' ? 'border-solid border-[#60a5fa]/50 bg-[#f0f7ff] dark:bg-blue-900/10 text-blue-400' : 'border-dashed border-blue-400/20 bg-[#f0f7ff] dark:bg-blue-900/10 text-blue-400'))} ${isSelected ? 'z-[20]' : (hoveredItem?.id === boxId) ? 'z-[15]' : 'z-[1]'}`}
+                className={`structure-container w-full min-h-[120px] group border-[2px] rounded-[4px] flex flex-col items-center justify-center cursor-default relative transition-all duration-300 flex-1 ${isSelected ? 'border-solid border-blue-500 bg-blue-50/50 text-blue-500/90' : (isDragOver ? 'border-solid border-blue-400 bg-blue-50 dark:bg-blue-900/40 text-blue-500' : (hoveredItem?.id === boxId && hoveredItem?.type === 'container' ? 'border-solid border-blue-400 bg-[#f0f7ff] dark:bg-blue-900/10 text-blue-400' : 'border-dashed border-blue-400/20 bg-[#f0f7ff] dark:bg-blue-900/10 text-blue-400'))} ${isSelected ? 'z-[20]' : (hoveredItem?.id === boxId) ? 'z-[15]' : 'z-[1]'}`}
                 onClick={(e) => {
                     e.stopPropagation();
                     setSelectedBoxId(boxId);
@@ -1956,16 +1978,15 @@ export default function EmailEditorPage() {
                         {dynamicRows.map((row, index) => {
                             const hasContent = row.columns.some((_, i) => boxStatesInternal[`${row.id}-col${i}`] && boxStatesInternal[`${row.id}-col${i}`] !== 'empty');
                             return (
-                                <div 
-                                    key={row.id} 
-                                    data-structure-row 
-                                    className={`relative ${
-                                        (hoveredItem?.id === row.id || (hoveredItem?.id && hoveredItem.id.startsWith(row.id + '-'))) 
-                                            ? 'z-[100]' 
-                                            : (selectedBoxId === row.id || (selectedBoxId && selectedBoxId.startsWith(row.id + '-')) || selectedBackdropRowId === row.id) 
-                                                ? 'z-[60]' 
-                                                : 'z-[10]'
-                                    }`}
+                                <div
+                                    key={row.id}
+                                    data-structure-row
+                                    className={`relative ${(hoveredItem?.id === row.id || (hoveredItem?.id && hoveredItem.id.startsWith(row.id + '-')))
+                                        ? 'z-[100]'
+                                        : (selectedBoxId === row.id || (selectedBoxId && selectedBoxId.startsWith(row.id + '-')) || selectedBackdropRowId === row.id)
+                                            ? 'z-[60]'
+                                            : 'z-[10]'
+                                        }`}
                                 >
                                     {/* Drop indicator AT TOP of this row (only for first row, index 0) */}
                                     {dropInsertIndex === 0 && index === 0 && (
@@ -1995,9 +2016,9 @@ export default function EmailEditorPage() {
                                     {/* Backdrop Border Overlay — sits on top of the color strip at -60px width */}
                                     <div
                                         className={`absolute -inset-x-[60px] rounded-[4px] border-[2px] transition-all duration-150 pointer-events-none z-[5] ${selectedBackdropRowId === row.id
-                                            ? 'border-[#64748b]'
+                                            ? 'border-[#475569]'
                                             : (hoveredItem?.type === 'backdrop' && hoveredItem?.id === row.id)
-                                                ? 'border-[#94a3b8]'
+                                                ? 'border-[#64748b]'
                                                 : 'border-transparent'
                                             }`}
                                         style={{
@@ -2045,7 +2066,7 @@ export default function EmailEditorPage() {
                                     />
 
                                     {/* Backdrop Controls — pill, plus, 3-dot (shows on hover/select) */}
-                                    {((hoveredItem?.type === 'backdrop' && hoveredItem?.id === row.id) || selectedBackdropRowId === row.id) && (
+                                    {((debouncedHoveredItem?.type === 'backdrop' && debouncedHoveredItem?.id === row.id) || selectedBackdropRowId === row.id) && (
                                         /* Compute: should pill+plus hide? Only when selected + something ELSE is hovered */
                                         /* 3-dot always visible when this block renders */
                                         <>
@@ -2228,6 +2249,7 @@ export default function EmailEditorPage() {
                                             setSelectedBoxId={setSelectedBoxId}
                                             setSelectedLayer={setSelectedLayer}
                                             setActiveRightSidebarTab={setActiveRightSidebarTab}
+                                            showComponents={debouncedHoveredItem?.id === row.id && debouncedHoveredItem?.type === 'structure'}
                                         >
                                             <div className="flex gap-4 w-full items-start isolation-auto" style={{ height: 'auto' }}>
                                                 {row.columns.map((colFrac, i) => (
