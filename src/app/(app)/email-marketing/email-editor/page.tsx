@@ -404,7 +404,7 @@ export default function EmailEditorPage() {
     const canvasRef = useRef<HTMLDivElement>(null);
     const [dropInsertIndex, setDropInsertIndex] = useState<number | null>(null);
     const [globalStyles, setGlobalStyles] = useState({
-        canvasBackground: "#f6f6f6"
+        displayBackground: "#f6f6f6"
     });
     const [isGlobalColorPickerOpen, setIsGlobalColorPickerOpen] = useState(false);
 
@@ -1478,7 +1478,8 @@ export default function EmailEditorPage() {
             </header>
 
             <div
-                className="flex-1 overflow-hidden relative w-full h-full flex bg-[#f3f4f6] dark:bg-background"
+                className="flex-1 overflow-hidden relative w-full h-full flex transition-colors duration-300"
+                style={{ backgroundColor: globalStyles.displayBackground }}
             >
 
                 {/* Sidebar Toolbar Area */}
@@ -1879,7 +1880,7 @@ export default function EmailEditorPage() {
                 <div
                     ref={canvasScrollRef}
                     className={`flex-1 relative flex flex-col pt-0 pb-6 ${structuresPanelPosition === 'right' ? 'pr-[90px] pl-[384px]' : 'pl-6 pr-[384px]'} overflow-y-auto h-full items-center [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full transition-colors duration-300`}
-                    style={{ backgroundColor: globalStyles.canvasBackground }}
+                    style={{ backgroundColor: globalStyles.displayBackground }}
                     onClick={() => { setSelectedBoxId(null); setSelectedBackdropRowId(null); }}
                 >
 
@@ -2855,20 +2856,20 @@ export default function EmailEditorPage() {
                                                     {/* Detail Content */}
                                                     <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-track]:my-5 [&::-webkit-scrollbar-thumb]:rounded-full pb-10">
                                                         {selectedGeneralStyle === 'Global Styles & Layout' ? (
-                                                            <div className="">
+                                                            <>
                                                                 {/* General Background Color */}
-                                                                <div className="p-6 flex items-center justify-between">
+                                                                <div className="px-8 py-5 flex items-center justify-between border-b border-gray-50 dark:border-white/5">
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="text-[15px] font-medium text-gray-600 dark:text-foreground/80">General Background Color</span>
-                                                                        <TooltipProvider><Tooltip><TooltipTrigger><span className="material-symbols-outlined text-[18px] text-gray-300">help</span></TooltipTrigger><TooltipContent>Overall background of the email area</TooltipContent></Tooltip></TooltipProvider>
+                                                                        <span className="text-[14px] font-medium text-gray-500 dark:text-foreground/70">General Background Color</span>
+                                                                        <TooltipProvider><Tooltip><TooltipTrigger className="flex items-center"><span className="material-symbols-outlined text-[20px] text-gray-300 hover:text-gray-400 transition-colors">help</span></TooltipTrigger><TooltipContent className="max-w-[280px]">Applied to the entire email area</TooltipContent></Tooltip></TooltipProvider>
                                                                     </div>
                                                                     <div className="relative">
                                                                         <div
                                                                             onClick={() => setIsGlobalColorPickerOpen(!isGlobalColorPickerOpen)}
-                                                                            className="h-[36px] px-4 rounded-[12px] flex items-center justify-center text-[14px] font-bold text-white shadow-sm cursor-pointer hover:opacity-90 transition-all uppercase"
-                                                                            style={{ backgroundColor: globalStyles.canvasBackground }}
+                                                                            className="h-[40px] px-5 rounded-[20px] flex items-center justify-center text-[14px] font-bold text-white shadow-sm cursor-pointer hover:opacity-90 transition-all uppercase min-w-[100px]"
+                                                                            style={{ backgroundColor: globalStyles.displayBackground }}
                                                                         >
-                                                                            {globalStyles.canvasBackground}
+                                                                            {globalStyles.displayBackground}
                                                                         </div>
 
                                                                         {isGlobalColorPickerOpen && (
@@ -2882,8 +2883,8 @@ export default function EmailEditorPage() {
                                                                                         {/* Picker Section */}
                                                                                         <div className="color-picker-custom w-full">
                                                                                             <HexColorPicker 
-                                                                                                color={globalStyles.canvasBackground} 
-                                                                                                onChange={(c) => setGlobalStyles(prev => ({ ...prev, canvasBackground: c }))}
+                                                                                                color={globalStyles.displayBackground} 
+                                                                                                onChange={(c) => setGlobalStyles(prev => ({ ...prev, displayBackground: c }))}
                                                                                                 style={{ width: '100%', height: '140px' }}
                                                                                             />
                                                                                         </div>
@@ -2893,13 +2894,13 @@ export default function EmailEditorPage() {
                                                                                             <span className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase px-1">Hex</span>
                                                                                             <input 
                                                                                                 className="flex-1 bg-transparent border-none outline-none text-[13px] font-mono font-bold text-gray-700 dark:text-gray-200 uppercase"
-                                                                                                value={globalStyles.canvasBackground}
+                                                                                                value={globalStyles.displayBackground}
                                                                                                 onChange={(e) => {
                                                                                                     const val = e.target.value;
                                                                                                     if (val.startsWith('#') && (val.length <= 7)) {
-                                                                                                        setGlobalStyles(prev => ({ ...prev, canvasBackground: val }));
+                                                                                                        setGlobalStyles(prev => ({ ...prev, displayBackground: val }));
                                                                                                     } else if (!val.startsWith('#') && (val.length <= 6)) {
-                                                                                                        setGlobalStyles(prev => ({ ...prev, canvasBackground: '#' + val }));
+                                                                                                        setGlobalStyles(prev => ({ ...prev, displayBackground: '#' + val }));
                                                                                                     }
                                                                                                 }}
                                                                                             />
@@ -2914,9 +2915,9 @@ export default function EmailEditorPage() {
                                                                                                 {['#f6f6f6', '#ffffff', '#000000', '#eb4132', '#3478f6', '#32d74b', '#ff9f0a', '#5856d6', '#af52de', '#ff3b30', '#ffcc00', '#8e8e93'].map(c => (
                                                                                                     <div 
                                                                                                         key={c}
-                                                                                                        className={`w-7 h-7 rounded-full border border-gray-100 dark:border-white/10 cursor-pointer transition-transform hover:scale-110 shadow-sm ${globalStyles.canvasBackground.toLowerCase() === c.toLowerCase() ? 'ring-2 ring-primary ring-offset-2 dark:ring-offset-[#1a1a1a]' : ''}`} 
+                                                                                                        className={`w-7 h-7 rounded-full border border-gray-100 dark:border-white/10 cursor-pointer transition-transform hover:scale-110 shadow-sm ${globalStyles.displayBackground.toLowerCase() === c.toLowerCase() ? 'ring-2 ring-primary ring-offset-2 dark:ring-offset-[#1a1a1a]' : ''}`} 
                                                                                                         style={{ backgroundColor: c }}
-                                                                                                        onClick={() => setGlobalStyles(prev => ({ ...prev, canvasBackground: c }))}
+                                                                                                        onClick={() => setGlobalStyles(prev => ({ ...prev, displayBackground: c }))}
                                                                                                     />
                                                                                                 ))}
                                                                                             </div>
@@ -2942,52 +2943,52 @@ export default function EmailEditorPage() {
                                                                 </div>
 
                                                                 {/* Background Image */}
-                                                                <div className="p-6 flex items-center justify-between">
+                                                                <div className="px-8 py-5 flex items-center justify-between border-b border-gray-50 dark:border-white/5">
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="text-[15px] font-medium text-gray-600 dark:text-foreground/80">Background Image</span>
-                                                                        <TooltipProvider><Tooltip><TooltipTrigger><span className="material-symbols-outlined text-[18px] text-gray-300">help</span></TooltipTrigger><TooltipContent>Enable image background</TooltipContent></Tooltip></TooltipProvider>
+                                                                        <span className="text-[14px] font-medium text-gray-500 dark:text-foreground/70">Background Image</span>
+                                                                        <TooltipProvider><Tooltip><TooltipTrigger className="flex items-center"><span className="material-symbols-outlined text-[20px] text-gray-300 hover:text-gray-400 transition-colors">help</span></TooltipTrigger><TooltipContent className="max-w-[280px]">Background image for the entire email. Some email clients (Windows 10 Mail, Android 4.4, the Gmail app for iOS, and Android for non-Gmail accounts) do not support background images. Thus, we recommend choosing a background color for the entire email similar to the selected image as a fallback.</TooltipContent></Tooltip></TooltipProvider>
                                                                     </div>
-                                                                    <div className="w-[44px] h-[26px] bg-gray-100 dark:bg-accent/60 rounded-full relative cursor-pointer shadow-inner border border-gray-200/50">
-                                                                        <div className="w-[20px] h-[20px] bg-white rounded-full absolute top-[2px] left-[2px] shadow-sm"></div>
+                                                                    <div className="w-[54px] h-[30px] bg-gray-100 dark:bg-accent/40 rounded-full relative cursor-pointer shadow-inner border border-gray-200/50">
+                                                                        <div className="w-[24px] h-[24px] bg-white rounded-full absolute top-[3px] left-[3px] shadow-sm"></div>
                                                                     </div>
                                                                 </div>
 
                                                                 {/* Message Content Width */}
-                                                                <div className="p-6 flex items-center justify-between">
+                                                                <div className="px-8 py-5 flex items-center justify-between border-b border-gray-50 dark:border-white/5">
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="text-[15px] font-medium text-gray-600 dark:text-foreground/80">Message Content Width</span>
-                                                                        <TooltipProvider><Tooltip><TooltipTrigger><span className="material-symbols-outlined text-[18px] text-gray-300">help</span></TooltipTrigger><TooltipContent>Width of the main content area</TooltipContent></Tooltip></TooltipProvider>
+                                                                        <span className="text-[14px] font-medium text-gray-500 dark:text-foreground/70">Message Content Width</span>
+                                                                        <TooltipProvider><Tooltip><TooltipTrigger className="flex items-center"><span className="material-symbols-outlined text-[20px] text-gray-300 hover:text-gray-400 transition-colors">help</span></TooltipTrigger><TooltipContent className="max-w-[280px]">The standard width of the email varies between 540-700 pixels.</TooltipContent></Tooltip></TooltipProvider>
                                                                     </div>
-                                                                    <div className="flex items-center gap-2 bg-[#f8fafc] dark:bg-accent/30 border border-gray-200 dark:border-border rounded-[16px] p-1 shadow-sm">
-                                                                        <div className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-gray-600 cursor-pointer transition-colors"><span className="material-symbols-outlined text-[20px]">remove</span></div>
-                                                                        <span className="text-[15px] font-bold text-gray-800 dark:text-foreground min-w-[36px] text-center">600</span>
-                                                                        <div className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-gray-600 cursor-pointer transition-colors"><span className="material-symbols-outlined text-[20px]">add</span></div>
+                                                                    <div className="flex items-center gap-3 bg-gray-50 dark:bg-accent/20 border border-gray-200 dark:border-border rounded-[22px] p-[3px] shadow-sm">
+                                                                        <div className="w-9 h-9 flex items-center justify-center bg-white dark:bg-background rounded-full text-gray-400 hover:text-gray-600 cursor-pointer transition-all shadow-sm"><span className="material-symbols-outlined text-[18px]">remove</span></div>
+                                                                        <span className="text-[15px] font-bold text-gray-600 dark:text-foreground min-w-[34px] text-center">760</span>
+                                                                        <div className="w-9 h-9 flex items-center justify-center bg-white dark:bg-background rounded-full text-gray-400 hover:text-gray-600 cursor-pointer transition-all shadow-sm"><span className="material-symbols-outlined text-[18px]">add</span></div>
                                                                     </div>
                                                                 </div>
 
                                                                 {/* Message Alignment */}
-                                                                <div className="p-6 flex items-center justify-between">
+                                                                <div className="px-8 py-5 flex items-center justify-between border-b border-gray-50 dark:border-white/5">
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="text-[15px] font-medium text-gray-600 dark:text-foreground/80">Message Alignment</span>
-                                                                        <TooltipProvider><Tooltip><TooltipTrigger><span className="material-symbols-outlined text-[18px] text-gray-300">help</span></TooltipTrigger><TooltipContent>Horizontal alignment</TooltipContent></Tooltip></TooltipProvider>
+                                                                        <span className="text-[14px] font-medium text-gray-500 dark:text-foreground/70">Message Alignment</span>
+                                                                        <TooltipProvider><Tooltip><TooltipTrigger className="flex items-center"><span className="material-symbols-outlined text-[20px] text-gray-300 hover:text-gray-400 transition-colors">help</span></TooltipTrigger><TooltipContent className="max-w-[280px]">Horizontal alignment of the email content within the display area.</TooltipContent></Tooltip></TooltipProvider>
                                                                     </div>
-                                                                    <div className="flex bg-[#f8fafc] dark:bg-accent/30 border border-gray-200 dark:border-border rounded-[16px] p-[3px] shadow-sm">
-                                                                        <div className="h-10 w-11 flex items-center justify-center text-gray-400 cursor-pointer hover:text-gray-600 transition-colors"><span className="material-symbols-outlined text-[20px]">format_align_left</span></div>
-                                                                        <div className="h-10 w-11 flex items-center justify-center bg-white dark:bg-background shadow-sm border border-green-500 rounded-[14px] text-green-600 cursor-pointer"><span className="material-symbols-outlined text-[20px]">format_align_center</span></div>
-                                                                        <div className="h-10 w-11 flex items-center justify-center text-gray-400 cursor-pointer hover:text-gray-600 transition-colors"><span className="material-symbols-outlined text-[20px]">format_align_right</span></div>
+                                                                    <div className="flex bg-gray-50/50 dark:bg-accent/20 border border-gray-200 dark:border-border rounded-[18px] p-1 shadow-sm gap-1">
+                                                                        <div className="h-9 w-11 flex items-center justify-center bg-white dark:bg-background text-gray-500 rounded-xl shadow-sm cursor-pointer border border-transparent"><span className="material-symbols-outlined text-[20px]">format_align_left</span></div>
+                                                                        <div className="h-9 w-11 flex items-center justify-center text-gray-400 cursor-pointer hover:text-gray-600 transition-colors"><span className="material-symbols-outlined text-[20px]">format_align_center</span></div>
+                                                                        <div className="h-9 w-11 flex items-center justify-center text-gray-400 cursor-pointer hover:text-gray-600 transition-colors border-2 border-[#10b981] bg-white dark:bg-background rounded-xl"><span className="material-symbols-outlined text-[20px]">format_align_right</span></div>
                                                                     </div>
                                                                 </div>
 
                                                                 {/* Underline Links */}
-                                                                <div className="p-6 flex items-center justify-between">
+                                                                <div className="px-8 py-5 flex items-center justify-between">
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className="text-[15px] font-medium text-gray-600 dark:text-foreground/80">Underline Links</span>
+                                                                        <span className="text-[14px] font-medium text-gray-500 dark:text-foreground/70">Underline Links</span>
                                                                     </div>
                                                                     <div className="w-[54px] h-[30px] bg-[#10b981] rounded-full relative cursor-pointer shadow-inner shadow-green-600/20">
                                                                         <div className="w-[24px] h-[24px] bg-white rounded-full absolute top-[3px] right-[3px] shadow-sm"></div>
                                                                     </div>
                                                                 </div>
-                                                            </div>
+                                                            </>
                                                         ) : (
                                                             <div className="flex flex-col items-center justify-center h-full pt-20 text-center px-10">
                                                                 <span className="material-symbols-outlined text-[48px] text-gray-200 mb-4 tracking-tighter">design_services</span>
@@ -3038,7 +3039,9 @@ export default function EmailEditorPage() {
                         )}
                     </div>
                 </div>
-            </div>                {/* Code Editor Slide-Up Slider (Full Screen Width Overlay) */}
+            </div>
+
+            {/* Code Editor Slide-Up Slider (Full Screen Width Overlay) */}
             <div className={`absolute bottom-0 left-0 w-full bg-[#1e1e1e] border-t border-[#333333] shadow-2xl flex flex-col transition-transform duration-300 ease-in-out z-[100] ${isCodeEditorOpen ? 'translate-y-0' : 'translate-y-full'}`} style={{ height: `${editorHeight}px` }}>
                 {/* Toolbar / Drag Handle */}
                 <div
