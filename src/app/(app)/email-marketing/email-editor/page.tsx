@@ -34,6 +34,7 @@ import FontFamily from '@tiptap/extension-font-family';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
+import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
 
 const DomainIcon = ({ size = 20, className }: { size?: number, className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" height={size} viewBox="0 0 24 24" width={size} fill="currentColor" className={className}>
@@ -369,6 +370,8 @@ export default function EmailEditorPage() {
     const [title, setTitle] = useState("new message");
     const [subjectText, setSubjectText] = useState("😌");
     const [preheaderText, setPreheaderText] = useState("");
+    const [isSubjectEmojiPickerOpen, setIsSubjectEmojiPickerOpen] = useState(false);
+    const [isPreheaderEmojiPickerOpen, setIsPreheaderEmojiPickerOpen] = useState(false);
     const [isGmailAnnotationEnabled, setIsGmailAnnotationEnabled] = useState(false);
     const [isSenderLogoEnabled, setIsSenderLogoEnabled] = useState(false);
     const [isCodeEditorOpen, setIsCodeEditorOpen] = useState(false);
@@ -2590,8 +2593,38 @@ export default function EmailEditorPage() {
                                                     />
                                                     <div className="absolute top-3 right-3 text-[#10b981] dark:text-[#10b981] hover:opacity-80 transition-opacity cursor-pointer flex flex-col gap-3 items-center">
                                                         <span className="material-symbols-outlined text-[20px]">auto_fix_high</span>
-                                                        <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center mt-6">
-                                                            <span className="material-symbols-outlined text-[22px] text-gray-600 dark:text-gray-300 hover:text-gray-800 transition-colors">sentiment_satisfied</span>
+                                                        <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center mt-6 relative">
+                                                            <span 
+                                                                className="material-symbols-outlined text-[22px] text-gray-600 dark:text-gray-300 hover:text-gray-800 transition-colors cursor-pointer"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setIsSubjectEmojiPickerOpen(!isSubjectEmojiPickerOpen);
+                                                                    setIsPreheaderEmojiPickerOpen(false);
+                                                                }}
+                                                            >
+                                                                sentiment_satisfied
+                                                            </span>
+                                                            {isSubjectEmojiPickerOpen && (
+                                                                <div className="absolute right-0 top-10 z-[200]">
+                                                                    <div 
+                                                                        className="fixed inset-0 z-[190]" 
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setIsSubjectEmojiPickerOpen(false);
+                                                                        }} 
+                                                                    />
+                                                                    <div className="relative z-[200]">
+                                                                        <EmojiPicker
+                                                                            theme={Theme.LIGHT}
+                                                                            onEmojiClick={(emojiData: EmojiClickData, e: MouseEvent) => {
+                                                                                setSubjectText(prev => prev + emojiData.emoji);
+                                                                                setIsSubjectEmojiPickerOpen(false);
+                                                                            }}
+                                                                            autoFocusSearch={false}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     <div className="absolute bottom-3 right-[18px] flex flex-col items-center">
