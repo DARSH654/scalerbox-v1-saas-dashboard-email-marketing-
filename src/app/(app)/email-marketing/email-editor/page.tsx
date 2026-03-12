@@ -2582,7 +2582,7 @@ export default function EmailEditorPage() {
                                         <div className="flex-1 overflow-y-auto pt-3 px-5 pb-5 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-track]:my-5 [&::-webkit-scrollbar-thumb]:rounded-full animate-in fade-in duration-300">
                                             {/* Subject / Title */}
                                             <div className="space-y-1">
-                                                <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Subject / Title</label>
+                                                <label className="text-sm font-semibold text-[14px] text-gray-500 dark:text-foreground/80 pl-1 tracking-tight">Subject / Title</label>
                                                 <div className="relative bg-[#f1f5f9] dark:bg-accent/30 rounded-[16px] pt-0 pb-4 px-4 transition-colors focus-within:ring-2 focus-within:ring-primary shadow-inner overflow-hidden group flex flex-col min-h-[110px]">
                                                     <textarea
                                                         value={subjectText}
@@ -2635,7 +2635,7 @@ export default function EmailEditorPage() {
 
                                             {/* Hidden Preheader */}
                                             <div className="space-y-1">
-                                                <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Hidden Preheader</label>
+                                                <label className="text-sm font-semibold text-[14px] text-gray-500 dark:text-foreground/80 pl-1 tracking-tight">Hidden Preheader</label>
                                                 <div className="relative bg-[#f1f5f9] dark:bg-accent/30 rounded-[16px] pt-0 pb-4 px-4 transition-colors focus-within:ring-2 focus-within:ring-primary shadow-inner overflow-hidden group flex flex-col min-h-[145px]">
                                                     <textarea
                                                         value={preheaderText}
@@ -2690,9 +2690,9 @@ export default function EmailEditorPage() {
                                             </div>
 
                                             {/* Email annotations for Gmail */}
-                                            <div className="space-y-4">
+                                            <div className="space-y-0">
                                                 <div className="flex items-center justify-between pl-1 pr-1">
-                                                    <label className="text-[14px] font-medium text-gray-600 dark:text-foreground/80 tracking-wide">Email annotations for Gmail</label>
+                                                    <label className="text-sm font-semibold text-[14px] text-gray-500 dark:text-foreground/80 pl-1 tracking-tight">Email annotations for Gmail</label>
                                                     <div
                                                         onClick={() => setIsGmailAnnotationEnabled(!isGmailAnnotationEnabled)}
                                                         className={`w-[50px] h-[28px] rounded-full relative cursor-pointer shadow-inner transition-colors duration-200 ${isGmailAnnotationEnabled ? 'bg-[#10b981]' : 'bg-gray-200 dark:bg-accent/60 hover:bg-gray-300'}`}
@@ -2708,7 +2708,7 @@ export default function EmailEditorPage() {
                                                 {isGmailAnnotationEnabled && (
                                                     <div className="space-y-6 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
                                                         <div className="space-y-2">
-                                                            <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Annotation</label>
+                                                            <label className="text-sm font-semibold text-[14px] text-gray-500 dark:text-foreground/80 pl-1 tracking-tight">Annotation</label>
                                                             <DropdownMenu>
                                                                 <DropdownMenuTrigger asChild>
                                                                     <div className="w-full bg-[#f8fafc] dark:bg-accent/30 border-[2px] border-gray-200 dark:border-border rounded-[14px] p-3.5 flex items-center justify-between cursor-pointer hover:border-gray-300 dark:hover:border-gray-600 transition-colors">
@@ -2726,7 +2726,7 @@ export default function EmailEditorPage() {
 
                                                         {/* Preview Block Placeholder */}
                                                         <div className="space-y-2">
-                                                            <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Preview</label>
+                                                            <label className="text-sm font-semibold text-[14px] text-gray-500 dark:text-foreground/80 pl-1 tracking-tight">Preview</label>
                                                             <div className="w-full h-[100px] bg-[#f8fafc] dark:bg-accent/30 border border-gray-100 dark:border-border rounded-[14px] flex items-center justify-center border-dashed text-gray-400">
                                                                 <span className="text-sm font-medium opacity-60">Mobile Preview Wrapper</span>
                                                             </div>
@@ -2734,7 +2734,7 @@ export default function EmailEditorPage() {
 
                                                         {/* Sender's Logo Toggle */}
                                                         <div className="flex items-center justify-between pl-1 pr-1 pt-2">
-                                                            <label className="text-[14px] font-medium text-gray-600 dark:text-foreground/80 tracking-wide">Sender's logo</label>
+                                                            <label className="text-sm font-semibold text-[14px] text-gray-500 dark:text-foreground/80 pl-1 tracking-tight">Sender's logo</label>
                                                             <div
                                                                 onClick={() => setIsSenderLogoEnabled(!isSenderLogoEnabled)}
                                                                 className={`w-[42px] h-[24px] rounded-full relative cursor-pointer shadow-inner transition-colors duration-200 ${isSenderLogoEnabled ? 'bg-[#10b981]' : 'bg-gray-200 dark:bg-accent/60 hover:bg-gray-300'}`}
