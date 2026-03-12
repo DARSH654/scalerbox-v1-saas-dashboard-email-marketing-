@@ -2695,18 +2695,18 @@ export default function EmailEditorPage() {
                                                     <label className="text-[14px] font-medium text-gray-600 dark:text-foreground/80 tracking-wide">Email annotations for Gmail</label>
                                                     <div
                                                         onClick={() => setIsGmailAnnotationEnabled(!isGmailAnnotationEnabled)}
-                                                        className={`w-[42px] h-[24px] rounded-full relative cursor-pointer shadow-inner transition-colors duration-200 ${isGmailAnnotationEnabled ? 'bg-[#10b981]' : 'bg-gray-200 dark:bg-accent/60 hover:bg-gray-300'}`}
+                                                        className={`w-[50px] h-[28px] rounded-full relative cursor-pointer shadow-inner transition-colors duration-200 ${isGmailAnnotationEnabled ? 'bg-[#10b981]' : 'bg-gray-200 dark:bg-accent/60 hover:bg-gray-300'}`}
                                                     >
-                                                        <div className={`w-[20px] h-[20px] bg-white rounded-full absolute top-[2px] shadow-sm transition-transform duration-200 ${isGmailAnnotationEnabled ? 'translate-x-[20px]' : 'translate-x-[2px]'}`}></div>
+                                                        <div className={`w-[24px] h-[24px] bg-white rounded-full absolute top-[2px] shadow-sm transition-transform duration-200 ${isGmailAnnotationEnabled ? 'translate-x-[24px]' : 'translate-x-[2px]'}`}></div>
                                                     </div>
                                                 </div>
 
+                                                <p className="text-[13.5px] text-gray-400 leading-relaxed px-1">
+                                                    This feature lets you showcase your deals, discounts, or offer directly in recipient's inbox before they open the email. Effective on mobile device in Gmail promotion folder.
+                                                </p>
+
                                                 {isGmailAnnotationEnabled && (
                                                     <div className="space-y-6 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
-                                                        <p className="text-[13.5px] text-gray-400 leading-relaxed px-1">
-                                                            This feature lets you showcase your deals, discounts, or offer directly in recipient's inbox before they open the email. Effective on mobile device in Gmail promotion folder.
-                                                        </p>
-
                                                         <div className="space-y-2">
                                                             <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Annotation</label>
                                                             <DropdownMenu>
