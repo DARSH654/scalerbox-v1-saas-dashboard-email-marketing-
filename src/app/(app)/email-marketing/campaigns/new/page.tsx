@@ -249,9 +249,6 @@ export default function CreateCampaignPage() {
                                         placeholder="Enter a catchy subject line"
                                         type="text"
                                     />
-                                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                        <Smile className="text-muted-foreground w-5 h-5" />
-                                    </div>
                                 </div>
                                 <div className="flex justify-end mt-1 pr-4">
                                     <div className="flex flex-col items-center">
