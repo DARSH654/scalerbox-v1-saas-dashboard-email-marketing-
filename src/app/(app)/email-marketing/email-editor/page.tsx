@@ -2701,7 +2701,7 @@ export default function EmailEditorPage() {
                                                     </div>
                                                 </div>
 
-                                                <p className="text-[13.5px] text-gray-400 leading-relaxed px-1">
+                                                <p className="text-[12px] text-gray-400 leading-relaxed px-1">
                                                     This feature lets you showcase your deals, discounts, or offer directly in recipient's inbox before they open the email. Effective on mobile device in Gmail promotion folder.
                                                 </p>
 
