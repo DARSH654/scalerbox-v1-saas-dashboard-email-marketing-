@@ -368,7 +368,7 @@ export default function EmailEditorPage() {
     const router = useRouter();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [title, setTitle] = useState("new message");
-    const [subjectText, setSubjectText] = useState("😌");
+    const [subjectText, setSubjectText] = useState("");
     const [preheaderText, setPreheaderText] = useState("");
     const [isSubjectEmojiPickerOpen, setIsSubjectEmojiPickerOpen] = useState(false);
     const [isPreheaderEmojiPickerOpen, setIsPreheaderEmojiPickerOpen] = useState(false);
@@ -382,6 +382,8 @@ export default function EmailEditorPage() {
     const [isStructuresPanelClosing, setIsStructuresPanelClosing] = useState(false);
     const [structuresTab, setStructuresTab] = useState<'general' | 'current-layout' | 'my-modules'>('general');
     const [activeRightSidebarTab, setActiveRightSidebarTab] = useState<'general' | 'message'>('message');
+    const [selectedGeneralStyle, setSelectedGeneralStyle] = useState<string | null>(null);
+    const [isGeneralHovered, setIsGeneralHovered] = useState(false);
     const [rowBackdropColors, setRowBackdropColors] = useState<Record<string, string>>({});
     const [isBackdropColorPickerOpen, setIsBackdropColorPickerOpen] = useState(false);
     const [selectedBackdropRowId, setSelectedBackdropRowId] = useState<string | null>(null);
@@ -2311,7 +2313,71 @@ export default function EmailEditorPage() {
                         </div>
                     )}
                     <div className="pointer-events-auto flex flex-col h-full w-full">
-                        {selectedBoxId && selectedLayer === 'block' && boxStates[selectedBoxId] === 'text' ? (
+                        {selectedBackdropRowId ? (
+                             <div className="flex-1 bg-white dark:bg-background rounded-[24px] shadow-sm flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
+                                {/* Backdrop Header */}
+                                <div className="pt-[10px] pb-[10px] flex items-center justify-between px-5 border-b border-gray-100 dark:border-border flex-shrink-0">
+                                    <span className="material-symbols-outlined text-[15px] font-medium text-gray-400 hover:text-gray-600 cursor-pointer" onClick={() => {
+                                        setSelectedBackdropRowId(null);
+                                        setSelectedLayer(null);
+                                    }}>arrow_back</span>
+                                    <span className="font-medium text-[15px] text-gray-700 dark:text-foreground">Backdrop</span>
+                                    <span className="material-symbols-outlined text-[15px] font-medium text-gray-400 cursor-pointer">keyboard_double_arrow_up</span>
+                                </div>
+
+                                <div className="flex-1 overflow-y-auto p-6 pt-3 space-y-8 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-track]:my-5 [&::-webkit-scrollbar-thumb]:rounded-full">
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-2 px-1">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-[#64748b]" />
+                                            <label className="text-[11px] font-semibold text-gray-700 dark:text-foreground tracking-wide uppercase opacity-70">Properties — {selectedBackdropRowId}</label>
+                                        </div>
+
+                                        <div className="bg-[#f8fafc] dark:bg-accent/20 rounded-[20px] p-5 border border-gray-100 dark:border-border/50 space-y-5">
+                                            <div className="flex items-center justify-between">
+                                                <div className="space-y-1">
+                                                    <p className="text-[14px] font-medium text-gray-700 dark:text-foreground">Background Color</p>
+                                                    <p className="text-[12px] text-gray-400">Row backdrop color</p>
+                                                </div>
+                                                <div className="relative">
+                                                    <div
+                                                        onClick={() => setIsBackdropColorPickerOpen(!isBackdropColorPickerOpen)}
+                                                        className="w-10 h-10 rounded-full border-2 border-white dark:border-border shadow-sm cursor-pointer hover:scale-105 transition-transform"
+                                                        style={{ backgroundColor: rowBackdropColors[selectedBackdropRowId] || '#f3f4f6' }}
+                                                    />
+
+                                                    {isBackdropColorPickerOpen && (
+                                                        <>
+                                                            <div className="fixed inset-0 z-[190]" onClick={() => setIsBackdropColorPickerOpen(false)} />
+                                                            <div className="absolute right-0 top-12 z-[200] w-[280px] p-2 bg-white dark:bg-background border border-gray-100 dark:border-border rounded-[24px] shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                                                                <div className="p-2 border-b border-gray-50 dark:border-border/50 mb-2 flex items-center justify-between">
+                                                                    <span className="text-[13px] font-medium px-2">Color Picker</span>
+                                                                    <X size={16} className="cursor-pointer opacity-40 hover:opacity-100" onClick={() => setIsBackdropColorPickerOpen(false)} />
+                                                                </div>
+                                                                <ColorPicker
+                                                                    value={rowBackdropColors[selectedBackdropRowId] || '#f3f4f6'}
+                                                                    onChange={(color) => setRowBackdropColors(prev => ({ ...prev, [selectedBackdropRowId!]: color }))}
+                                                                />
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-wrap gap-2 pt-1">
+                                                {['#f3f4f6', '#f1f5f9', '#ffffff', '#e2e8f0', '#f8fafc', '#1e293b'].map((color) => (
+                                                    <div
+                                                        key={color}
+                                                        onClick={() => setRowBackdropColors(prev => ({ ...prev, [selectedBackdropRowId!]: color }))}
+                                                        className={`w-7 h-7 rounded-lg cursor-pointer border-2 transition-all ${(rowBackdropColors[selectedBackdropRowId] || '#f3f4f6') === color ? 'border-primary ring-2 ring-primary/20 scale-110' : 'border-white dark:border-border hover:scale-110'}`}
+                                                        style={{ backgroundColor: color }}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                             </div>
+                        ) : selectedBoxId && selectedLayer === 'block' && boxStates[selectedBoxId] === 'text' ? (
                             <div className="flex-1 bg-white dark:bg-background rounded-[24px] shadow-sm flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
                                 {/* Text Block Header */}
                                 <div className="pt-[10px] pb-[10px] flex items-center justify-between px-5 border-b border-gray-100 dark:border-border flex-shrink-0">
@@ -2555,7 +2621,7 @@ export default function EmailEditorPage() {
                                                     onClick={() => setActiveRightSidebarTab('general')}
                                                     className={`flex-1 h-full flex justify-center items-center rounded-full cursor-pointer transition-all ${activeRightSidebarTab === 'general' ? 'bg-white dark:bg-background shadow-[0_1px_3px_rgba(0,0,0,0.1)] text-gray-700 dark:text-foreground' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
                                                 >
-                                                    <span className="material-symbols-outlined text-[20px]">chrome_reader_mode</span>
+                                                    <span className="material-symbols-outlined text-[20px]">palette</span>
                                                 </div>
                                             </TooltipTrigger>
                                             <TooltipContent>General Styles</TooltipContent>
@@ -2566,9 +2632,9 @@ export default function EmailEditorPage() {
                                             <TooltipTrigger asChild>
                                                 <div
                                                     onClick={() => setActiveRightSidebarTab('message')}
-                                                    className={`flex-[1.1] h-full flex justify-center items-center rounded-full cursor-pointer transition-all ${activeRightSidebarTab === 'message' ? 'bg-white dark:bg-background shadow-[0_1px_3px_rgba(0,0,0,0.1)] text-gray-700 dark:text-foreground' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                                                    className={`flex-1 h-full flex justify-center items-center rounded-full cursor-pointer transition-all ${activeRightSidebarTab === 'message' ? 'bg-white dark:bg-background shadow-[0_1px_3px_rgba(0,0,0,0.1)] text-gray-700 dark:text-foreground' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
                                                 >
-                                                    <span className="material-symbols-outlined text-[20px]">chat_bubble_outline</span>
+                                                    <span className="material-symbols-outlined text-[22px]">mode_comment</span>
                                                 </div>
                                             </TooltipTrigger>
                                             <TooltipContent>Message Settings</TooltipContent>
@@ -2576,10 +2642,10 @@ export default function EmailEditorPage() {
                                     </TooltipProvider>
                                 </div>
 
-                                {/* Separate Content Area Card */}
-                                <div className="flex-1 bg-white dark:bg-background rounded-[24px] shadow-sm flex flex-col overflow-hidden min-h-[400px]">
+                                {/* Separate Content Area Card Container */}
+                                <div className="flex-1 flex flex-col min-h-[400px]">
                                     {activeRightSidebarTab === 'message' ? (
-                                        <div className="flex-1 overflow-y-auto pt-3 px-5 pb-5 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-track]:my-5 [&::-webkit-scrollbar-thumb]:rounded-full animate-in fade-in duration-300">
+                                        <div className="flex-1 bg-white dark:bg-background rounded-[24px] shadow-sm flex flex-col overflow-hidden overflow-y-auto pt-3 px-5 pb-5 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-track]:my-5 [&::-webkit-scrollbar-thumb]:rounded-full animate-in fade-in duration-300">
                                             {/* Subject / Title */}
                                             <div className="space-y-1">
                                                 <label className="text-sm font-semibold text-[14px] text-gray-500 dark:text-foreground/80 pl-1 tracking-tight">Subject / Title</label>
@@ -2764,68 +2830,123 @@ export default function EmailEditorPage() {
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="flex-1 overflow-y-auto p-6 space-y-8 animate-in fade-in duration-300">
-                                            {selectedBackdropRowId ? (
-                                                <div className="space-y-4">
-                                                    <div className="flex items-center gap-2 px-1">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-[#64748b]" />
-                                                        <label className="text-[11px] font-semibold text-gray-700 dark:text-foreground tracking-wide uppercase opacity-70">Backdrop — {selectedBackdropRowId}</label>
+                                        <div className="flex-1 overflow-hidden relative animate-in fade-in duration-300">
+                                            {selectedGeneralStyle ? (
+                                                <div className="flex flex-col h-full bg-white dark:bg-background rounded-[24px] shadow-sm animate-in slide-in-from-right-4 duration-300 overflow-hidden">
+                                                    {/* Detail Panel Header */}
+                                                    <div 
+                                                        className="h-[58px] border-b border-gray-100 dark:border-border/50 flex items-center justify-center relative px-4 flex-shrink-0 cursor-pointer group transition-colors"
+                                                        onClick={() => {
+                                                            setSelectedGeneralStyle(null);
+                                                            setIsGeneralHovered(true);
+                                                        }}
+                                                    >
+                                                        <span className="text-[16px] font-bold text-gray-700 dark:text-foreground/90 tracking-tight group-hover:text-primary transition-colors">
+                                                            {selectedGeneralStyle}
+                                                        </span>
                                                     </div>
 
-                                                    <div className="bg-[#f8fafc] dark:bg-accent/20 rounded-[20px] p-5 border border-gray-100 dark:border-border/50 space-y-5">
-                                                        <div className="flex items-center justify-between">
-                                                            <div className="space-y-1">
-                                                                <p className="text-[14px] font-medium text-gray-700 dark:text-foreground">Background Color</p>
-                                                                <p className="text-[12px] text-gray-400">Row backdrop color</p>
-                                                            </div>
-                                                            <div className="relative">
-                                                                <div
-                                                                    onClick={() => setIsBackdropColorPickerOpen(!isBackdropColorPickerOpen)}
-                                                                    className="w-10 h-10 rounded-full border-2 border-white dark:border-border shadow-sm cursor-pointer hover:scale-105 transition-transform"
-                                                                    style={{ backgroundColor: rowBackdropColors[selectedBackdropRowId] || '#f3f4f6' }}
-                                                                />
+                                                    {/* Detail Content */}
+                                                    <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-track]:my-5 [&::-webkit-scrollbar-thumb]:rounded-full pb-10">
+                                                        {selectedGeneralStyle === 'Global Styles & Layout' ? (
+                                                            <div className="">
+                                                                {/* General Background Color */}
+                                                                <div className="p-6 flex items-center justify-between">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-[15px] font-medium text-gray-600 dark:text-foreground/80">General Background Color</span>
+                                                                        <TooltipProvider><Tooltip><TooltipTrigger><span className="material-symbols-outlined text-[18px] text-gray-300">help</span></TooltipTrigger><TooltipContent>Overall background of the email</TooltipContent></Tooltip></TooltipProvider>
+                                                                    </div>
+                                                                    <div className="h-[42px] px-6 bg-[#f8fafc] dark:bg-accent/30 border border-gray-200 dark:border-border rounded-[16px] flex items-center justify-center text-[15px] font-medium text-gray-700 dark:text-foreground/70 shadow-sm">#f6f6f6</div>
+                                                                </div>
 
-                                                                {isBackdropColorPickerOpen && (
-                                                                    <>
-                                                                        <div className="fixed inset-0 z-[190]" onClick={() => setIsBackdropColorPickerOpen(false)} />
-                                                                        <div className="absolute right-0 top-12 z-[200] w-[280px] p-2 bg-white dark:bg-background border border-gray-100 dark:border-border rounded-[24px] shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-                                                                            <div className="p-2 border-b border-gray-50 dark:border-border/50 mb-2 flex items-center justify-between">
-                                                                                <span className="text-[13px] font-medium px-2">Color Picker</span>
-                                                                                <X size={16} className="cursor-pointer opacity-40 hover:opacity-100" onClick={() => setIsBackdropColorPickerOpen(false)} />
-                                                                            </div>
-                                                                            <ColorPicker
-                                                                                value={rowBackdropColors[selectedBackdropRowId] || '#f3f4f6'}
-                                                                                onChange={(color) => setRowBackdropColors(prev => ({ ...prev, [selectedBackdropRowId!]: color }))}
-                                                                            />
-                                                                        </div>
-                                                                    </>
-                                                                )}
-                                                            </div>
-                                                        </div>
+                                                                {/* Background Image */}
+                                                                <div className="p-6 flex items-center justify-between">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-[15px] font-medium text-gray-600 dark:text-foreground/80">Background Image</span>
+                                                                        <TooltipProvider><Tooltip><TooltipTrigger><span className="material-symbols-outlined text-[18px] text-gray-300">help</span></TooltipTrigger><TooltipContent>Enable image background</TooltipContent></Tooltip></TooltipProvider>
+                                                                    </div>
+                                                                    <div className="w-[44px] h-[26px] bg-gray-100 dark:bg-accent/60 rounded-full relative cursor-pointer shadow-inner border border-gray-200/50">
+                                                                        <div className="w-[20px] h-[20px] bg-white rounded-full absolute top-[2px] left-[2px] shadow-sm"></div>
+                                                                    </div>
+                                                                </div>
 
-                                                        <div className="flex flex-wrap gap-2 pt-1">
-                                                            {['#f3f4f6', '#f1f5f9', '#ffffff', '#e2e8f0', '#f8fafc', '#1e293b'].map((color) => (
-                                                                <div
-                                                                    key={color}
-                                                                    onClick={() => setRowBackdropColors(prev => ({ ...prev, [selectedBackdropRowId!]: color }))}
-                                                                    className={`w-7 h-7 rounded-lg cursor-pointer border-2 transition-all ${(rowBackdropColors[selectedBackdropRowId] || '#f3f4f6') === color ? 'border-primary ring-2 ring-primary/20 scale-110' : 'border-white dark:border-border hover:scale-110'}`}
-                                                                    style={{ backgroundColor: color }}
-                                                                />
-                                                            ))}
-                                                        </div>
+                                                                {/* Message Content Width */}
+                                                                <div className="p-6 flex items-center justify-between">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-[15px] font-medium text-gray-600 dark:text-foreground/80">Message Content Width</span>
+                                                                        <TooltipProvider><Tooltip><TooltipTrigger><span className="material-symbols-outlined text-[18px] text-gray-300">help</span></TooltipTrigger><TooltipContent>Width of the main content area</TooltipContent></Tooltip></TooltipProvider>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2 bg-[#f8fafc] dark:bg-accent/30 border border-gray-200 dark:border-border rounded-[16px] p-1 shadow-sm">
+                                                                        <div className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-gray-600 cursor-pointer transition-colors"><span className="material-symbols-outlined text-[20px]">remove</span></div>
+                                                                        <span className="text-[15px] font-bold text-gray-800 dark:text-foreground min-w-[36px] text-center">600</span>
+                                                                        <div className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-gray-600 cursor-pointer transition-colors"><span className="material-symbols-outlined text-[20px]">add</span></div>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Message Alignment */}
+                                                                <div className="p-6 flex items-center justify-between">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-[15px] font-medium text-gray-600 dark:text-foreground/80">Message Alignment</span>
+                                                                        <TooltipProvider><Tooltip><TooltipTrigger><span className="material-symbols-outlined text-[18px] text-gray-300">help</span></TooltipTrigger><TooltipContent>Horizontal alignment</TooltipContent></Tooltip></TooltipProvider>
+                                                                    </div>
+                                                                    <div className="flex bg-[#f8fafc] dark:bg-accent/30 border border-gray-200 dark:border-border rounded-[16px] p-[3px] shadow-sm">
+                                                                        <div className="h-10 w-11 flex items-center justify-center text-gray-400 cursor-pointer hover:text-gray-600 transition-colors"><span className="material-symbols-outlined text-[20px]">format_align_left</span></div>
+                                                                        <div className="h-10 w-11 flex items-center justify-center bg-white dark:bg-background shadow-sm border border-green-500 rounded-[14px] text-green-600 cursor-pointer"><span className="material-symbols-outlined text-[20px]">format_align_center</span></div>
+                                                                        <div className="h-10 w-11 flex items-center justify-center text-gray-400 cursor-pointer hover:text-gray-600 transition-colors"><span className="material-symbols-outlined text-[20px]">format_align_right</span></div>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Underline Links */}
+                                                                <div className="p-6 flex items-center justify-between">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-[15px] font-medium text-gray-600 dark:text-foreground/80">Underline Links</span>
+                                                                    </div>
+                                                                    <div className="w-[54px] h-[30px] bg-[#10b981] rounded-full relative cursor-pointer shadow-inner shadow-green-600/20">
+                                                                        <div className="w-[24px] h-[24px] bg-white rounded-full absolute top-[3px] right-[3px] shadow-sm"></div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex flex-col items-center justify-center h-full pt-20 text-center px-10">
+                                                                <span className="material-symbols-outlined text-[48px] text-gray-200 mb-4 tracking-tighter">design_services</span>
+                                                                <h3 className="text-[18px] font-semibold text-gray-700 dark:text-foreground mb-2">{selectedGeneralStyle}</h3>
+                                                                <p className="text-[14px] text-gray-400 leading-relaxed">Detailed settings for this category are currently under development.</p>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div className="flex-1 flex items-center justify-center pt-16 text-center">
-                                                    <div className="flex flex-col items-center gap-4">
-                                                        <div className="w-14 h-14 rounded-full bg-gray-50 dark:bg-accent/20 flex items-center justify-center">
-                                                            <span className="material-symbols-outlined text-[28px] text-gray-300">select_all</span>
+                                                <div 
+                                                    className="w-full relative transition-all duration-500 ease-in-out"
+                                                    style={{ 
+                                                        height: isGeneralHovered ? '220px' : '110px',
+                                                        paddingTop: '8px'
+                                                    }}
+                                                    onMouseEnter={() => setIsGeneralHovered(true)}
+                                                    onMouseLeave={() => setIsGeneralHovered(false)}
+                                                >
+                                                    {[
+                                                        'Global Styles & Layout',
+                                                        'Stripe Styles',
+                                                        'Heading Styles',
+                                                        'Button Styles'
+                                                    ].map((text, idx) => (
+                                                        <div 
+                                                            key={text}
+                                                            onClick={() => setSelectedGeneralStyle(text)}
+                                                            className={`bg-gradient-to-b from-white to-[#f9fafb] dark:from-accent/60 dark:to-accent/40 rounded-[28px] border border-gray-200/80 dark:border-border/40 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-all duration-300 ease-out group active:scale-[0.98] absolute h-[52px] overflow-hidden`}
+                                                            style={{
+                                                                top: idx === 0 ? '0px' : (isGeneralHovered ? `${idx * 42}px` : `${idx * 14}px`),
+                                                                zIndex: 40 - idx,
+                                                                width: 'calc(100% - 4px)',
+                                                                left: '2px'
+                                                            }}
+                                                        >
+                                                            <span className={`text-[15.5px] font-bold text-gray-700 dark:text-foreground/90 group-hover:text-primary transition-all duration-300 tracking-tight ${!isGeneralHovered && idx > 0 ? 'opacity-0' : 'opacity-100'}`}>
+                                                                {text}
+                                                            </span>
                                                         </div>
-                                                        <div className="space-y-1.5">
-                                                            <p className="text-[14px] font-medium text-gray-500">Select a Backdrop</p>
-                                                            <p className="text-[12px] text-gray-400/80 max-w-[200px] leading-relaxed">Click outside the canvas on a row to select its backdrop and edit its styles.</p>
-                                                        </div>
-                                                    </div>
+                                                    ))}
                                                 </div>
                                             )}
                                         </div>
