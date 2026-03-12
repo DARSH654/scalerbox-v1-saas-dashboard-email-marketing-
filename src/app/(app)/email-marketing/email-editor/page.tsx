@@ -16,6 +16,7 @@ import {
     DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
     DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent, DropdownMenuPortal
 } from '@/components/ui/dropdown-menu';
+import { HexColorPicker } from "react-colorful";
 import {
     Tooltip, TooltipContent, TooltipProvider, TooltipTrigger
 } from '@/components/ui/tooltip';
@@ -402,6 +403,10 @@ export default function EmailEditorPage() {
     const wasDraggingRef = useRef(false);
     const canvasRef = useRef<HTMLDivElement>(null);
     const [dropInsertIndex, setDropInsertIndex] = useState<number | null>(null);
+    const [globalStyles, setGlobalStyles] = useState({
+        canvasBackground: "#f6f6f6"
+    });
+    const [isGlobalColorPickerOpen, setIsGlobalColorPickerOpen] = useState(false);
 
     const containerRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const canvasScrollRef = useRef<HTMLDivElement>(null);
@@ -1873,7 +1878,8 @@ export default function EmailEditorPage() {
                 {/* Editor Canvas Area */}
                 <div
                     ref={canvasScrollRef}
-                    className={`flex-1 relative flex flex-col pt-0 pb-6 ${structuresPanelPosition === 'right' ? 'pr-[90px] pl-[384px]' : 'pl-6 pr-[384px]'} overflow-y-auto h-full items-center [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full`}
+                    className={`flex-1 relative flex flex-col pt-0 pb-6 ${structuresPanelPosition === 'right' ? 'pr-[90px] pl-[384px]' : 'pl-6 pr-[384px]'} overflow-y-auto h-full items-center [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full transition-colors duration-300`}
+                    style={{ backgroundColor: globalStyles.canvasBackground }}
                     onClick={() => { setSelectedBoxId(null); setSelectedBackdropRowId(null); }}
                 >
 
@@ -2660,7 +2666,7 @@ export default function EmailEditorPage() {
                                                     <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-center">
                                                         <span className="material-symbols-outlined text-[20px] text-[#10b981] hover:opacity-80 cursor-pointer transition-opacity">auto_fix_high</span>
                                                         <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center relative">
-                                                            <span 
+                                                            <span
                                                                 className="material-symbols-outlined text-[22px] text-gray-600 dark:text-gray-300 hover:text-gray-800 transition-colors cursor-pointer"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
@@ -2672,12 +2678,12 @@ export default function EmailEditorPage() {
                                                             </span>
                                                             {isSubjectEmojiPickerOpen && (
                                                                 <div className={`absolute ${structuresPanelPosition === 'right' ? 'right-0' : 'left-0'} top-10 z-[200]`}>
-                                                                    <div 
-                                                                        className="fixed inset-0 z-[190]" 
+                                                                    <div
+                                                                        className="fixed inset-0 z-[190]"
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
                                                                             setIsSubjectEmojiPickerOpen(false);
-                                                                        }} 
+                                                                        }}
                                                                     />
                                                                     <div className="relative z-[200]">
                                                                         <EmojiPicker
@@ -2713,7 +2719,7 @@ export default function EmailEditorPage() {
                                                     <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-center">
                                                         <span className="material-symbols-outlined text-[20px] text-[#10b981] hover:opacity-80 cursor-pointer transition-opacity">auto_fix_high</span>
                                                         <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center relative">
-                                                            <span 
+                                                            <span
                                                                 className="material-symbols-outlined text-[22px] text-gray-600 dark:text-gray-300 hover:text-gray-800 transition-colors cursor-pointer"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
@@ -2725,12 +2731,12 @@ export default function EmailEditorPage() {
                                                             </span>
                                                             {isPreheaderEmojiPickerOpen && (
                                                                 <div className={`absolute ${structuresPanelPosition === 'right' ? 'right-0' : 'left-0'} top-10 z-[200]`}>
-                                                                    <div 
-                                                                        className="fixed inset-0 z-[190]" 
+                                                                    <div
+                                                                        className="fixed inset-0 z-[190]"
                                                                         onClick={(e) => {
                                                                             e.stopPropagation();
                                                                             setIsPreheaderEmojiPickerOpen(false);
-                                                                        }} 
+                                                                        }}
                                                                     />
                                                                     <div className="relative z-[200]">
                                                                         <EmojiPicker
@@ -2834,7 +2840,7 @@ export default function EmailEditorPage() {
                                             {selectedGeneralStyle ? (
                                                 <div className="flex flex-col h-full bg-white dark:bg-background rounded-[24px] shadow-sm animate-in slide-in-from-right-4 duration-300 overflow-hidden">
                                                     {/* Detail Panel Header */}
-                                                    <div 
+                                                    <div
                                                         className="h-[58px] border-b border-gray-100 dark:border-border/50 flex items-center justify-center relative px-4 flex-shrink-0 cursor-pointer group transition-colors"
                                                         onClick={() => {
                                                             setSelectedGeneralStyle(null);
@@ -2854,9 +2860,85 @@ export default function EmailEditorPage() {
                                                                 <div className="p-6 flex items-center justify-between">
                                                                     <div className="flex items-center gap-2">
                                                                         <span className="text-[15px] font-medium text-gray-600 dark:text-foreground/80">General Background Color</span>
-                                                                        <TooltipProvider><Tooltip><TooltipTrigger><span className="material-symbols-outlined text-[18px] text-gray-300">help</span></TooltipTrigger><TooltipContent>Overall background of the email</TooltipContent></Tooltip></TooltipProvider>
+                                                                        <TooltipProvider><Tooltip><TooltipTrigger><span className="material-symbols-outlined text-[18px] text-gray-300">help</span></TooltipTrigger><TooltipContent>Overall background of the email area</TooltipContent></Tooltip></TooltipProvider>
                                                                     </div>
-                                                                    <div className="h-[42px] px-6 bg-[#f8fafc] dark:bg-accent/30 border border-gray-200 dark:border-border rounded-[16px] flex items-center justify-center text-[15px] font-medium text-gray-700 dark:text-foreground/70 shadow-sm">#f6f6f6</div>
+                                                                    <div className="relative">
+                                                                        <div
+                                                                            onClick={() => setIsGlobalColorPickerOpen(!isGlobalColorPickerOpen)}
+                                                                            className="h-[36px] px-4 rounded-[12px] flex items-center justify-center text-[14px] font-bold text-white shadow-sm cursor-pointer hover:opacity-90 transition-all uppercase"
+                                                                            style={{ backgroundColor: globalStyles.canvasBackground }}
+                                                                        >
+                                                                            {globalStyles.canvasBackground}
+                                                                        </div>
+
+                                                                        {isGlobalColorPickerOpen && (
+                                                                            <>
+                                                                                <div className="fixed inset-0 z-[190]" onClick={() => setIsGlobalColorPickerOpen(false)} />
+                                                                                <div className="absolute top-[46px] right-0 z-[200] w-[260px] bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.2)] animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+                                                                                    {/* Triangle Arrow */}
+                                                                                    <div className="absolute -top-[6px] right-[24px] w-3 h-3 bg-white dark:bg-[#1a1a1a] border-t border-l border-gray-200 dark:border-white/10 rotate-45 z-[210]"></div>
+                                                                                    
+                                                                                    <div className="flex flex-col p-4 gap-4">
+                                                                                        {/* Picker Section */}
+                                                                                        <div className="color-picker-custom w-full">
+                                                                                            <HexColorPicker 
+                                                                                                color={globalStyles.canvasBackground} 
+                                                                                                onChange={(c) => setGlobalStyles(prev => ({ ...prev, canvasBackground: c }))}
+                                                                                                style={{ width: '100%', height: '140px' }}
+                                                                                            />
+                                                                                        </div>
+
+                                                                                        {/* HEX Input Section */}
+                                                                                        <div className="flex items-center gap-2 bg-gray-50 dark:bg-white/5 p-2 rounded-xl border border-gray-100 dark:border-white/5">
+                                                                                            <span className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase px-1">Hex</span>
+                                                                                            <input 
+                                                                                                className="flex-1 bg-transparent border-none outline-none text-[13px] font-mono font-bold text-gray-700 dark:text-gray-200 uppercase"
+                                                                                                value={globalStyles.canvasBackground}
+                                                                                                onChange={(e) => {
+                                                                                                    const val = e.target.value;
+                                                                                                    if (val.startsWith('#') && (val.length <= 7)) {
+                                                                                                        setGlobalStyles(prev => ({ ...prev, canvasBackground: val }));
+                                                                                                    } else if (!val.startsWith('#') && (val.length <= 6)) {
+                                                                                                        setGlobalStyles(prev => ({ ...prev, canvasBackground: '#' + val }));
+                                                                                                    }
+                                                                                                }}
+                                                                                            />
+                                                                                        </div>
+
+                                                                                        {/* Default Palette */}
+                                                                                        <div className="space-y-2">
+                                                                                            <div className="flex items-center justify-between px-1">
+                                                                                                <span className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">Default Palette</span>
+                                                                                            </div>
+                                                                                            <div className="grid grid-cols-6 gap-2">
+                                                                                                {['#f6f6f6', '#ffffff', '#000000', '#eb4132', '#3478f6', '#32d74b', '#ff9f0a', '#5856d6', '#af52de', '#ff3b30', '#ffcc00', '#8e8e93'].map(c => (
+                                                                                                    <div 
+                                                                                                        key={c}
+                                                                                                        className={`w-7 h-7 rounded-full border border-gray-100 dark:border-white/10 cursor-pointer transition-transform hover:scale-110 shadow-sm ${globalStyles.canvasBackground.toLowerCase() === c.toLowerCase() ? 'ring-2 ring-primary ring-offset-2 dark:ring-offset-[#1a1a1a]' : ''}`} 
+                                                                                                        style={{ backgroundColor: c }}
+                                                                                                        onClick={() => setGlobalStyles(prev => ({ ...prev, canvasBackground: c }))}
+                                                                                                    />
+                                                                                                ))}
+                                                                                            </div>
+                                                                                        </div>
+
+                                                                                        {/* My Palette */}
+                                                                                        <div className="space-y-2 pb-2">
+                                                                                            <div className="flex items-center justify-between px-1">
+                                                                                                <span className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">My Palette</span>
+                                                                                            </div>
+                                                                                            <div className="flex gap-2">
+                                                                                                <div className="w-7 h-7 rounded-full border border-dashed border-gray-300 dark:border-white/20 flex items-center justify-center cursor-pointer hover:border-primary transition-colors">
+                                                                                                    <span className="material-symbols-outlined text-[16px] text-gray-400">add</span>
+                                                                                                </div>
+                                                                                                <div className="w-7 h-7 rounded-full bg-gray-100 dark:bg-white/5 border border-gray-200 dark:border-white/10 opacity-40"></div>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
 
                                                                 {/* Background Image */}
