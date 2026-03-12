@@ -2579,16 +2579,17 @@ export default function EmailEditorPage() {
                                 {/* Separate Content Area Card */}
                                 <div className="flex-1 bg-white dark:bg-background rounded-[24px] shadow-sm flex flex-col overflow-hidden min-h-[400px]">
                                     {activeRightSidebarTab === 'message' ? (
-                                        <div className="flex-1 overflow-y-auto p-5 space-y-7 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-track]:my-5 [&::-webkit-scrollbar-thumb]:rounded-full animate-in fade-in duration-300">
+                                        <div className="flex-1 overflow-y-auto pt-3 px-5 pb-5 space-y-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-track]:my-5 [&::-webkit-scrollbar-thumb]:rounded-full animate-in fade-in duration-300">
                                             {/* Subject / Title */}
-                                            <div className="space-y-3">
+                                            <div className="space-y-1">
                                                 <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Subject / Title</label>
-                                                <div className="relative bg-[#f1f5f9] dark:bg-accent/30 rounded-[16px] p-4 transition-colors focus-within:ring-2 focus-within:ring-primary shadow-inner overflow-hidden group flex flex-col min-h-[110px]">
+                                                <div className="relative bg-[#f1f5f9] dark:bg-accent/30 rounded-[16px] pt-0 pb-4 px-4 transition-colors focus-within:ring-2 focus-within:ring-primary shadow-inner overflow-hidden group flex flex-col min-h-[110px]">
                                                     <textarea
                                                         value={subjectText}
                                                         onChange={(e) => setSubjectText(e.target.value)}
                                                         placeholder="65 characters recommended"
-                                                        className="w-[calc(100%-30px)] flex-1 h-full bg-transparent border-none outline-none text-[15px] leading-[24px] resize-none text-gray-800 dark:text-foreground font-medium placeholder:text-gray-400"
+                                                        maxLength={500}
+                                                        className="w-[calc(100%-30px)] flex-1 h-full bg-transparent border-none outline-none text-[15px] leading-[24px] pt-4 resize-none text-gray-800 dark:text-foreground font-medium placeholder:text-gray-400 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:cursor-default cursor-text"
                                                     />
                                                     <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-center">
                                                         <span className="material-symbols-outlined text-[20px] text-[#10b981] hover:opacity-80 cursor-pointer transition-opacity">auto_fix_high</span>
@@ -2604,7 +2605,7 @@ export default function EmailEditorPage() {
                                                                 sentiment_satisfied
                                                             </span>
                                                             {isSubjectEmojiPickerOpen && (
-                                                                <div className="absolute right-0 top-10 z-[200]">
+                                                                <div className={`absolute ${structuresPanelPosition === 'right' ? 'right-0' : 'left-0'} top-10 z-[200]`}>
                                                                     <div 
                                                                         className="fixed inset-0 z-[190]" 
                                                                         onClick={(e) => {
@@ -2615,7 +2616,7 @@ export default function EmailEditorPage() {
                                                                     <div className="relative z-[200]">
                                                                         <EmojiPicker
                                                                             theme={Theme.LIGHT}
-                                                                            onEmojiClick={(emojiData: EmojiClickData, e: MouseEvent) => {
+                                                                            onEmojiClick={(emojiData: EmojiClickData) => {
                                                                                 setSubjectText(prev => prev + emojiData.emoji);
                                                                                 setIsSubjectEmojiPickerOpen(false);
                                                                             }}
@@ -2633,19 +2634,50 @@ export default function EmailEditorPage() {
                                             </div>
 
                                             {/* Hidden Preheader */}
-                                            <div className="space-y-3">
+                                            <div className="space-y-1">
                                                 <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Hidden Preheader</label>
-                                                <div className="relative bg-[#f1f5f9] dark:bg-accent/30 rounded-[16px] p-4 transition-colors focus-within:ring-2 focus-within:ring-primary shadow-inner overflow-hidden group flex flex-col min-h-[110px]">
+                                                <div className="relative bg-[#f1f5f9] dark:bg-accent/30 rounded-[16px] pt-0 pb-4 px-4 transition-colors focus-within:ring-2 focus-within:ring-primary shadow-inner overflow-hidden group flex flex-col min-h-[145px]">
                                                     <textarea
                                                         value={preheaderText}
                                                         onChange={(e) => setPreheaderText(e.target.value)}
                                                         placeholder="50 - 100 characters"
-                                                        className="w-[calc(100%-30px)] flex-1 h-full bg-transparent border-none outline-none text-[14px] leading-[24px] resize-none text-gray-800 dark:text-foreground placeholder:text-gray-400"
+                                                        maxLength={500}
+                                                        className="w-[calc(100%-30px)] flex-1 h-full bg-transparent border-none outline-none text-[14px] leading-[24px] pt-4 resize-none text-gray-800 dark:text-foreground placeholder:text-gray-400 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar]:cursor-default cursor-text"
                                                     />
                                                     <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-center">
                                                         <span className="material-symbols-outlined text-[20px] text-[#10b981] hover:opacity-80 cursor-pointer transition-opacity">auto_fix_high</span>
                                                         <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center relative">
-                                                            <span className="material-symbols-outlined text-[22px] text-gray-600 dark:text-gray-300 hover:text-gray-800 transition-colors cursor-pointer">sentiment_satisfied</span>
+                                                            <span 
+                                                                className="material-symbols-outlined text-[22px] text-gray-600 dark:text-gray-300 hover:text-gray-800 transition-colors cursor-pointer"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setIsPreheaderEmojiPickerOpen(!isPreheaderEmojiPickerOpen);
+                                                                    setIsSubjectEmojiPickerOpen(false);
+                                                                }}
+                                                            >
+                                                                sentiment_satisfied
+                                                            </span>
+                                                            {isPreheaderEmojiPickerOpen && (
+                                                                <div className={`absolute ${structuresPanelPosition === 'right' ? 'right-0' : 'left-0'} top-10 z-[200]`}>
+                                                                    <div 
+                                                                        className="fixed inset-0 z-[190]" 
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setIsPreheaderEmojiPickerOpen(false);
+                                                                        }} 
+                                                                    />
+                                                                    <div className="relative z-[200]">
+                                                                        <EmojiPicker
+                                                                            theme={Theme.LIGHT}
+                                                                            onEmojiClick={(emojiData: EmojiClickData) => {
+                                                                                setPreheaderText(prev => prev + emojiData.emoji);
+                                                                                setIsPreheaderEmojiPickerOpen(false);
+                                                                            }}
+                                                                            autoFocusSearch={false}
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            )}
                                                         </div>
                                                         <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center relative">
                                                             <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor" className="text-gray-600 dark:text-gray-300 hover:text-gray-800 transition-colors cursor-pointer"><path d="M80-240v-480h80v480H80Zm560 0-57-56 144-144H240v-80h487L584-664l56-56 240 240-240 240Z"/></svg>
