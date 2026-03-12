@@ -123,18 +123,20 @@ const RichTextEditor = ({ boxId, isSelected, boxProperties, onEditorFocus, onEdi
     );
 };
 
-const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onMoveDragStart, onMoveDragEnd, isDraggingLayout, topOffset = "-2px", isTopRow, hideSecondaryControls, showComponents, children,
+const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onMoveDragStart, onMoveDragEnd, isDraggingLayout, topOffset = "-2px", isTopRow, hideSecondaryControls, showComponents, cursorOriginLayer, children,
     setSelectedBackdropRowId,
     setSelectedBoxId,
     setSelectedLayer,
     setActiveRightSidebarTab
 }: {
-    id?: string, isSelected?: boolean, onSelect?: () => void, onDelete?: () => void, onDuplicate?: () => void, onMoveDragStart?: (e: React.DragEvent) => void, onMoveDragEnd?: () => void, isDraggingLayout?: boolean, topOffset?: string, isTopRow?: boolean, hideSecondaryControls?: boolean, showComponents?: boolean, children: React.ReactNode,
+    id?: string, isSelected?: boolean, onSelect?: () => void, onDelete?: () => void, onDuplicate?: () => void, onMoveDragStart?: (e: React.DragEvent) => void, onMoveDragEnd?: () => void, isDraggingLayout?: boolean, topOffset?: string, isTopRow?: boolean, hideSecondaryControls?: boolean, showComponents?: boolean, cursorOriginLayer?: string | null, children: React.ReactNode,
     setSelectedBackdropRowId: (id: string | null) => void,
     setSelectedBoxId: (id: string | null) => void,
     setSelectedLayer: (layer: 'block' | 'container' | 'structure' | 'backdrop' | null) => void,
     setActiveRightSidebarTab: (tab: 'general' | 'message') => void
 }) => {
+    // Components only interactive when cursor came from structure layer
+    const structureComponentsActive = cursorOriginLayer === 'structure' || isSelected;
     const [isOpen, setIsOpen] = useState(false);
 
     useEffect(() => {
@@ -155,8 +157,8 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
         >
             {/* Invisible Hitbox Extension - ensures hover/click works in the extended border area */}
             <div
-                style={{ top: topOffset, bottom: '0' }}
-                className="absolute inset-x-0 z-0 pointer-events-auto"
+                style={{ top: topOffset, bottom: '0', pointerEvents: structureComponentsActive ? 'auto' : 'none' }}
+                className="absolute inset-x-0 z-0"
             ></div>
             {/* The Border Layer - absolute inset so it covers the full width of the white canvas */}
             <div
@@ -170,9 +172,9 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
                 className={`absolute inset-x-0 pointer-events-none transition-opacity duration-300 z-[30] ${isSelected || isOpen ? 'opacity-100' : (showComponents ? 'opacity-0 group-hover/structure:opacity-100 group-has-[.structure-container:hover]/structure:!opacity-0' : 'opacity-0')}`}
             >
                 {/* Structure Layer Stack (Top Left usually, Bottom Left for top row) */}
-                <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[28px] left-[44px]' : '-top-[27px] left-[0px]'} w-auto flex flex-col items-start pointer-events-auto transition-all duration-200 ${hideSecondaryControls ? 'opacity-0 pointer-events-none' : ''}`}>
+                <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[28px] left-[44px]' : '-top-[27px] left-[0px]'} w-auto flex flex-col items-start transition-all duration-200 ${hideSecondaryControls ? 'opacity-0 pointer-events-none' : ''}`} style={{ pointerEvents: structureComponentsActive ? 'auto' : 'none' }}>
                     {/* Structure Pill Hitbox Extension */}
-                    <div className={`absolute inset-x-0 ${isTopRow ? 'top-[-8px] h-[30px]' : 'top-0 h-[27px]'} pointer-events-auto z-[60]`}></div>
+                    <div className={`absolute inset-x-0 ${isTopRow ? 'top-[-8px] h-[30px]' : 'top-0 h-[27px]'} z-[60]`} style={{ pointerEvents: structureComponentsActive ? 'auto' : 'none' }}></div>
                     {[
                         { id: 'structure', label: 'Structure', color: isSelected || isOpen ? '#6b3737' : '#9a5353' },
                         { id: 'backdrop', label: 'Backdrop', color: '#64748b' }
@@ -210,9 +212,9 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
                 </div>
 
                 {/* Add Icon Dropdown (Bottom Left) */}
-                <div className={`absolute ${isTopRow ? '-bottom-[42px]' : '-bottom-[41px]'} left-[0px] pointer-events-auto transition-all duration-200 ${hideSecondaryControls ? 'opacity-0 pointer-events-none' : ''}`}>
+                <div className={`absolute ${isTopRow ? '-bottom-[42px]' : '-bottom-[41px]'} left-[0px] transition-all duration-200 ${hideSecondaryControls ? 'opacity-0 pointer-events-none' : ''}`} style={{ pointerEvents: structureComponentsActive ? 'auto' : 'none' }}>
                     {/* Plus Button Hitbox Extension */}
-                    <div className="absolute inset-0 top-[-8px] h-[44px] pointer-events-auto z-[60]"></div>
+                    <div className={`absolute inset-0 top-[-8px] h-[44px] z-[60]`} style={{ pointerEvents: structureComponentsActive ? 'auto' : 'none' }}></div>
                     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
                         <DropdownMenuTrigger asChild>
                             <div
@@ -265,7 +267,7 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
                 </div>
 
                 {/* 3 Dot Menu (Right Centered) with hover slide-in action panel */}
-                <div className="absolute top-1/2 -translate-y-1/2 right-0 translate-x-[44px] pointer-events-auto group/structurebtn flex items-center">
+                <div className="absolute top-1/2 -translate-y-1/2 right-0 translate-x-[44px] group/structurebtn flex items-center" style={{ pointerEvents: structureComponentsActive ? 'auto' : 'none' }}>
                     {/* Main button row: slide panel + 3-dot (reversed) */}
                     <div className="flex flex-row-reverse items-center">
                         {/* 3-dot / Save-as-module button — always visible, anchored at right */}
@@ -277,7 +279,7 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
                                         className="w-[36px] h-[36px] rounded-[12px] text-white flex items-center justify-center cursor-pointer shadow-md hover:scale-105 active:scale-95 transition-all duration-200 flex-shrink-0 relative overflow-hidden"
                                     >
                                         {/* 3-dot Square Hitbox Extension */}
-                                        <div className={`absolute inset-y-0 right-0 left-[-12px] top-0 h-[37px] pointer-events-auto z-[60]`}></div>
+                                        <div className={`absolute inset-y-0 right-0 left-[-12px] top-0 h-[37px] z-[60]`} style={{ pointerEvents: structureComponentsActive ? 'auto' : 'none' }}></div>
                                         {/* 3 dots — visible when NOT hovered */}
                                         <div className="absolute inset-0 flex items-center justify-center gap-[3px] transition-opacity duration-200 opacity-100 group-hover/structurebtn:opacity-0">
                                             <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
@@ -715,6 +717,8 @@ export default function EmailEditorPage() {
 
         const isTopRow = boxId.startsWith('row1-');
         const isS2 = isSelected && hoveredItem !== null && !(hoveredItem.id === boxId && (hoveredItem.type === 'container' || hoveredItem.type === 'block'));
+        // Container components only active when cursor came from container or block layer
+        const containerComponentsActive = (hoveredItem?.type === 'container' || hoveredItem?.type === 'block') || (isSelected && (selectedLayer === 'container' || selectedLayer === 'block'));
 
         const colors = {
             block: '#4b5b75',     // Requested Gray-Blue
@@ -729,11 +733,11 @@ export default function EmailEditorPage() {
             <>
                 <div className={`absolute inset-0 pointer-events-none transition-opacity duration-300 ${(isSelected && selectedLayer === 'container') || (debouncedHoveredItem?.id === boxId && (debouncedHoveredItem?.type === 'container' || debouncedHoveredItem?.type === 'block') && selectedLayer !== 'block') ? 'opacity-100 z-[40]' : 'opacity-0 z-[30]'}`}>
                     {/* Invisible Hitbox Extensions - to bridge gaps to floating UI elements */}
-                    <div className={`absolute left-[28px] w-[75px] pointer-events-auto ${isTopRow ? '-bottom-[28px] h-[28px]' : '-top-[28px] h-[28px]'}`}></div>
-                    <div className="absolute top-1/2 -translate-y-1/2 -left-[44px] w-[44px] h-[36px] pointer-events-auto"></div>
+                    <div className={`absolute left-[28px] w-[75px] ${isTopRow ? '-bottom-[28px] h-[28px]' : '-top-[28px] h-[28px]'}`} style={{ pointerEvents: containerComponentsActive ? 'auto' : 'none' }}></div>
+                    <div className="absolute top-1/2 -translate-y-1/2 -left-[44px] w-[44px] h-[36px]" style={{ pointerEvents: containerComponentsActive ? 'auto' : 'none' }}></div>
 
                     {/* Layer Labels (Breadcrumb-like) */}
-                    <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[19px]' : '-top-[28px]'} left-[28px] w-auto flex flex-col items-start transition-opacity duration-300 z-50 ${isS2 ? 'opacity-0 pointer-events-none' : ''}`}>
+                    <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[19px]' : '-top-[28px]'} left-[28px] w-auto flex flex-col items-start transition-opacity duration-300 z-50 ${isS2 ? 'opacity-0 pointer-events-none' : ''}`} style={{ pointerEvents: containerComponentsActive && !isS2 ? 'auto' : 'none' }}>
                         {/* Structure Pill Hitbox Extension (aligned with structure pill at index 1) */}
                         <div className="absolute inset-x-0 top-[28px] h-[28px] pointer-events-none group-hover/layerpill:pointer-events-auto z-[60]"></div>
                         {[
@@ -797,8 +801,8 @@ export default function EmailEditorPage() {
 
                 {/* Delete Menu - The three dot / delete icon box - now shrunk as requested */}
                 <div
-                    style={{ backgroundColor: colors.container }}
-                    className={`absolute top-1/2 -translate-y-1/2 -left-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-all duration-300 group/btn ${(isSelected && (selectedLayer === 'container' || selectedLayer === 'block')) ||
+                    style={{ backgroundColor: colors.container, pointerEvents: containerComponentsActive ? 'auto' : 'none' }}
+                    className={`absolute top-1/2 -translate-y-1/2 -left-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center cursor-pointer shadow-md hover:scale-105 transition-all duration-300 group/btn ${(isSelected && (selectedLayer === 'container' || selectedLayer === 'block')) ||
                         (debouncedHoveredItem?.id === boxId && (debouncedHoveredItem?.type === 'container' || debouncedHoveredItem?.type === 'block'))
                         ? 'opacity-100 z-[50]'
                         : 'opacity-0 z-[30]'
@@ -854,6 +858,8 @@ export default function EmailEditorPage() {
         const isTopRow = boxId.startsWith('row1-');
         const isS2 = hoveredItem !== null && !(hoveredItem.id === boxId && hoveredItem.type === 'block');
         const showDebouncedBlock = debouncedHoveredItem?.id === boxId && debouncedHoveredItem?.type === 'block';
+        // Block components only active when cursor came from block layer
+        const blockComponentsActive = hoveredItem?.type === 'block' || isBlockSelected;
 
         const overlayContent = (
             <>
@@ -873,13 +879,14 @@ export default function EmailEditorPage() {
                 <div className={`absolute inset-0 pointer-events-none z-[50] transition-opacity duration-300 ${isBlockSelected || showDebouncedBlock ? 'opacity-100' : 'opacity-0'}`}>
                     {/* Right 3-dot Box */}
                     <div
-                        className="absolute top-1/2 -translate-y-1/2 -right-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-transform group/btn bg-[#4b5b75]"
+                        className="absolute top-1/2 -translate-y-1/2 -right-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center cursor-pointer shadow-md hover:scale-105 transition-transform group/btn bg-[#4b5b75]"
+                        style={{ pointerEvents: blockComponentsActive ? 'auto' : 'none' }}
                         onClick={(e) => {
                             e.stopPropagation();
                         }}
                     >
                         {/* 3-dot Square Hitbox Extension */}
-                        <div className="absolute inset-y-0 right-0 left-[-12px] top-0 h-[37px] pointer-events-auto z-[60]"></div>
+                        <div className="absolute inset-y-0 right-0 left-[-12px] top-0 h-[37px] z-[60]" style={{ pointerEvents: blockComponentsActive ? 'auto' : 'none' }}></div>
                         <div className="flex gap-[3px]">
                             <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
                             <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
@@ -889,11 +896,12 @@ export default function EmailEditorPage() {
 
                     {/* Drag Pill */}
                     <div
-                        className={`absolute ${isTopRow ? '-bottom-[28px]' : '-top-[32px]'} left-[16px] text-white rounded-[12px] w-[36px] h-[24px] flex items-center justify-center pointer-events-auto cursor-grab active:cursor-grabbing shadow-md hover:scale-105 transition-all bg-[#4b5b75] ${isS2 ? 'opacity-0 pointer-events-none' : ''}`}
+                        className={`absolute ${isTopRow ? '-bottom-[28px]' : '-top-[32px]'} left-[16px] text-white rounded-[12px] w-[36px] h-[24px] flex items-center justify-center cursor-grab active:cursor-grabbing shadow-md hover:scale-105 transition-all bg-[#4b5b75] ${isS2 ? 'opacity-0 pointer-events-none' : ''}`}
+                        style={{ pointerEvents: blockComponentsActive && !isS2 ? 'auto' : 'none' }}
                         onClick={(e) => { e.stopPropagation(); }}
                     >
                         {/* Block Pill Hitbox Extension */}
-                        <div className={`absolute inset-x-0 ${isTopRow ? 'top-[-8px] h-[30px]' : 'top-0 h-[32px]'} pointer-events-auto z-[60]`}></div>
+                        <div className={`absolute inset-x-0 ${isTopRow ? 'top-[-8px] h-[30px]' : 'top-0 h-[32px]'} z-[60]`} style={{ pointerEvents: blockComponentsActive ? 'auto' : 'none' }}></div>
                         <span className="material-symbols-outlined text-[18px] rotate-90">drag_indicator</span>
                     </div>
                 </div>
@@ -2069,17 +2077,20 @@ export default function EmailEditorPage() {
                                     {((debouncedHoveredItem?.type === 'backdrop' && debouncedHoveredItem?.id === row.id) || selectedBackdropRowId === row.id) && (
                                         /* Compute: should pill+plus hide? Only when selected + something ELSE is hovered */
                                         /* 3-dot always visible when this block renders */
+                                        /* Backdrop components only active when cursor came from backdrop layer */
                                         <>
                                             {/* Backdrop Pill — same positioning as Structure pill */}
                                             <div
-                                                className={`absolute left-[-60px] z-[80] pointer-events-auto animate-in fade-in duration-200 transition-opacity ${selectedBackdropRowId === row.id && hoveredItem !== null && !(hoveredItem.id === row.id && hoveredItem.type === 'backdrop') ? 'opacity-0 pointer-events-none' : ''}`}
-                                                style={index === 0
-                                                    ? { bottom: '-28px', left: '-18px' }   /* top row: beside plus, at bottom */
-                                                    : { top: '-53px' }                    /* other rows: above border, left strip */
-                                                }
+                                                className={`absolute left-[-60px] z-[80] animate-in fade-in duration-200 transition-opacity ${selectedBackdropRowId === row.id && hoveredItem !== null && !(hoveredItem.id === row.id && hoveredItem.type === 'backdrop') ? 'opacity-0 pointer-events-none' : ''}`}
+                                                style={{
+                                                    pointerEvents: (hoveredItem?.type === 'backdrop' || selectedBackdropRowId === row.id) ? 'auto' : 'none',
+                                                    ...(index === 0
+                                                        ? { bottom: '-28px', left: '-18px' }   /* top row: beside plus, at bottom */
+                                                        : { top: '-53px' })                    /* other rows: above border, left strip */
+                                                }}
                                             >
                                                 {/* Backdrop Pill Hitbox Extension */}
-                                                <div className={`absolute inset-x-0 ${index === 0 ? 'top-[-8px] h-[30px]' : 'top-0 h-[27px]'} pointer-events-auto z-[60]`}></div>
+                                                <div className={`absolute inset-x-0 ${index === 0 ? 'top-[-8px] h-[30px]' : 'top-0 h-[27px]'} z-[60]`} style={{ pointerEvents: (hoveredItem?.type === 'backdrop' || selectedBackdropRowId === row.id) ? 'auto' : 'none' }}></div>
                                                 <div
                                                     className="px-3 py-[3px] rounded-full text-white text-[10.5px] font-medium shadow-sm flex items-center cursor-pointer hover:scale-105 active:scale-95 transition-all"
                                                     style={{ backgroundColor: selectedBackdropRowId === row.id ? '#475569' : '#64748b' }}
@@ -2099,9 +2110,9 @@ export default function EmailEditorPage() {
                                             </div>
 
                                             {/* Plus Button — same position as Structure's add button (-bottom-[44px]) */}
-                                            <div className={`absolute -bottom-[42px] left-[-60px] z-[80] pointer-events-auto transition-opacity duration-200 ${selectedBackdropRowId === row.id && hoveredItem !== null && !(hoveredItem.id === row.id && hoveredItem.type === 'backdrop') ? 'opacity-0 pointer-events-none' : ''}`}>
+                                            <div className={`absolute -bottom-[42px] left-[-60px] z-[80] transition-opacity duration-200 ${selectedBackdropRowId === row.id && hoveredItem !== null && !(hoveredItem.id === row.id && hoveredItem.type === 'backdrop') ? 'opacity-0 pointer-events-none' : ''}`} style={{ pointerEvents: (hoveredItem?.type === 'backdrop' || selectedBackdropRowId === row.id) ? 'auto' : 'none' }}>
                                                 {/* Plus Button Hitbox Extension */}
-                                                <div className="absolute inset-0 top-[-8px] h-[44px] pointer-events-auto z-[60]"></div>
+                                                <div className="absolute inset-0 top-[-8px] h-[44px] z-[60]" style={{ pointerEvents: (hoveredItem?.type === 'backdrop' || selectedBackdropRowId === row.id) ? 'auto' : 'none' }}></div>
                                                 <div
                                                     className="w-[36px] h-[36px] rounded-[12px] text-white flex items-center justify-center cursor-pointer shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
                                                     style={{ backgroundColor: selectedBackdropRowId === row.id ? '#475569' : '#64748b' }}
@@ -2114,8 +2125,8 @@ export default function EmailEditorPage() {
                                             {/* 3-dot menu — inward in right strip, vertically aligned to same plane as Structure 3-dot */}
                                             {/* Structure 3-dot center = rowHeight/2 - topOffset/2. Offset: -17px for row1, -13px for others */}
                                             <div
-                                                className="absolute -translate-y-1/2 right-[-52px] z-[80] pointer-events-auto group/backdropbtn flex items-center"
-                                                style={{ top: index === 0 ? 'calc(50% - 17px)' : 'calc(50% - 13px)' }}
+                                                className="absolute -translate-y-1/2 right-[-52px] z-[80] group/backdropbtn flex items-center"
+                                                style={{ top: index === 0 ? 'calc(50% - 17px)' : 'calc(50% - 13px)', pointerEvents: (hoveredItem?.type === 'backdrop' || selectedBackdropRowId === row.id) ? 'auto' : 'none' }}
                                             >
                                                 <div className="flex flex-row-reverse items-center">
                                                     {/* 3-dot / Save-as-module button — always visible, anchored at right */}
@@ -2127,7 +2138,7 @@ export default function EmailEditorPage() {
                                                                     style={{ backgroundColor: selectedBackdropRowId === row.id ? '#475569' : '#64748b' }}
                                                                 >
                                                                     {/* 3-dot Square Hitbox Extension */}
-                                                                    <div className="absolute inset-y-0 right-0 left-[-12px] top-0 h-[37px] pointer-events-auto z-[60]"></div>
+                                                                    <div className="absolute inset-y-0 right-0 left-[-12px] top-0 h-[37px] z-[60]" style={{ pointerEvents: (hoveredItem?.type === 'backdrop' || selectedBackdropRowId === row.id) ? 'auto' : 'none' }}></div>
                                                                     {/* 3 dots — visible when NOT hovered */}
                                                                     <div className="absolute inset-0 flex items-center justify-center gap-[3px] transition-opacity duration-200 opacity-100 group-hover/backdropbtn:opacity-0">
                                                                         <div className="w-[4px] h-[4px] rounded-full bg-white"></div>
@@ -2250,6 +2261,7 @@ export default function EmailEditorPage() {
                                             setSelectedLayer={setSelectedLayer}
                                             setActiveRightSidebarTab={setActiveRightSidebarTab}
                                             showComponents={debouncedHoveredItem?.id === row.id && debouncedHoveredItem?.type === 'structure'}
+                                            cursorOriginLayer={hoveredItem?.type || null}
                                         >
                                             <div className="flex gap-4 w-full items-start isolation-auto" style={{ height: 'auto' }}>
                                                 {row.columns.map((colFrac, i) => (
