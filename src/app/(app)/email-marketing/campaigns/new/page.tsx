@@ -253,6 +253,16 @@ export default function CreateCampaignPage() {
                                         <Smile className="text-muted-foreground w-5 h-5" />
                                     </div>
                                 </div>
+                                <div className="flex justify-end mt-1 pr-4">
+                                    <div className="flex flex-col items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3">
+                                            <path d="M80-240v-480h80v480H80Zm560 0-57-56 144-144H240v-80h487L584-664l56-56 240 240-240 240Z" />
+                                        </svg>
+                                        <span className="text-[10px] text-muted-foreground font-medium">
+                                            {[...emailSubject].length}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-foreground mb-2" htmlFor="preview-text">Preview Text <span className="font-normal text-muted-foreground">(Optional)</span></label>
@@ -265,6 +275,16 @@ export default function CreateCampaignPage() {
                                     placeholder="Snippet displayed in inbox"
                                     type="text"
                                 />
+                                <div className="flex justify-end mt-1 pr-4">
+                                    <div className="flex flex-col items-center">
+                                        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3">
+                                            <path d="M80-240v-480h80v480H80Zm560 0-57-56 144-144H240v-80h487L584-664l56-56 240 240-240 240Z" />
+                                        </svg>
+                                        <span className="text-[10px] text-muted-foreground font-medium">
+                                            {[...previewText].length}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </section>

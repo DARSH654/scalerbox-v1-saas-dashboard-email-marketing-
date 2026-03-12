@@ -2583,17 +2583,16 @@ export default function EmailEditorPage() {
                                             {/* Subject / Title */}
                                             <div className="space-y-3">
                                                 <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Subject / Title</label>
-                                                <div className="relative bg-[#f1f5f9] dark:bg-accent/30 rounded-[16px] p-4 pb-10 min-h-[140px] transition-colors focus-within:ring-2 focus-within:ring-primary shadow-inner overflow-hidden group">
+                                                <div className="relative bg-[#f1f5f9] dark:bg-accent/30 rounded-[16px] p-4 transition-colors focus-within:ring-2 focus-within:ring-primary shadow-inner overflow-hidden group flex flex-col min-h-[110px]">
                                                     <textarea
                                                         value={subjectText}
                                                         onChange={(e) => setSubjectText(e.target.value)}
                                                         placeholder="65 characters recommended"
-                                                        className="w-[calc(100%-30px)] bg-transparent border-none outline-none text-[15px] resize-none text-gray-800 dark:text-foreground font-medium placeholder:text-gray-400"
-                                                        rows={3}
+                                                        className="w-[calc(100%-30px)] flex-1 h-full bg-transparent border-none outline-none text-[15px] leading-[24px] resize-none text-gray-800 dark:text-foreground font-medium placeholder:text-gray-400"
                                                     />
-                                                    <div className="absolute top-3 right-3 text-[#10b981] dark:text-[#10b981] hover:opacity-80 transition-opacity cursor-pointer flex flex-col gap-3 items-center">
-                                                        <span className="material-symbols-outlined text-[20px]">auto_fix_high</span>
-                                                        <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center mt-6 relative">
+                                                    <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-center">
+                                                        <span className="material-symbols-outlined text-[20px] text-[#10b981] hover:opacity-80 cursor-pointer transition-opacity">auto_fix_high</span>
+                                                        <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center relative">
                                                             <span 
                                                                 className="material-symbols-outlined text-[22px] text-gray-600 dark:text-gray-300 hover:text-gray-800 transition-colors cursor-pointer"
                                                                 onClick={(e) => {
@@ -2626,9 +2625,9 @@ export default function EmailEditorPage() {
                                                                 </div>
                                                             )}
                                                         </div>
-                                                    </div>
-                                                    <div className="absolute bottom-3 right-[18px] flex flex-col items-center">
-                                                        <span className="text-[13px] text-gray-400 dark:text-gray-500 font-medium tracking-wide">{subjectText.length}</span>
+                                                        <div className="flex items-center justify-center h-[26px]">
+                                                            <span className="text-[13px] text-gray-400 dark:text-gray-500 font-medium tracking-wide">{subjectText.length}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -2636,25 +2635,24 @@ export default function EmailEditorPage() {
                                             {/* Hidden Preheader */}
                                             <div className="space-y-3">
                                                 <label className="text-sm font-medium text-[13px] text-gray-500 dark:text-foreground/80 pl-1 tracking-wide">Hidden Preheader</label>
-                                                <div className="relative bg-[#f1f5f9] dark:bg-accent/30 rounded-[16px] p-4 pb-10 min-h-[140px] transition-colors focus-within:ring-2 focus-within:ring-primary shadow-inner overflow-hidden group">
+                                                <div className="relative bg-[#f1f5f9] dark:bg-accent/30 rounded-[16px] p-4 transition-colors focus-within:ring-2 focus-within:ring-primary shadow-inner overflow-hidden group flex flex-col min-h-[110px]">
                                                     <textarea
                                                         value={preheaderText}
                                                         onChange={(e) => setPreheaderText(e.target.value)}
                                                         placeholder="50 - 100 characters"
-                                                        className="w-[calc(100%-30px)] bg-transparent border-none outline-none text-[14px] resize-none text-gray-800 dark:text-foreground placeholder:text-gray-400"
-                                                        rows={3}
+                                                        className="w-[calc(100%-30px)] flex-1 h-full bg-transparent border-none outline-none text-[14px] leading-[24px] resize-none text-gray-800 dark:text-foreground placeholder:text-gray-400"
                                                     />
-                                                    <div className="absolute top-3 right-3 text-[#10b981] dark:text-[#10b981] hover:opacity-80 transition-opacity cursor-pointer flex flex-col gap-3 items-center">
-                                                        <span className="material-symbols-outlined text-[20px]">auto_fix_high</span>
-                                                        <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center mt-1">
-                                                            <span className="material-symbols-outlined text-[22px] text-gray-600 dark:text-gray-300 hover:text-gray-800 transition-colors">sentiment_satisfied</span>
+                                                    <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-center">
+                                                        <span className="material-symbols-outlined text-[20px] text-[#10b981] hover:opacity-80 cursor-pointer transition-opacity">auto_fix_high</span>
+                                                        <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center relative">
+                                                            <span className="material-symbols-outlined text-[22px] text-gray-600 dark:text-gray-300 hover:text-gray-800 transition-colors cursor-pointer">sentiment_satisfied</span>
                                                         </div>
-                                                        <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center mt-1">
-                                                            <span className="material-symbols-outlined text-[22px] text-gray-500 dark:text-gray-400 hover:text-gray-700 transition-colors rotate-90 scale-x-[-1]">open_in_new</span>
+                                                        <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center relative">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor" className="text-gray-600 dark:text-gray-300 hover:text-gray-800 transition-colors cursor-pointer"><path d="M80-240v-480h80v480H80Zm560 0-57-56 144-144H240v-80h487L584-664l56-56 240 240-240 240Z"/></svg>
                                                         </div>
-                                                    </div>
-                                                    <div className="absolute bottom-3 right-[18px] flex flex-col items-center">
-                                                        <span className="text-[13px] text-gray-400 dark:text-gray-500 font-medium tracking-wide">{preheaderText.length}</span>
+                                                        <div className="flex items-center justify-center h-[26px]">
+                                                            <span className="text-[13px] text-gray-400 dark:text-gray-500 font-medium tracking-wide">{preheaderText.length}</span>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
