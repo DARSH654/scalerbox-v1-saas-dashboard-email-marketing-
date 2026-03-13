@@ -288,9 +288,11 @@ export default function EditorV2Page() {
           </div>
 
           {/* # EDITOR CANVAS AREA */}
-          <div className="flex-1 relative flex flex-col pt-0 pb-6 pl-6 pr-[360px] overflow-y-auto h-full items-center [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full">
-            <div className="w-full max-w-[620px] bg-white shadow-sm flex flex-col pt-[34px] pb-8 gap-6 relative min-h-[500px]">
-              {/* Pure White Blank Canvas Location */}
+          <div className="flex-1 relative flex flex-col pt-0 pb-6 overflow-y-auto h-full [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full">
+            <div className="w-full pr-[360px] flex flex-col items-center">
+              <div className="w-full max-w-[620px] bg-white shadow-sm flex flex-col pt-[34px] pb-8 gap-6 relative min-h-[500px]">
+                {/* Pure White Blank Canvas Location */}
+              </div>
             </div>
           </div>
 
