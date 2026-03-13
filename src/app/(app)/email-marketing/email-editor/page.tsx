@@ -2498,7 +2498,7 @@ export default function EmailEditorPage() {
                                                         return (
                                                             <div
                                                                 key={t}
-                                                                className={`flex-1 h-[38px] flex items-center justify-center text-[13px] font-medium cursor-pointer transition-colors ${i < arr.length - 1 ? 'border-r-[1.5px] border-gray-200 dark:border-border' : ''} ${isActive ? 'border-[2px] border-[#10b981] text-[#10b981] bg-[#10b981]/10 rounded-[8px] m-[-1.5px] z-10' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                                                                className={`flex-1 h-[38px] flex items-center justify-center text-[13px] font-medium cursor-pointer transition-colors ${i < arr.length - 1 ? 'border-r-[1.5px] border-gray-200 dark:border-border' : ''} ${isActive ? 'shadow-[inset_0_0_0_2px_currentColor] text-primary bg-primary/10 rounded-[8px] z-10' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'}`}
                                                                 onClick={() => {
                                                                     if (!activeEditor) return;
                                                                     if (t === 'P') activeEditor.chain().focus().setParagraph().run();
@@ -2529,7 +2529,7 @@ export default function EmailEditorPage() {
                                                         return (
                                                             <div
                                                                 key={btn.id}
-                                                                className={`flex-1 h-[38px] flex items-center justify-center text-[16px] cursor-pointer transition-colors ${i < arr.length - 1 ? 'border-r-[1.5px] border-gray-200 dark:border-border' : ''} ${isActive ? 'bg-gray-100 dark:bg-white/10' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                                                                className={`flex-1 h-[38px] flex items-center justify-center text-[16px] cursor-pointer transition-colors ${i < arr.length - 1 ? 'border-r-[1.5px] border-gray-200 dark:border-border' : ''} ${isActive ? 'shadow-[inset_0_0_0_2px_currentColor] text-primary bg-primary/10 rounded-[8px] z-10' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'}`}
                                                                 onClick={() => {
                                                                     if (!activeEditor) return;
                                                                     if (btn.id === 'clear') {
@@ -2564,7 +2564,7 @@ export default function EmailEditorPage() {
                                                             return (
                                                                 <div
                                                                     key={item.id}
-                                                                    className={`flex-1 h-[38px] flex items-center justify-center cursor-pointer transition-colors ${i < arr.length - 1 ? 'border-r-[1.5px] border-gray-200 dark:border-border' : ''} ${isActive ? 'border-[2px] border-[#10b981] text-[#10b981] bg-[#10b981]/10 rounded-[8px] m-[-1.5px] z-10' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                                                                    className={`flex-1 h-[38px] flex items-center justify-center cursor-pointer transition-colors ${i < arr.length - 1 ? 'border-r-[1.5px] border-gray-200 dark:border-border' : ''} ${isActive ? 'shadow-[inset_0_0_0_2px_currentColor] text-primary bg-primary/10 rounded-[8px] z-10' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'}`}
                                                                     onClick={() => {
                                                                         if (activeEditor) activeEditor.chain().focus().setTextAlign(item.id).run();
                                                                     }}
