@@ -33,6 +33,15 @@ export default function EditorV2Page() {
   const [structuresTab, setStructuresTab] = useState('general');
   const [isStructuresPanelOpen, setIsStructuresPanelOpen] = useState(true);
 
+  // # RIGHT SIDEBAR STATE
+  const [activeRightSidebarTab, setActiveRightSidebarTab] = useState<'message' | 'appearance'>('appearance');
+  const [selectedGeneralStyle, setSelectedGeneralStyle] = useState<string | null>(null);
+  const [isGeneralHovered, setIsGeneralHovered] = useState(false);
+  const [isGmailAnnotationEnabled, setIsGmailAnnotationEnabled] = useState(false);
+  const [subjectText, setSubjectText] = useState("");
+  const [preheaderText, setPreheaderText] = useState("");
+  const [isBgImageEnabled, setIsBgImageEnabled] = useState(false);
+
   // # TOOL SCROLLING LOGIC STATE & REFS
   const [canToolScrollUp, setCanToolScrollUp] = useState(false);
   const [canToolScrollDown, setCanToolScrollDown] = useState(false);
@@ -278,8 +287,140 @@ export default function EditorV2Page() {
           </div>
 
           {/* # MAIN CONTENT AREA (BLANK) */}
-          <main className="flex-1 bg-[#f3f4f6]">
+          <main className="flex-1 bg-[#f3f4f6] relative flex flex-col overflow-hidden">
           </main>
+
+          {/* # RIGHT SIDEBAR BLOCK */}
+          <div className="w-[420px] h-full flex-shrink-0 bg-[#f3f4f6] dark:bg-background border-l border-gray-200 dark:border-border p-3 flex flex-col gap-3 z-30">
+            
+            {/* # RIGHT PANEL TABS BLOCK */}
+            <div className="w-full h-[54px] bg-[#e5e7eb] dark:bg-accent/40 p-[5px] rounded-[27px] flex items-center shadow-inner relative flex-shrink-0">
+              <div
+                onClick={() => setActiveRightSidebarTab('appearance')}
+                className={`flex-1 h-full flex justify-center items-center rounded-full cursor-pointer transition-all ${activeRightSidebarTab === 'appearance' ? 'bg-white dark:bg-background shadow-sm text-gray-700 dark:text-foreground' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                <span className="material-symbols-outlined text-[20px]">palette</span>
+              </div>
+              <div
+                onClick={() => setActiveRightSidebarTab('message')}
+                className={`flex-1 h-full flex justify-center items-center rounded-full cursor-pointer transition-all ${activeRightSidebarTab === 'message' ? 'bg-white dark:bg-background shadow-sm text-gray-700 dark:text-foreground' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                <span className="material-symbols-outlined text-[22px]">mode_comment</span>
+              </div>
+            </div>
+
+            {/* # RIGHT SIDEBAR CONTENT AREA */}
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              
+              {/* # MESSAGE SETTINGS PANEL BLOCK */}
+              {activeRightSidebarTab === 'message' && (
+                <div className="flex-1 bg-white dark:bg-background rounded-[24px] shadow-sm flex flex-col overflow-hidden overflow-y-auto p-5 space-y-4 animate-in fade-in duration-300">
+                  <div className="space-y-1">
+                    <label className="text-sm font-semibold text-gray-500 pl-1">Subject / Title</label>
+                    <div className="relative bg-[#f1f5f9] dark:bg-accent/30 rounded-[16px] p-4 flex flex-col min-h-[110px] shadow-inner">
+                      <textarea
+                        value={subjectText}
+                        onChange={(e) => setSubjectText(e.target.value)}
+                        placeholder="65 characters recommended"
+                        className="w-full flex-1 bg-transparent border-none outline-none text-[15px] resize-none text-gray-800 dark:text-foreground font-medium"
+                      />
+                      <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-center">
+                        <span className="material-symbols-outlined text-[20px] text-[#10b981]">auto_fix_high</span>
+                        <span className="material-symbols-outlined text-[22px] text-gray-400">sentiment_satisfied</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-sm font-semibold text-gray-500 pl-1">Hidden Preheader</label>
+                    <div className="relative bg-[#f1f5f9] dark:bg-accent/30 rounded-[16px] p-4 flex flex-col min-h-[145px] shadow-inner">
+                      <textarea
+                        value={preheaderText}
+                        onChange={(e) => setPreheaderText(e.target.value)}
+                        placeholder="50 - 100 characters"
+                        className="w-full flex-1 bg-transparent border-none outline-none text-[14px] resize-none text-gray-800 dark:text-foreground"
+                      />
+                      <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-center">
+                        <span className="material-symbols-outlined text-[20px] text-[#10b981]">auto_fix_high</span>
+                        <span className="material-symbols-outlined text-[22px] text-gray-400">sentiment_satisfied</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center justify-between px-1">
+                      <label className="text-sm font-semibold text-gray-500">Email annotations for Gmail</label>
+                      <div
+                        onClick={() => setIsGmailAnnotationEnabled(!isGmailAnnotationEnabled)}
+                        className={`w-[50px] h-[28px] rounded-full relative cursor-pointer shadow-inner transition-colors ${isGmailAnnotationEnabled ? 'bg-[#10b981]' : 'bg-gray-200'}`}
+                      >
+                        <div className={`w-[24px] h-[24px] bg-white rounded-full absolute top-[2px] shadow-sm transition-transform ${isGmailAnnotationEnabled ? 'translate-x-[24px]' : 'translate-x-[2px]'}`}></div>
+                      </div>
+                    </div>
+                    <p className="text-[12px] text-gray-400 leading-relaxed px-1">
+                      This feature lets you showcase your deals, discounts, or offer directly in recipient's inbox before they open the email.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* # APPEARANCE / GENERAL STYLES PANEL BLOCK */}
+              {activeRightSidebarTab === 'appearance' && (
+                <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative animate-in fade-in duration-300">
+                  {selectedGeneralStyle ? (
+                    <div className="flex flex-col h-full bg-white dark:bg-background rounded-[24px] shadow-sm overflow-hidden">
+                      <div
+                        className="h-[58px] border-b flex items-center justify-center relative px-4 flex-shrink-0 cursor-pointer group"
+                        onClick={() => setSelectedGeneralStyle(null)}
+                      >
+                        <span className="text-[16px] font-bold text-gray-700 dark:text-foreground group-hover:text-primary transition-colors">
+                          {selectedGeneralStyle}
+                        </span>
+                      </div>
+                      <div className="flex-1 overflow-y-auto p-5">
+                        <div className="flex flex-col items-center justify-center h-full text-center">
+                          <span className="material-symbols-outlined text-[48px] text-gray-100 mb-4">design_services</span>
+                          <h3 className="text-[18px] font-semibold text-gray-700 dark:text-foreground mb-2">{selectedGeneralStyle}</h3>
+                          <p className="text-[14px] text-gray-400">Settings for this category will appear here.</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div 
+                      className="w-full relative py-2"
+                      style={{ height: isGeneralHovered ? '220px' : '110px' }}
+                      onMouseEnter={() => setIsGeneralHovered(true)}
+                      onMouseLeave={() => setIsGeneralHovered(false)}
+                    >
+                      {[
+                        'Global Styles & Layout',
+                        'Stripe Styles',
+                        'Heading Styles',
+                        'Button Styles'
+                      ].map((text, idx) => (
+                        <div 
+                          key={text}
+                          onClick={() => setSelectedGeneralStyle(text)}
+                          className="bg-white dark:bg-accent/40 rounded-[28px] border border-gray-200 dark:border-border flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-all duration-300 group absolute h-[52px]"
+                          style={{
+                            top: idx === 0 ? '0px' : (isGeneralHovered ? `${idx * 42}px` : `${idx * 14}px`),
+                            zIndex: 40 - idx,
+                            width: 'calc(100% - 4px)',
+                            left: '2px'
+                          }}
+                        >
+                          <span className={`text-[15.5px] font-bold text-gray-700 dark:text-foreground group-hover:text-primary transition-all ${!isGeneralHovered && idx > 0 ? 'opacity-0' : 'opacity-100'}`}>
+                            {text}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+            </div>
+          </div>
 
           {/* # STRUCTURE AND MODULE BLOCK */}
           {isStructuresPanelOpen && (
