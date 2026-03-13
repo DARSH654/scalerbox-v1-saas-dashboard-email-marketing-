@@ -407,6 +407,7 @@ export default function EmailEditorPage() {
         displayBackground: "#f6f6f6"
     });
     const [isGlobalColorPickerOpen, setIsGlobalColorPickerOpen] = useState(false);
+    const [isBgImageEnabled, setIsBgImageEnabled] = useState(false);
 
     const containerRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const canvasScrollRef = useRef<HTMLDivElement>(null);
@@ -1478,7 +1479,7 @@ export default function EmailEditorPage() {
             </header>
 
             <div
-                className="flex-1 overflow-hidden relative w-full h-full flex transition-colors duration-300"
+                className="flex-1 overflow-hidden relative w-full h-full flex"
                 style={{ backgroundColor: globalStyles.displayBackground }}
             >
 
@@ -1607,10 +1608,84 @@ export default function EmailEditorPage() {
                 {(isStructuresPanelOpen || isStructuresPanelClosing) && (
                     <div
                         ref={structuresPanelRef}
-                        className={`absolute ${structuresPanelPosition === 'right' ? 'right-[6px]' : 'left-[6px]'} top-[6px] w-[480px] z-[110] ${isStructuresPanelClosing ? 'structures-panel-close' : 'structures-panel-open'} transition-all duration-300 ease-[cubic-bezier(0.25,0.1,0.25,1)] pointer-events-none`}
+                        className={`absolute ${structuresPanelPosition === 'right' ? 'right-[6px]' : 'left-[6px]'} top-[6px] w-[480px] z-[110] ${isStructuresPanelClosing ? 'structures-panel-close' : 'structures-panel-open'} ease-[cubic-bezier(0.25,0.1,0.25,1)] pointer-events-none`}
                         style={{ height: 'calc(100% - 12px)' }}
                     >
-                        <div className="h-full w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[24px] shadow-xl flex flex-col overflow-hidden pointer-events-auto">
+                        {/* Stacking Effects Behind the Panel */}
+                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[94%] h-4 bg-white/60 dark:bg-white/10 rounded-b-[24px] pointer-events-none -z-10 shadow-sm border border-gray-200/40 dark:border-white/10 opacity-90" />
+                        <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-[88%] h-4 bg-white/30 dark:bg-white/5 rounded-b-[24px] pointer-events-none -z-20 shadow-sm border border-gray-100/20 dark:border-white/5 opacity-70" />
+                        
+                        <div className="h-full w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[24px] shadow-xl flex flex-col overflow-hidden pointer-events-auto relative">
+                             {/* Gradient Animation Style */}
+                             <style dangerouslySetInnerHTML={{ __html: `
+                                @keyframes gradient-move {
+                                    0% { background-position: 0% 50%; }
+                                    50% { background-position: 100% 50%; }
+                                    100% { background-position: 0% 50%; }
+                                }
+                                .animated-gradient-text {
+                                    background: linear-gradient(90deg, #10b981, #3b82f6, #8b5cf6, #10b981);
+                                    background-size: 200% auto;
+                                    -webkit-background-clip: text;
+                                    -webkit-text-fill-color: transparent;
+                                    animation: gradient-move 3s linear infinite;
+                                    font-weight: 800;
+                                }
+                                
+                                /* Emoji Picker Customization */
+                                .epr-main {
+                                    border: none !important;
+                                    box-shadow: none !important;
+                                    background: white !important;
+                                    border-radius: 20px !important;
+                                    display: flex !important;
+                                    flex-direction: row-reverse !important;
+                                    --epr-bg-color: #fff !important;
+                                    --epr-category-label-bg-color: #fff !important;
+                                    --epr-highlight-color: #10b981 !important;
+                                    --epr-search-input-bg-color: #f1f5f9 !important;
+                                    --epr-header-padding: 20px 20px 10px 20px !important;
+                                }
+                                .epr-category-nav {
+                                    flex-direction: column !important;
+                                    width: 52px !important;
+                                    padding: 15px 0 !important;
+                                    border-right: 1px solid #f1f5f9 !important;
+                                    height: 100% !important;
+                                    overflow-y: auto !important;
+                                    gap: 12px !important;
+                                }
+                                .epr-header {
+                                    flex: 1 !important;
+                                }
+                                .epr-body {
+                                    flex: 1 !important;
+                                }
+                                .epr-search-container {
+                                    padding: 0 10px 10px 0 !important;
+                                }
+                                .epr-search {
+                                    border-radius: 12px !important;
+                                    border: none !important;
+                                    font-weight: 500 !important;
+                                    padding: 12px 16px !important;
+                                }
+                                .epr-emoji-category-label {
+                                    font-size: 13px !important;
+                                    font-weight: 700 !important;
+                                    color: #94a3b8 !important;
+                                    text-transform: none !important;
+                                    padding-top: 20px !important;
+                                    height: auto !important;
+                                }
+                                .epr-body::-webkit-scrollbar {
+                                    width: 6px !important;
+                                }
+                                .epr-body::-webkit-scrollbar-thumb {
+                                    background: #e2e8f0 !important;
+                                    border-radius: 10px !important;
+                                }
+                            `}} />
 
                             {/* Panel Header with Close + Tabs */}
                             <div className="flex items-center h-[60px] px-4 flex-shrink-0 gap-3">
@@ -1879,7 +1954,7 @@ export default function EmailEditorPage() {
                 {/* Editor Canvas Area */}
                 <div
                     ref={canvasScrollRef}
-                    className={`flex-1 relative flex flex-col pt-0 pb-6 ${structuresPanelPosition === 'right' ? 'pr-[90px] pl-[384px]' : 'pl-6 pr-[384px]'} overflow-y-auto h-full items-center [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full transition-colors duration-300`}
+                    className={`flex-1 relative flex flex-col pt-0 pb-6 ${structuresPanelPosition === 'right' ? 'pr-[90px] pl-[384px]' : 'pl-6 pr-[384px]'} overflow-y-auto h-full items-center [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full`}
                     style={{ backgroundColor: globalStyles.displayBackground }}
                     onClick={() => { setSelectedBoxId(null); setSelectedBackdropRowId(null); }}
                 >
@@ -1887,7 +1962,7 @@ export default function EmailEditorPage() {
                     {/* The Canvas Page Layout Block */}
                     <div
                         ref={canvasRef}
-                        className={`w-full max-w-[620px] bg-white dark:bg-accent shadow-sm flex flex-col pt-[34px] pb-8 gap-6 relative transition-all duration-300`}
+                        className={`w-full max-w-[620px] bg-white dark:bg-accent shadow-sm flex flex-col pt-[34px] pb-8 gap-6 relative`}
                         onClick={(e) => e.stopPropagation()}
                         onDragOver={(e) => {
                             if (draggingTool?.type === 'layout' || draggingTool?.type === 'move_layout') {
@@ -2291,7 +2366,7 @@ export default function EmailEditorPage() {
 
                 {/* Right Sidebar Property Panel */}
                 <div
-                    className={`absolute ${structuresPanelPosition === 'right' ? 'left-0' : 'right-0'} top-0 w-[360px] h-full flex flex-col z-10 p-4 ${structuresPanelPosition === 'right' ? 'pr-0' : 'pl-0'} pointer-events-none transition-all ${isDraggingStructures && !draggingTool ? 'z-[60]' : ''}`}
+                    className={`absolute ${structuresPanelPosition === 'right' ? 'left-0' : 'right-0'} top-0 w-[360px] h-full flex flex-col z-10 p-4 ${structuresPanelPosition === 'right' ? 'pr-0' : 'pl-0'} pointer-events-none ${isDraggingStructures && !draggingTool ? 'z-[60]' : ''}`}
                     onDragOver={(e) => {
                         if (!isDraggingStructures || draggingTool) return;
                         e.preventDefault();
@@ -2557,7 +2632,7 @@ export default function EmailEditorPage() {
                                                     <div className="w-[5px] h-[5px] bg-[#10b981] rounded-full"></div>
                                                     <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Font Size on Desktop</label>
                                                 </div>
-                                                <div className="h-[38px] px-4 w-[90px] border-[1.5px] border-gray-200 dark:border-border rounded-full flex items-center justify-between bg-white dark:bg-background cursor-pointer hover:border-gray-300 dark:hover:border-gray-500 transition-colors">
+                                                <div className="h-[38px] px-4 w-[90px] border-[1.5px] border-gray-200 dark:border-border rounded-full flex items-center justify-between bg-white dark:bg-background cursor-pointer hover:border-gray-300 dark:hover:border-gray-500 transition-colors shadow-sm">
                                                     <span className="text-[14px] text-gray-700 dark:text-gray-200 font-medium">{boxProperties[selectedBoxId]?.fontSize || '14'}</span>
                                                     <span className="material-symbols-outlined text-[20px] text-gray-400">keyboard_arrow_down</span>
                                                 </div>
@@ -2678,7 +2753,10 @@ export default function EmailEditorPage() {
                                                                 sentiment_satisfied
                                                             </span>
                                                             {isSubjectEmojiPickerOpen && (
-                                                                <div className={`absolute ${structuresPanelPosition === 'right' ? 'right-0' : 'left-0'} top-10 z-[200]`}>
+                                                                <div className="absolute right-[calc(100%+16px)] top-1/2 -translate-y-1/2 z-[200] animate-in fade-in zoom-in-95 duration-200">
+                                                                    {/* Triangle Arrow */}
+                                                                    <div className="absolute right-[-6px] top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-t border-r border-gray-100 rotate-45 z-[210]"></div>
+                                                                    
                                                                     <div
                                                                         className="fixed inset-0 z-[190]"
                                                                         onClick={(e) => {
@@ -2686,14 +2764,19 @@ export default function EmailEditorPage() {
                                                                             setIsSubjectEmojiPickerOpen(false);
                                                                         }}
                                                                     />
-                                                                    <div className="relative z-[200]">
+                                                                    <div className="relative z-[200] bg-white rounded-[24px] shadow-2xl border border-gray-100 overflow-hidden w-[350px]">
                                                                         <EmojiPicker
                                                                             theme={Theme.LIGHT}
+                                                                            width="100%"
+                                                                            height={400}
                                                                             onEmojiClick={(emojiData: EmojiClickData) => {
                                                                                 setSubjectText(prev => prev + emojiData.emoji);
                                                                                 setIsSubjectEmojiPickerOpen(false);
                                                                             }}
-                                                                            autoFocusSearch={false}
+                                                                            autoFocusSearch={true}
+                                                                            searchPlaceholder="Search"
+                                                                            previewConfig={{ showPreview: false }}
+                                                                            skinTonesDisabled={true}
                                                                         />
                                                                     </div>
                                                                 </div>
@@ -2731,7 +2814,10 @@ export default function EmailEditorPage() {
                                                                 sentiment_satisfied
                                                             </span>
                                                             {isPreheaderEmojiPickerOpen && (
-                                                                <div className={`absolute ${structuresPanelPosition === 'right' ? 'right-0' : 'left-0'} top-10 z-[200]`}>
+                                                                <div className="absolute right-[calc(100%+16px)] top-1/2 -translate-y-1/2 z-[200] animate-in fade-in zoom-in-95 duration-200">
+                                                                    {/* Triangle Arrow */}
+                                                                    <div className="absolute right-[-6px] top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-t border-r border-gray-100 rotate-45 z-[210]"></div>
+                                                                    
                                                                     <div
                                                                         className="fixed inset-0 z-[190]"
                                                                         onClick={(e) => {
@@ -2739,14 +2825,19 @@ export default function EmailEditorPage() {
                                                                             setIsPreheaderEmojiPickerOpen(false);
                                                                         }}
                                                                     />
-                                                                    <div className="relative z-[200]">
+                                                                    <div className="relative z-[200] bg-white rounded-[24px] shadow-2xl border border-gray-100 overflow-hidden w-[350px]">
                                                                         <EmojiPicker
                                                                             theme={Theme.LIGHT}
+                                                                            width="100%"
+                                                                            height={400}
                                                                             onEmojiClick={(emojiData: EmojiClickData) => {
                                                                                 setPreheaderText(prev => prev + emojiData.emoji);
                                                                                 setIsPreheaderEmojiPickerOpen(false);
                                                                             }}
-                                                                            autoFocusSearch={false}
+                                                                            autoFocusSearch={true}
+                                                                            searchPlaceholder="Search"
+                                                                            previewConfig={{ showPreview: false }}
+                                                                            skinTonesDisabled={true}
                                                                         />
                                                                     </div>
                                                                 </div>
@@ -2943,14 +3034,47 @@ export default function EmailEditorPage() {
                                                                 </div>
 
                                                                 {/* Background Image */}
-                                                                <div className="px-8 py-5 flex items-center justify-between border-b border-gray-50 dark:border-white/5">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <span className="text-[14px] font-medium text-gray-500 dark:text-foreground/70">Background Image</span>
-                                                                        <TooltipProvider><Tooltip><TooltipTrigger className="flex items-center"><span className="material-symbols-outlined text-[20px] text-gray-300 hover:text-gray-400 transition-colors">help</span></TooltipTrigger><TooltipContent className="max-w-[280px]">Background image for the entire email. Some email clients (Windows 10 Mail, Android 4.4, the Gmail app for iOS, and Android for non-Gmail accounts) do not support background images. Thus, we recommend choosing a background color for the entire email similar to the selected image as a fallback.</TooltipContent></Tooltip></TooltipProvider>
+                                                                <div className="flex flex-col border-b border-gray-50 dark:border-white/5">
+                                                                    <div className="px-8 py-5 flex items-center justify-between">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-[14px] font-medium text-gray-500 dark:text-foreground/70">Background Image</span>
+                                                                            <TooltipProvider><Tooltip><TooltipTrigger className="flex items-center"><span className="material-symbols-outlined text-[20px] text-gray-300 hover:text-gray-400 transition-colors">help</span></TooltipTrigger><TooltipContent className="max-w-[280px]">Background image for the entire email. Some email clients (Windows 10 Mail, Android 4.4, the Gmail app for iOS, and Android for non-Gmail accounts) do not support background images. Thus, we recommend choosing a background color for the entire email similar to the selected image as a fallback.</TooltipContent></Tooltip></TooltipProvider>
+                                                                        </div>
+                                                                        <div 
+                                                                            onClick={() => setIsBgImageEnabled(!isBgImageEnabled)}
+                                                                            className={`w-[54px] h-[30px] rounded-full relative cursor-pointer shadow-inner border transition-all duration-300 ${isBgImageEnabled ? 'bg-[#10b981] border-green-500' : 'bg-gray-100 dark:bg-accent/40 border-gray-200'}`}
+                                                                        >
+                                                                            <div className={`w-[24px] h-[24px] bg-white rounded-full absolute top-[2px] shadow-md transition-all duration-300 ${isBgImageEnabled ? 'right-[2px]' : 'left-[2px]'}`}></div>
+                                                                        </div>
                                                                     </div>
-                                                                    <div className="w-[54px] h-[30px] bg-gray-100 dark:bg-accent/40 rounded-full relative cursor-pointer shadow-inner border border-gray-200/50">
-                                                                        <div className="w-[24px] h-[24px] bg-white rounded-full absolute top-[3px] left-[3px] shadow-sm"></div>
-                                                                    </div>
+                                                                    
+                                                                    {isBgImageEnabled && (
+                                                                        <div className="px-8 pb-6 animate-in slide-in-from-bottom-8 fade-in duration-500 ease-out">
+                                                                            <div className="flex flex-col gap-1.5 p-1 bg-gray-50/50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5">
+                                                                                {[
+                                                                                    { label: 'Email Projects', icon: 'auto_stories' },
+                                                                                    { label: 'Season Decoration', icon: 'celebration' },
+                                                                                    { label: 'AI Image', icon: 'auto_awesome' },
+                                                                                    { label: 'Photo Stock', icon: 'image' },
+                                                                                    { label: 'Icons', icon: 'category' },
+                                                                                    { label: 'GIF', icon: 'gif' }
+                                                                                ].map(cat => (
+                                                                                    <div 
+                                                                                        key={cat.label}
+                                                                                        className="group flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-white dark:hover:bg-white/10 cursor-pointer transition-all hover:shadow-sm hover:scale-[1.01] active:scale-[0.99]"
+                                                                                    >
+                                                                                        <div className="flex items-center gap-3">
+                                                                                            <span className={`material-symbols-outlined text-[20px] ${cat.label === 'AI Image' ? 'text-primary' : 'text-gray-400 group-hover:text-primary'} transition-colors`}>{cat.icon}</span>
+                                                                                            <span className={`text-[13.5px] font-bold tracking-tight transition-colors ${cat.label === 'AI Image' ? 'animated-gradient-text' : 'text-gray-600 dark:text-foreground/80 group-hover:text-primary'}`}>
+                                                                                                {cat.label}
+                                                                                            </span>
+                                                                                        </div>
+                                                                                        <span className="material-symbols-outlined text-[18px] text-gray-300 group-hover:text-primary transition-all group-hover:translate-x-0.5">chevron_right</span>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
 
                                                                 {/* Message Content Width */}
@@ -2980,12 +3104,153 @@ export default function EmailEditorPage() {
                                                                 </div>
 
                                                                 {/* Underline Links */}
-                                                                <div className="px-8 py-5 flex items-center justify-between">
+                                                                <div className="px-8 py-5 flex items-center justify-between border-b border-gray-50 dark:border-white/5">
                                                                     <div className="flex items-center gap-2">
                                                                         <span className="text-[14px] font-medium text-gray-500 dark:text-foreground/70">Underline Links</span>
                                                                     </div>
                                                                     <div className="w-[54px] h-[30px] bg-[#10b981] rounded-full relative cursor-pointer shadow-inner shadow-green-600/20">
                                                                         <div className="w-[24px] h-[24px] bg-white rounded-full absolute top-[3px] right-[3px] shadow-sm"></div>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Responsive Design */}
+                                                                <div className="px-8 py-5 border-b border-gray-50 dark:border-white/5">
+                                                                    <div className="flex items-center justify-between mb-2">
+                                                                        <span className="text-[14px] font-medium text-gray-500 dark:text-foreground/70">Responsive Design</span>
+                                                                        <div className="w-[54px] h-[30px] bg-[#10b981] rounded-full relative cursor-pointer shadow-inner shadow-green-600/20">
+                                                                            <div className="w-[24px] h-[24px] bg-white rounded-full absolute top-[3px] right-[3px] shadow-sm"></div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <p className="text-[12px] text-gray-400 leading-relaxed max-w-[400px]">
+                                                                        Your email will automatically adjust for smaller screens by displaying content in a single column. Side-by-side blocks will be stacked vertically
+                                                                    </p>
+                                                                </div>
+
+                                                                {/* RTL Text Direction */}
+                                                                <div className="px-8 py-5 flex items-center justify-between border-b border-gray-50 dark:border-white/5">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-[14px] font-medium text-gray-500 dark:text-foreground/70">Right to Left Text Direction</span>
+                                                                        <TooltipProvider><Tooltip><TooltipTrigger className="flex items-center"><span className="material-symbols-outlined text-[20px] text-gray-300 hover:text-gray-400 transition-colors">help</span></TooltipTrigger><TooltipContent className="max-w-[280px]">Enable right-to-left layout for languages like Arabic or Hebrew.</TooltipContent></Tooltip></TooltipProvider>
+                                                                    </div>
+                                                                    <div className="w-[54px] h-[30px] bg-[#10b981] rounded-full relative cursor-pointer shadow-inner shadow-green-600/20">
+                                                                        <div className="w-[24px] h-[24px] bg-white rounded-full absolute top-[3px] right-[3px] shadow-sm"></div>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Custom List Styles */}
+                                                                <div className="px-8 py-5 flex items-center justify-between border-b border-gray-50 dark:border-white/5">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-[14px] font-medium text-gray-500 dark:text-foreground/70">Custom List Styles</span>
+                                                                    </div>
+                                                                    <div className="w-[54px] h-[30px] bg-[#10b981] rounded-full relative cursor-pointer shadow-inner shadow-green-600/20">
+                                                                        <div className="w-[24px] h-[24px] bg-white rounded-full absolute top-[3px] right-[3px] shadow-sm"></div>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Right Indent */}
+                                                                <div className="px-8 py-5 flex items-center justify-between border-b border-gray-50 dark:border-white/5">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-[14px] font-medium text-gray-500 dark:text-foreground/70">Right Indent</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-3 bg-gray-50 dark:bg-accent/20 border border-gray-200 dark:border-border rounded-[22px] p-[3px] shadow-sm">
+                                                                        <div className="w-9 h-9 flex items-center justify-center bg-white dark:bg-background rounded-full text-gray-400 hover:text-gray-600 cursor-pointer transition-all shadow-sm"><span className="material-symbols-outlined text-[18px]">remove</span></div>
+                                                                        <span className="text-[15px] font-bold text-gray-600 dark:text-foreground min-w-[34px] text-center">40</span>
+                                                                        <div className="w-9 h-9 flex items-center justify-center bg-white dark:bg-background rounded-full text-gray-400 hover:text-gray-600 cursor-pointer transition-all shadow-sm"><span className="material-symbols-outlined text-[18px]">add</span></div>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* List Items Bottom Space */}
+                                                                <div className="px-8 py-5 flex items-center justify-between border-b border-gray-50 dark:border-white/5">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-[14px] font-medium text-gray-500 dark:text-foreground/70">List Items Bottom Space</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-3 bg-gray-50 dark:bg-accent/20 border border-gray-200 dark:border-border rounded-[22px] p-[3px] shadow-sm">
+                                                                        <div className="w-9 h-9 flex items-center justify-center bg-white dark:bg-background rounded-full text-gray-400 hover:text-gray-600 cursor-pointer transition-all shadow-sm"><span className="material-symbols-outlined text-[18px]">remove</span></div>
+                                                                        <span className="text-[15px] font-bold text-gray-600 dark:text-foreground min-w-[34px] text-center">15</span>
+                                                                        <div className="w-9 h-9 flex items-center justify-center bg-white dark:bg-background rounded-full text-gray-400 hover:text-gray-600 cursor-pointer transition-all shadow-sm"><span className="material-symbols-outlined text-[18px]">add</span></div>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Margins Above and Below Lists */}
+                                                                <div className="px-8 py-5 flex items-center justify-between border-b border-gray-50 dark:border-white/5">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-[14px] font-medium text-gray-500 dark:text-foreground/70">Margins Above and Below Lists</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-3 bg-gray-50 dark:bg-accent/20 border border-gray-200 dark:border-border rounded-[22px] p-[3px] shadow-sm">
+                                                                        <div className="w-9 h-9 flex items-center justify-center bg-white dark:bg-background rounded-full text-gray-400 hover:text-gray-600 cursor-pointer transition-all shadow-sm"><span className="material-symbols-outlined text-[18px]">remove</span></div>
+                                                                        <span className="text-[15px] font-bold text-gray-600 dark:text-foreground min-w-[34px] text-center">15</span>
+                                                                        <div className="w-9 h-9 flex items-center justify-center bg-white dark:bg-background rounded-full text-gray-400 hover:text-gray-600 cursor-pointer transition-all shadow-sm"><span className="material-symbols-outlined text-[18px]">add</span></div>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* List Markers Color */}
+                                                                <div className="px-8 py-5 flex items-center justify-between border-b border-gray-50 dark:border-white/5">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-[14px] font-medium text-gray-500 dark:text-foreground/70">List Markers Color</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="flex bg-gray-50 style-control dark:bg-accent/20 border border-gray-200 dark:border-border rounded-[18px] p-[3.5px] shadow-sm gap-1">
+                                                                            <div className="h-9 w-11 flex items-center justify-center bg-white dark:bg-background text-gray-500 rounded-xl shadow-sm cursor-pointer border-2 border-[#10b981]"><span className="material-symbols-outlined text-[20px] text-green-600">format_list_bulleted</span></div>
+                                                                            <div className="h-9 w-11 flex items-center justify-center text-gray-400 cursor-pointer hover:text-gray-600 transition-colors"><span className="material-symbols-outlined text-[20px]">format_list_numbered</span></div>
+                                                                        </div>
+                                                                        <div className="h-[40px] px-5 rounded-[20px] bg-[#333333] flex items-center justify-center text-[13.5px] font-bold text-white shadow-sm cursor-pointer min-w-[100px] uppercase">#333333</div>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Default Structure Padding on Desktop */}
+                                                                <div className="px-8 py-5">
+                                                                    <div className="flex items-center gap-2 mb-8">
+                                                                        <span className="text-[14px] font-medium text-gray-500 dark:text-foreground/70">Default Structure Padding on Desktop</span>
+                                                                        <TooltipProvider><Tooltip><TooltipTrigger className="flex items-center"><span className="material-symbols-outlined text-[20px] text-gray-300 hover:text-gray-400 transition-colors">help</span></TooltipTrigger><TooltipContent className="max-w-[280px]">Default padding for all structure elements when viewed on desktop screens.</TooltipContent></Tooltip></TooltipProvider>
+                                                                    </div>
+                                                                    
+                                                                    {/* Padding Grid Control */}
+                                                                    <div className="relative w-full h-[220px] flex items-center justify-center bg-white dark:bg-background/20 rounded-3xl border border-gray-50 dark:border-white/5 py-4">
+                                                                        {/* Top */}
+                                                                        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10">
+                                                                            <div className="flex items-center gap-2 bg-gray-50 dark:bg-accent/20 border border-gray-100 dark:border-border rounded-full p-[2px] shadow-sm">
+                                                                                <div className="w-7 h-7 flex items-center justify-center bg-white dark:bg-background rounded-full text-gray-400 shadow-sm"><span className="material-symbols-outlined text-[16px]">remove</span></div>
+                                                                                <span className="text-[13px] font-bold text-gray-600 dark:text-foreground min-w-[24px] text-center">20</span>
+                                                                                <div className="w-7 h-7 flex items-center justify-center bg-white dark:bg-background rounded-full text-gray-400 shadow-sm"><span className="material-symbols-outlined text-[16px]">add</span></div>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        {/* Vertical Gray Connection Lines */}
+                                                                        <div className="absolute top-[40px] bottom-[40px] left-1/2 -translate-x-1/2 w-[1.5px] bg-gray-100 dark:bg-white/5"></div>
+                                                                        {/* Horizontal Gray Connection Lines */}
+                                                                        <div className="absolute left-[30px] right-[30px] top-1/2 -translate-y-1/2 h-[1.5px] bg-gray-100 dark:bg-white/5"></div>
+
+                                                                        {/* Center Lock Icon */}
+                                                                        <div className="z-20 bg-white dark:bg-background border border-gray-200 dark:border-border p-3.5 rounded-[18px] shadow-sm text-gray-400 flex items-center justify-center">
+                                                                            <span className="material-symbols-outlined text-[22px]">lock</span>
+                                                                        </div>
+
+                                                                        {/* Left */}
+                                                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
+                                                                            <div className="flex items-center gap-2 bg-gray-50 dark:bg-accent/20 border border-gray-100 dark:border-border rounded-full p-[2px] shadow-sm">
+                                                                                <div className="w-7 h-7 flex items-center justify-center bg-white dark:bg-background rounded-full text-gray-400 shadow-sm"><span className="material-symbols-outlined text-[16px]">remove</span></div>
+                                                                                <span className="text-[13px] font-bold text-gray-600 dark:text-foreground min-w-[24px] text-center">20</span>
+                                                                                <div className="w-7 h-7 flex items-center justify-center bg-white dark:bg-background rounded-full text-gray-400 shadow-sm"><span className="material-symbols-outlined text-[16px]">add</span></div>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        {/* Right */}
+                                                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10">
+                                                                            <div className="flex items-center gap-2 bg-gray-50 dark:bg-accent/20 border border-gray-100 dark:border-border rounded-full p-[2px] shadow-sm">
+                                                                                <div className="w-7 h-7 flex items-center justify-center bg-white dark:bg-background rounded-full text-gray-400 shadow-sm"><span className="material-symbols-outlined text-[16px]">remove</span></div>
+                                                                                <span className="text-[13px] font-bold text-gray-600 dark:text-foreground min-w-[24px] text-center">165</span>
+                                                                                <div className="w-7 h-7 flex items-center justify-center bg-white dark:bg-background rounded-full text-gray-400 shadow-sm"><span className="material-symbols-outlined text-[16px]">add</span></div>
+                                                                            </div>
+                                                                        </div>
+
+                                                                        {/* Bottom */}
+                                                                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
+                                                                            <div className="flex items-center gap-2 bg-gray-50 dark:bg-accent/20 border border-gray-100 dark:border-border rounded-full p-[2px] shadow-sm">
+                                                                                <div className="w-7 h-7 flex items-center justify-center bg-white dark:bg-background rounded-full text-gray-400 shadow-sm"><span className="material-symbols-outlined text-[16px]">remove</span></div>
+                                                                                <span className="text-[13px] font-bold text-gray-600 dark:text-foreground min-w-[24px] text-center">0</span>
+                                                                                <div className="w-7 h-7 flex items-center justify-center bg-white dark:bg-background rounded-full text-gray-400 shadow-sm"><span className="material-symbols-outlined text-[16px]">add</span></div>
+                                                                            </div>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             </>
