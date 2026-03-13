@@ -3,7 +3,7 @@
 import React, { useState, useRef } from 'react';
 import Image from "next/image";
 import { 
-  ChevronDown, ArrowLeft, Trash2, CloudUpload, 
+  ChevronDown, ArrowLeft, Trash2, CloudUpload, X as XIcon,
   Undo, History, Redo, Code, Monitor, Smartphone,
   MonitorSmartphone, ClipboardCheck, Upload, Share2
 } from "lucide-react";
@@ -21,9 +21,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+const LayoutIcon = ({ size = 20, className }: { size?: number, className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" height={size} viewBox="0 -960 960 960" width={size} fill="currentColor" className={className}>
+        <path d="M120-520v-320h320v320H120Zm0 400v-320h320v320H120Zm400-400v-320h320v320H520Zm0 400v-320h320v320H520ZM200-600h160v-160H200v160Zm400 0h160v-160H600v160Zm0 400h160v-160H600v160Zm-400 0h160v-160H200v160Zm400-400Zm0 240Zm-240 0Zm0-240Z" />
+    </svg>
+);
+
 export default function EditorV2Page() {
   const [title, setTitle] = useState("new project");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [structuresTab, setStructuresTab] = useState('general');
+  const [isStructuresPanelOpen, setIsStructuresPanelOpen] = useState(true);
   const canvasRef = useRef<HTMLDivElement>(null);
   const canvasScrollRef = useRef<HTMLDivElement>(null);
 
@@ -165,8 +173,116 @@ export default function EditorV2Page() {
         </header>
 
         {/* # MAIN CONTENT AREA (BLANK) */}
-        <main className="flex-1 bg-[#f3f4f6]">
-        </main>
+        <div className="flex-1 flex overflow-hidden relative">
+          
+          {/* # VERTICAL ROW BLOCK */}
+          <div className="w-[72px] h-full flex-shrink-0 flex flex-col items-center pt-[20px] pb-4 z-30 ml-2">
+            <div className="w-[60px] h-full flex flex-col items-center gap-4 relative">
+              {/* # STRUCTURES & MODULES BUTTON */}
+              <div 
+                onClick={() => setIsStructuresPanelOpen(!isStructuresPanelOpen)}
+                className="w-[60px] h-[60px] min-w-[60px] min-h-[60px] aspect-square bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[16px] shadow-sm flex flex-col items-center justify-center cursor-pointer text-gray-600 dark:text-muted-foreground relative z-40 transition-colors hover:border-primary"
+              >
+                <div className="absolute top-[4px] w-full flex justify-center cursor-move">
+                  <span className="material-symbols-outlined text-[10px] text-gray-400/60 rotate-90 scale-x-[-1]">drag_indicator</span>
+                </div>
+                <span className="material-symbols-outlined text-[56px] mt-2">view_quilt</span>
+              </div>
+
+              {/* # VERTICAL TOOLBAR BUTTONS */}
+              <div className="flex-1 w-[60px] bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[20px] shadow-sm overflow-hidden flex flex-col relative">
+                <div className="w-full flex-1 flex flex-col items-center p-1.5 gap-2 pb-1.5 overflow-y-auto no-scrollbar">
+                  {[
+                    { icon: "image", tooltip: "Image" },
+                    { icon: "title", tooltip: "Text" },
+                    { icon: "smart_button", tooltip: "Button" },
+                    { icon: "height", tooltip: "Spacer" },
+                    { icon: "share", tooltip: "Social Networks" },
+                    { icon: "view_headline", tooltip: "Menu" },
+                    { icon: "code", tooltip: "HTML" },
+                    { icon: "filter_none", tooltip: "Banner" }
+                  ].map((tool, index) => (
+                    <div
+                      key={index}
+                      className="w-12 h-12 aspect-square bg-white dark:bg-background border-[2px] border-gray-200 dark:border-white/10 hover:border-primary rounded-[16px] flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-all text-gray-500"
+                    >
+                      <span className="material-symbols-outlined text-[24px] leading-none select-none">{tool.icon}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <main className="flex-1 bg-[#f3f4f6]">
+          </main>
+
+          {/* # STRUCTURE AND MODULE BLOCK */}
+          {isStructuresPanelOpen && (
+            <div 
+              className="absolute left-[80px] top-[6px] w-[480px] z-[110] transition-all duration-300 ease-in-out"
+              style={{ height: 'calc(100% - 12px)' }}
+            >
+              {/* Panel Stacking Decorations */}
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[94%] h-4 bg-white/60 rounded-b-[24px] pointer-events-none -z-10 shadow-sm border border-gray-200/40 opacity-90" />
+              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-[88%] h-4 bg-white/30 rounded-b-[24px] pointer-events-none -z-20 shadow-sm border border-gray-100/20 opacity-70" />
+              
+              <div className="h-full w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[24px] shadow-xl flex flex-col overflow-hidden relative">
+                {/* # PANEL HEADER */}
+                <div className="flex items-center h-[60px] px-4 flex-shrink-0 gap-3">
+                  <div 
+                    onClick={() => setIsStructuresPanelOpen(false)}
+                    className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600 flex-shrink-0"
+                  >
+                    <XIcon className="w-5 h-5" strokeWidth={2.5} />
+                  </div>
+                  <div className="flex-1 flex items-center justify-center">
+                    <div className="w-full flex items-center bg-[#f1f5f9] dark:bg-accent/40 rounded-full p-[4px] h-[48px] shadow-inner">
+                      {[
+                        { id: 'general', icon: <LayoutIcon size={20} />, label: 'Layouts' },
+                        { id: 'current-layout', icon: <span className="material-symbols-outlined text-[22px]">view_array</span>, label: 'Structures' },
+                        { id: 'my-modules', icon: <span className="material-symbols-outlined text-[22px]">person</span>, label: 'My Modules' }
+                      ].map((tab) => (
+                        <div
+                          key={tab.id}
+                          onClick={() => setStructuresTab(tab.id)}
+                          className={`h-[40px] flex-1 flex items-center justify-center rounded-full cursor-pointer transition-all duration-200 ${structuresTab === tab.id ? 'bg-white shadow-sm text-gray-700' : 'text-gray-400 hover:text-gray-600'}`}
+                        >
+                          {tab.icon}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* # PANEL CONTENT AREA */}
+                <div className="flex-1 overflow-y-auto p-4 pr-2">
+                  <div className="space-y-4">
+                    <p className="text-[12px] text-gray-400 font-medium uppercase tracking-wider px-1">Structures</p>
+                    <div className="flex flex-col gap-2">
+                      {/* 1 Column Structure */}
+                      <div className="w-full bg-white border-[2px] border-gray-200 rounded-[14px] p-2.5 cursor-pointer hover:border-primary hover:shadow-md transition-colors h-[54px] flex gap-2">
+                        <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 bg-[#f0f7ff] rounded-[6px]"></div>
+                      </div>
+                      {/* 2 Column Structure */}
+                      <div className="w-full bg-white border-[2px] border-gray-200 rounded-[14px] p-2.5 cursor-pointer hover:border-primary hover:shadow-md transition-colors h-[54px] flex gap-2">
+                        <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 bg-[#f0f7ff] rounded-[6px]"></div>
+                        <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 bg-[#f0f7ff] rounded-[6px]"></div>
+                      </div>
+                      {/* 3 Column Structure */}
+                      <div className="w-full bg-white border-[2px] border-gray-200 rounded-[14px] p-2.5 cursor-pointer hover:border-primary hover:shadow-md transition-colors h-[54px] flex gap-2">
+                        <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 bg-[#f0f7ff] rounded-[6px]"></div>
+                        <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 bg-[#f0f7ff] rounded-[6px]"></div>
+                        <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 bg-[#f0f7ff] rounded-[6px]"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+        </div>
 
       </TooltipProvider>
     </div>
