@@ -164,31 +164,9 @@ export default function EditorV2Page() {
           </div>
         </header>
 
-        {/* # CONTENT BODY AREA */}
-        <div className="flex-1 overflow-hidden relative w-full h-full flex">
-          
-          {/* # CANVAS AREA */}
-          <div
-            ref={canvasScrollRef}
-            className={`flex-1 relative flex flex-col pt-0 pb-6 pl-6 pr-[384px] overflow-y-auto h-full items-center [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full`}
-            style={{ backgroundColor: '#f3f4f6' }}
-          >
-            {/* The Canvas Page Layout Block */}
-            <div
-              ref={canvasRef}
-              className={`w-full max-w-[620px] bg-white dark:bg-accent shadow-sm flex flex-col pt-[34px] pb-8 gap-6 relative min-h-screen`}
-            >
-              {/* # CANVAS OVERLAY ROOT */}
-              <div
-                id="canvas-overlay-root"
-                className="absolute inset-0 pointer-events-none z-[200]"
-              />
-
-              {/* [Row Content will go here] */}
-            </div>
-          </div>
-
-        </div>
+        {/* # MAIN CONTENT AREA (BLANK) */}
+        <main className="flex-1 bg-[#f3f4f6]">
+        </main>
 
       </TooltipProvider>
     </div>
