@@ -474,7 +474,7 @@ function MainLayout({
         return <GlobalLoader size={100} />;
     }
 
-    if (pathname === '/edit-image') {
+    if (pathname === '/edit-image' || pathname === '/email-marketing/editor-v2') {
         return <>{children}</>;
     }
 

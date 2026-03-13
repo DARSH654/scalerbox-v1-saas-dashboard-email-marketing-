@@ -869,7 +869,7 @@ export default function EmailEditorPage() {
         const overlayContent = (
             <>
                 {/* Border layer – appears instantly on hover */}
-                <div className={`absolute inset-0 pointer-events-none z-[50] transition-opacity duration-150 ${isBlockSelected || showHoverBorder ? 'opacity-100' : 'opacity-0'}`}>
+                <div className={`absolute inset-0 pointer-events-none z-[50] ${isBlockSelected || showHoverBorder ? 'opacity-100' : 'opacity-0'}`}>
                     {/* Hover-only border (when block is hovered but not selected as a block) */}
                     {showHoverBorder && !isBlockSelected && (
                         <div className="absolute inset-0 border-[2px] border-[#4b5b75] rounded-[4px] pointer-events-none"></div>
