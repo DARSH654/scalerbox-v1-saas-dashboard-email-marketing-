@@ -41,6 +41,8 @@ export default function EditorV2Page() {
   const [subjectText, setSubjectText] = useState("");
   const [preheaderText, setPreheaderText] = useState("");
   const [isBgImageEnabled, setIsBgImageEnabled] = useState(false);
+  const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // # TOOL SCROLLING LOGIC STATE & REFS
   const [canToolScrollUp, setCanToolScrollUp] = useState(false);
@@ -290,8 +292,73 @@ export default function EditorV2Page() {
           {/* # EDITOR CANVAS AREA */}
           <div className="flex-1 relative flex flex-col pt-0 pb-6 overflow-y-auto h-full [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full">
             <div className="w-full pr-[360px] flex flex-col items-center">
-              <div className="w-full max-w-[620px] bg-white shadow-sm flex flex-col pt-[34px] pb-8 gap-6 relative min-h-[500px]">
-                {/* Pure White Blank Canvas Location */}
+              <div className="w-full max-w-[620px] bg-white shadow-sm flex flex-col pt-[34px] pb-8 gap-6 relative h-fit">
+                {/* # ROW 1: 2-COLUMN */}
+                <div className="px-8 w-full flex gap-4">
+                  <div className="flex-1 min-h-[120px] border-[2px] border-dashed border-blue-400/20 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[4px] flex flex-col items-center justify-center text-blue-400/70 p-6 cursor-default relative group overflow-hidden">
+                    <div className="flex flex-col items-center gap-[4px] transition-transform duration-300 group-hover:-translate-y-3">
+                      <span className="material-symbols-outlined text-[24px] opacity-70">file_download</span>
+                      <span className="text-[14.5px] font-medium tracking-tight">Drop content here</span>
+                    </div>
+                    <div className="absolute bottom-[18px] left-0 right-0 flex items-center justify-center gap-5 opacity-0 transition-all duration-300 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 pointer-events-none group-hover:pointer-events-auto">
+                      <span className="material-symbols-outlined text-[20px] hover:text-blue-600 transition-colors cursor-pointer">image</span>
+                      <span className="material-symbols-outlined text-[20px] hover:text-blue-600 transition-colors cursor-pointer">title</span>
+                      <span className="material-symbols-outlined text-[20px] hover:text-blue-600 transition-colors cursor-pointer">smart_button</span>
+                    </div>
+                  </div>
+                  <div className="flex-1 min-h-[120px] border-[2px] border-dashed border-blue-400/20 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[4px] flex flex-col items-center justify-center text-blue-400/70 p-6 cursor-default relative group overflow-hidden">
+                    <div className="flex flex-col items-center gap-[4px] transition-transform duration-300 group-hover:-translate-y-3">
+                      <span className="material-symbols-outlined text-[24px] opacity-70">file_download</span>
+                      <span className="text-[14.5px] font-medium tracking-tight">Drop content here</span>
+                    </div>
+                    <div className="absolute bottom-[18px] left-0 right-0 flex items-center justify-center gap-5 opacity-0 transition-all duration-300 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 pointer-events-none group-hover:pointer-events-auto">
+                      <span className="material-symbols-outlined text-[20px] hover:text-blue-600 transition-colors cursor-pointer">image</span>
+                      <span className="material-symbols-outlined text-[20px] hover:text-blue-600 transition-colors cursor-pointer">title</span>
+                      <span className="material-symbols-outlined text-[20px] hover:text-blue-600 transition-colors cursor-pointer">smart_button</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* # ROW 2: 1-COLUMN */}
+                <div className="px-8 w-full">
+                  <div className="w-full min-h-[120px] border-[2px] border-dashed border-blue-400/20 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[4px] flex flex-col items-center justify-center text-blue-400/70 p-6 cursor-default relative group overflow-hidden">
+                    <div className="flex flex-col items-center gap-[4px] transition-transform duration-300 group-hover:-translate-y-3">
+                      <span className="material-symbols-outlined text-[24px] opacity-70">file_download</span>
+                      <span className="text-[14.5px] font-medium tracking-tight">Drop content here</span>
+                    </div>
+                    <div className="absolute bottom-[18px] left-0 right-0 flex items-center justify-center gap-5 opacity-0 transition-all duration-300 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 pointer-events-none group-hover:pointer-events-auto">
+                      <span className="material-symbols-outlined text-[20px] hover:text-blue-600 transition-colors cursor-pointer">image</span>
+                      <span className="material-symbols-outlined text-[20px] hover:text-blue-600 transition-colors cursor-pointer">title</span>
+                      <span className="material-symbols-outlined text-[20px] hover:text-blue-600 transition-colors cursor-pointer">smart_button</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* # ROW 3: 2-COLUMN */}
+                <div className="px-8 w-full flex gap-4">
+                  <div className="flex-1 min-h-[120px] border-[2px] border-dashed border-blue-400/20 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[4px] flex flex-col items-center justify-center text-blue-400/70 p-6 cursor-default relative group overflow-hidden">
+                    <div className="flex flex-col items-center gap-[4px] transition-transform duration-300 group-hover:-translate-y-3">
+                      <span className="material-symbols-outlined text-[24px] opacity-70">file_download</span>
+                      <span className="text-[14.5px] font-medium tracking-tight">Drop content here</span>
+                    </div>
+                    <div className="absolute bottom-[18px] left-0 right-0 flex items-center justify-center gap-5 opacity-0 transition-all duration-300 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 pointer-events-none group-hover:pointer-events-auto">
+                      <span className="material-symbols-outlined text-[20px] hover:text-blue-600 transition-colors cursor-pointer">image</span>
+                      <span className="material-symbols-outlined text-[20px] hover:text-blue-600 transition-colors cursor-pointer">title</span>
+                      <span className="material-symbols-outlined text-[20px] hover:text-blue-600 transition-colors cursor-pointer">smart_button</span>
+                    </div>
+                  </div>
+                  <div className="flex-1 min-h-[120px] border-[2px] border-dashed border-blue-400/20 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[4px] flex flex-col items-center justify-center text-blue-400/70 p-6 cursor-default relative group overflow-hidden">
+                    <div className="flex flex-col items-center gap-[4px] transition-transform duration-300 group-hover:-translate-y-3">
+                      <span className="material-symbols-outlined text-[24px] opacity-70">file_download</span>
+                      <span className="text-[14.5px] font-medium tracking-tight">Drop content here</span>
+                    </div>
+                    <div className="absolute bottom-[18px] left-0 right-0 flex items-center justify-center gap-5 opacity-0 transition-all duration-300 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 pointer-events-none group-hover:pointer-events-auto">
+                      <span className="material-symbols-outlined text-[20px] hover:text-blue-600 transition-colors cursor-pointer">image</span>
+                      <span className="material-symbols-outlined text-[20px] hover:text-blue-600 transition-colors cursor-pointer">title</span>
+                      <span className="material-symbols-outlined text-[20px] hover:text-blue-600 transition-colors cursor-pointer">smart_button</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
