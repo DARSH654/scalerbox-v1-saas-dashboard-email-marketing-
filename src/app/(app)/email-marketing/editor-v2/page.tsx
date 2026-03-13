@@ -221,7 +221,8 @@ export default function EditorV2Page() {
           </div>
         </header>
 
-        <div className="flex-1 flex overflow-hidden relative">
+        {/* # MAIN CONTENT AREA (DISPLAY BG) */}
+        <main className="flex-1 bg-[#f3f4f6] relative flex overflow-hidden">
 
           {/* # VERTICAL ROW BLOCK */}
           <div className="w-[72px] h-full flex-shrink-0 flex flex-col items-center pt-[20px] pb-4 z-30 ml-2">
@@ -286,12 +287,12 @@ export default function EditorV2Page() {
             </div>
           </div>
 
-          {/* # MAIN CONTENT AREA (BLANK) */}
-          <main className="flex-1 bg-[#f3f4f6] relative flex flex-col overflow-hidden">
-          </main>
+          {/* # EDITOR CANVAS AREA */}
+          <div className="flex-1 relative flex flex-col overflow-hidden">
+          </div>
 
           {/* # RIGHT SIDEBAR BLOCK */}
-          <div className="w-[420px] h-full flex-shrink-0 bg-[#f3f4f6] dark:bg-background border-l border-gray-200 dark:border-border p-3 flex flex-col gap-3 z-30">
+          <div className="w-[420px] h-full flex-shrink-0 bg-[#f3f4f6] dark:bg-background p-3 flex flex-col gap-3 z-30">
             
             {/* # RIGHT PANEL TABS BLOCK */}
             <div className="w-full h-[54px] bg-[#e5e7eb] dark:bg-accent/40 p-[5px] rounded-[27px] flex items-center shadow-inner relative flex-shrink-0">
@@ -487,7 +488,7 @@ export default function EditorV2Page() {
             </div>
           )}
 
-        </div>
+        </main>
 
       </TooltipProvider>
     </div>
