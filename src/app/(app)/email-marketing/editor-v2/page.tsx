@@ -288,14 +288,17 @@ export default function EditorV2Page() {
           </div>
 
           {/* # EDITOR CANVAS AREA */}
-          <div className="flex-1 relative flex flex-col overflow-hidden">
+          <div className="flex-1 relative flex flex-col pt-0 pb-6 pl-6 pr-[360px] overflow-y-auto h-full items-center [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full">
+            <div className="w-full max-w-[620px] bg-white shadow-sm flex flex-col pt-[34px] pb-8 gap-6 relative min-h-[500px]">
+              {/* Pure White Blank Canvas Location */}
+            </div>
           </div>
 
           {/* # RIGHT SIDEBAR BLOCK */}
-          <div className="w-[420px] h-full flex-shrink-0 bg-[#f3f4f6] dark:bg-background p-3 flex flex-col gap-3 z-30">
-            
+          <div className="absolute right-0 top-0 w-[360px] h-full flex flex-col gap-3 p-3 z-30 pointer-events-none">
+
             {/* # RIGHT PANEL TABS BLOCK */}
-            <div className="w-full h-[54px] bg-[#e5e7eb] dark:bg-accent/40 p-[5px] rounded-[27px] flex items-center shadow-inner relative flex-shrink-0">
+            <div className="w-full h-[54px] bg-[#e5e7eb] dark:bg-accent/40 p-[5px] rounded-[27px] flex items-center shadow-inner relative flex-shrink-0 pointer-events-auto">
               <div
                 onClick={() => setActiveRightSidebarTab('appearance')}
                 className={`flex-1 h-full flex justify-center items-center rounded-full cursor-pointer transition-all ${activeRightSidebarTab === 'appearance' ? 'bg-white dark:bg-background shadow-sm text-gray-700 dark:text-foreground' : 'text-gray-500 hover:text-gray-700'}`}
@@ -312,10 +315,10 @@ export default function EditorV2Page() {
 
             {/* # RIGHT SIDEBAR CONTENT AREA */}
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-              
+
               {/* # MESSAGE SETTINGS PANEL BLOCK */}
               {activeRightSidebarTab === 'message' && (
-                <div className="flex-1 bg-white dark:bg-background rounded-[24px] shadow-sm flex flex-col overflow-hidden overflow-y-auto p-5 space-y-4 animate-in fade-in duration-300">
+                <div className="flex-1 bg-white dark:bg-background rounded-[24px] shadow-sm flex flex-col overflow-hidden overflow-y-auto p-5 space-y-4 animate-in fade-in duration-300 pointer-events-auto relative">
                   <div className="space-y-1">
                     <label className="text-sm font-semibold text-gray-500 pl-1">Subject / Title</label>
                     <div className="relative bg-[#f1f5f9] dark:bg-accent/30 rounded-[16px] p-4 flex flex-col min-h-[110px] shadow-inner">
@@ -367,7 +370,7 @@ export default function EditorV2Page() {
 
               {/* # APPEARANCE / GENERAL STYLES PANEL BLOCK */}
               {activeRightSidebarTab === 'appearance' && (
-                <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative animate-in fade-in duration-300">
+                <div className="flex-1 flex flex-col min-h-0 overflow-hidden relative animate-in fade-in duration-300 pointer-events-auto">
                   {selectedGeneralStyle ? (
                     <div className="flex flex-col h-full bg-white dark:bg-background rounded-[24px] shadow-sm overflow-hidden">
                       <div
@@ -387,7 +390,7 @@ export default function EditorV2Page() {
                       </div>
                     </div>
                   ) : (
-                    <div 
+                    <div
                       className="w-full relative py-2"
                       style={{ height: isGeneralHovered ? '220px' : '110px' }}
                       onMouseEnter={() => setIsGeneralHovered(true)}
@@ -399,7 +402,7 @@ export default function EditorV2Page() {
                         'Heading Styles',
                         'Button Styles'
                       ].map((text, idx) => (
-                        <div 
+                        <div
                           key={text}
                           onClick={() => setSelectedGeneralStyle(text)}
                           className="bg-white dark:bg-accent/40 rounded-[28px] border border-gray-200 dark:border-border flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-all duration-300 group absolute h-[52px]"
