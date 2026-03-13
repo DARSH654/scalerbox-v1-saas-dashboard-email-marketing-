@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import Image from "next/image";
-import { 
-  ChevronDown, ArrowLeft, Trash2, CloudUpload, X as XIcon,
+import {
+  ChevronDown, ArrowLeft, Trash2, CloudUpload, X as XIcon, ChevronUp,
   Undo, History, Redo, Code, Monitor, Smartphone,
   MonitorSmartphone, ClipboardCheck, Upload, Share2
 } from "lucide-react";
@@ -22,9 +22,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const LayoutIcon = ({ size = 20, className }: { size?: number, className?: string }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" height={size} viewBox="0 -960 960 960" width={size} fill="currentColor" className={className}>
-        <path d="M120-520v-320h320v320H120Zm0 400v-320h320v320H120Zm400-400v-320h320v320H520Zm0 400v-320h320v320H520ZM200-600h160v-160H200v160Zm400 0h160v-160H600v160Zm0 400h160v-160H600v160Zm-400 0h160v-160H200v160Zm400-400Zm0 240Zm-240 0Zm0-240Z" />
-    </svg>
+  <svg xmlns="http://www.w3.org/2000/svg" height={size} viewBox="0 -960 960 960" width={size} fill="currentColor" className={className}>
+    <path d="M120-520v-320h320v320H120Zm0 400v-320h320v320H120Zm400-400v-320h320v320H520Zm0 400v-320h320v320H520ZM200-600h160v-160H200v160Zm400 0h160v-160H600v160Zm0 400h160v-160H600v160Zm-400 0h160v-160H200v160Zm400-400Zm0 240Zm-240 0Zm0-240Z" />
+  </svg>
 );
 
 export default function EditorV2Page() {
@@ -32,16 +32,56 @@ export default function EditorV2Page() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [structuresTab, setStructuresTab] = useState('general');
   const [isStructuresPanelOpen, setIsStructuresPanelOpen] = useState(true);
-  const canvasRef = useRef<HTMLDivElement>(null);
-  const canvasScrollRef = useRef<HTMLDivElement>(null);
+
+  // # TOOL SCROLLING LOGIC STATE & REFS
+  const [canToolScrollUp, setCanToolScrollUp] = useState(false);
+  const [canToolScrollDown, setCanToolScrollDown] = useState(false);
+  const toolScrollRef = useRef<HTMLDivElement>(null);
+  const toolScrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // # TOOL SCROLLING HANDLERS
+  const startToolScrolling = useCallback((direction: 'up' | 'down') => {
+    const el = toolScrollRef.current;
+    if (!el) return;
+    if (toolScrollIntervalRef.current) clearInterval(toolScrollIntervalRef.current);
+    toolScrollIntervalRef.current = setInterval(() => {
+      el.scrollTop += direction === 'up' ? -5 : 5;
+    }, 10);
+  }, []);
+
+  const stopToolScrolling = useCallback(() => {
+    if (toolScrollIntervalRef.current) {
+      clearInterval(toolScrollIntervalRef.current);
+      toolScrollIntervalRef.current = null;
+    }
+  }, []);
+
+  // # TOOL SCROLLING OBSERVER
+  useEffect(() => {
+    const el = toolScrollRef.current;
+    if (!el) return;
+    const checkScroll = () => {
+      setCanToolScrollUp(el.scrollTop > 0);
+      setCanToolScrollDown(el.scrollTop + el.clientHeight < el.scrollHeight - 1);
+    };
+    checkScroll();
+    el.addEventListener('scroll', checkScroll);
+    const observer = new ResizeObserver(() => checkScroll());
+    observer.observe(el);
+    return () => {
+      el.removeEventListener('scroll', checkScroll);
+      observer.disconnect();
+      if (toolScrollIntervalRef.current) clearInterval(toolScrollIntervalRef.current);
+    };
+  }, []);
 
   return (
     <div className="fixed inset-0 z-[40] h-full w-full flex flex-col overflow-hidden bg-[#f3f4f6] dark:bg-background font-sans">
       <TooltipProvider delayDuration={0}>
-        
+
         {/* # NAVIGATION BAR BLOCK */}
         <header className="h-[56px] border-b px-3 flex items-center justify-between bg-white dark:bg-background z-10 relative shrink-0">
-          
+
           {/* # LEFT SECTION: LOGO, BACK, TITLE, ACTIONS */}
           <div className="flex items-center gap-3">
             {/* # LOGO & NAVIGATION MENU */}
@@ -172,14 +212,13 @@ export default function EditorV2Page() {
           </div>
         </header>
 
-        {/* # MAIN CONTENT AREA (BLANK) */}
         <div className="flex-1 flex overflow-hidden relative">
-          
+
           {/* # VERTICAL ROW BLOCK */}
           <div className="w-[72px] h-full flex-shrink-0 flex flex-col items-center pt-[20px] pb-4 z-30 ml-2">
             <div className="w-[60px] h-full flex flex-col items-center gap-4 relative">
               {/* # STRUCTURES & MODULES BUTTON */}
-              <div 
+              <div
                 onClick={() => setIsStructuresPanelOpen(!isStructuresPanelOpen)}
                 className="w-[60px] h-[60px] min-w-[60px] min-h-[60px] aspect-square bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[16px] shadow-sm flex flex-col items-center justify-center cursor-pointer text-gray-600 dark:text-muted-foreground relative z-40 transition-colors hover:border-primary"
               >
@@ -190,8 +229,18 @@ export default function EditorV2Page() {
               </div>
 
               {/* # VERTICAL TOOLBAR BUTTONS */}
-              <div className="flex-1 w-[60px] bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[20px] shadow-sm overflow-hidden flex flex-col relative">
-                <div className="w-full flex-1 flex flex-col items-center p-1.5 gap-2 pb-1.5 overflow-y-auto no-scrollbar">
+              <div className="flex-1 w-[60px] bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[20px] shadow-sm overflow-hidden flex flex-col relative group/tool-scroll">
+
+                {/* # CHEVRON UP */}
+                <div
+                  className={`absolute top-1 left-1/2 -translate-x-1/2 z-10 w-8 h-8 flex items-center justify-center transition-opacity bg-white/90 rounded-full cursor-pointer shadow-md border-[2px] border-gray-200 ${canToolScrollUp ? 'opacity-0 group-hover/tool-scroll:opacity-100' : 'opacity-0 pointer-events-none'}`}
+                  onMouseEnter={() => startToolScrolling('up')}
+                  onMouseLeave={stopToolScrolling}
+                >
+                  <ChevronUp className="w-4 h-4 text-gray-500" />
+                </div>
+
+                <div ref={toolScrollRef} className="w-full flex-1 flex flex-col items-center p-1.5 gap-2 pb-1.5 overflow-y-auto no-scrollbar">
                   {[
                     { icon: "image", tooltip: "Image" },
                     { icon: "title", tooltip: "Text" },
@@ -200,7 +249,12 @@ export default function EditorV2Page() {
                     { icon: "share", tooltip: "Social Networks" },
                     { icon: "view_headline", tooltip: "Menu" },
                     { icon: "code", tooltip: "HTML" },
-                    { icon: "filter_none", tooltip: "Banner" }
+                    { icon: "filter_none", tooltip: "Banner" },
+                    { icon: "theaters", tooltip: "Video" },
+                    { icon: "timer", tooltip: "Timer" },
+                    { icon: "view_carousel", tooltip: "Carousel" },
+                    { icon: "expand_all", tooltip: "AMP Accordion" },
+                    { icon: "dynamic_form", tooltip: "AMP Form" }
                   ].map((tool, index) => (
                     <div
                       key={index}
@@ -210,27 +264,37 @@ export default function EditorV2Page() {
                     </div>
                   ))}
                 </div>
+
+                {/* # CHEVRON DOWN */}
+                <div
+                  className={`absolute bottom-1 left-1/2 -translate-x-1/2 z-10 w-8 h-8 flex items-center justify-center transition-opacity bg-white/90 rounded-full cursor-pointer shadow-md border-[2px] border-gray-200 ${canToolScrollDown ? 'opacity-0 group-hover/tool-scroll:opacity-100' : 'opacity-0 pointer-events-none'}`}
+                  onMouseEnter={() => startToolScrolling('down')}
+                  onMouseLeave={stopToolScrolling}
+                >
+                  <ChevronDown className="w-4 h-4 text-gray-500" />
+                </div>
               </div>
             </div>
           </div>
 
+          {/* # MAIN CONTENT AREA (BLANK) */}
           <main className="flex-1 bg-[#f3f4f6]">
           </main>
 
           {/* # STRUCTURE AND MODULE BLOCK */}
           {isStructuresPanelOpen && (
-            <div 
+            <div
               className="absolute left-[80px] top-[6px] w-[480px] z-[110] transition-all duration-300 ease-in-out"
               style={{ height: 'calc(100% - 12px)' }}
             >
               {/* Panel Stacking Decorations */}
               <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[94%] h-4 bg-white/60 rounded-b-[24px] pointer-events-none -z-10 shadow-sm border border-gray-200/40 opacity-90" />
               <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-[88%] h-4 bg-white/30 rounded-b-[24px] pointer-events-none -z-20 shadow-sm border border-gray-100/20 opacity-70" />
-              
+
               <div className="h-full w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[24px] shadow-xl flex flex-col overflow-hidden relative">
                 {/* # PANEL HEADER */}
                 <div className="flex items-center h-[60px] px-4 flex-shrink-0 gap-3">
-                  <div 
+                  <div
                     onClick={() => setIsStructuresPanelOpen(false)}
                     className="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600 flex-shrink-0"
                   >
