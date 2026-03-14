@@ -125,13 +125,13 @@ const RichTextEditor = ({ boxId, isSelected, boxProperties, onEditorFocus, onEdi
     );
 };
 
-const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onMoveDragStart, onMoveDragEnd, isDraggingLayout, topOffset = "-2px", isTopRow, hideSecondaryControls, showComponents, children,
+const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onMoveDragStart, onMoveDragEnd, isDraggingLayout, topOffset = "-2px", isTopRow, children,
     setSelectedBackdropRowId,
     setSelectedBoxId,
     setSelectedLayer,
     setActiveRightSidebarTab
 }: {
-    id?: string, isSelected?: boolean, onSelect?: () => void, onDelete?: () => void, onDuplicate?: () => void, onMoveDragStart?: (e: React.DragEvent) => void, onMoveDragEnd?: () => void, isDraggingLayout?: boolean, topOffset?: string, isTopRow?: boolean, hideSecondaryControls?: boolean, showComponents?: boolean, children: React.ReactNode,
+    id?: string, isSelected?: boolean, onSelect?: () => void, onDelete?: () => void, onDuplicate?: () => void, onMoveDragStart?: (e: React.DragEvent) => void, onMoveDragEnd?: () => void, isDraggingLayout?: boolean, topOffset?: string, isTopRow?: boolean, children: React.ReactNode,
     setSelectedBackdropRowId: (id: string | null) => void,
     setSelectedBoxId: (id: string | null) => void,
     setSelectedLayer: (layer: 'block' | 'container' | 'structure' | 'backdrop' | null) => void,
@@ -169,10 +169,10 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
             {/* Structure Overlay on Hover */}
             <div
                 style={{ top: topOffset, bottom: '0' }}
-                className={`absolute inset-x-0 pointer-events-none transition-opacity duration-300 z-[30] ${isSelected || isOpen ? 'opacity-100' : (showComponents ? 'opacity-0 group-hover/structure:opacity-100 group-has-[.structure-container:hover]/structure:!opacity-0' : 'opacity-0')}`}
+                className={`absolute inset-x-0 pointer-events-none transition-opacity duration-300 z-[30] ${isSelected || isOpen ? 'opacity-100' : 'opacity-0 group-hover/structure:opacity-100 group-has-[.structure-container:hover]/structure:!opacity-0'}`}
             >
                 {/* Structure Layer Stack (Top Left usually, Bottom Left for top row) */}
-                <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[28px] left-[44px]' : '-top-[27px] left-[0px]'} w-auto flex flex-col items-start pointer-events-auto transition-all duration-200 ${hideSecondaryControls ? 'opacity-0 pointer-events-none' : ''}`}>
+                <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[28px] left-[44px]' : '-top-[27px] left-[0px]'} w-auto flex flex-col items-start pointer-events-auto transition-all duration-200 group-has-[.structure-container:hover]/structure:opacity-0 group-has-[.structure-container:hover]/structure:pointer-events-none`}>
                     {/* Structure Pill Hitbox Extension */}
                     <div className={`absolute inset-x-0 ${isTopRow ? 'top-[-8px] h-[30px]' : 'top-0 h-[27px]'} pointer-events-auto z-[60]`}></div>
                     {[
@@ -212,7 +212,7 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
                 </div>
 
                 {/* Add Icon Dropdown (Bottom Left) */}
-                <div className={`absolute ${isTopRow ? '-bottom-[42px]' : '-bottom-[41px]'} left-[0px] pointer-events-auto transition-all duration-200 ${hideSecondaryControls ? 'opacity-0 pointer-events-none' : ''}`}>
+                <div className={`absolute ${isTopRow ? '-bottom-[42px]' : '-bottom-[41px]'} left-[0px] pointer-events-auto transition-all duration-200 group-has-[.structure-container:hover]/structure:opacity-0 group-has-[.structure-container:hover]/structure:pointer-events-none`}>
                     {/* Plus Button Hitbox Extension */}
                     <div className="absolute inset-0 top-[-8px] h-[44px] pointer-events-auto z-[60]"></div>
                     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -2180,12 +2180,10 @@ export default function EmailEditorPage() {
                                         isDraggingLayout={dropInsertIndex !== null}
                                         topOffset={index === 0 ? "-34px" : "-26px"}
                                         isTopRow={index === 0}
-                                        hideSecondaryControls={false}
                                         setSelectedBackdropRowId={setSelectedBackdropRowId}
                                         setSelectedBoxId={setSelectedBoxId}
                                         setSelectedLayer={setSelectedLayer}
                                         setActiveRightSidebarTab={setActiveRightSidebarTab}
-                                        showComponents={false}
                                     >
                                         <div className="flex gap-4 w-full items-start isolation-auto" style={{ height: 'auto' }}>
                                             {row.columns.map((colFrac, i) => (
