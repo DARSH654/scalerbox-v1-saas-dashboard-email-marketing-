@@ -521,7 +521,8 @@ export default function EmailEditorPage() {
     };
 
     // setDynamicRows shim — full reconciliation: handles filter, splice, and column updates
-    const setDynamicRows = (updater: any) => {
+    type DynamicRow = { id: string; columns: number[] };
+    const setDynamicRows = (updater: DynamicRow[] | ((prev: DynamicRow[]) => DynamicRow[])) => {
         setEmailTree(prev => {
             // Build the flat "dynamicRows-shaped" view from the current tree
             const prevFlat: Array<{ id: string; columns: number[]; backdropId: string }> =
@@ -651,7 +652,7 @@ export default function EmailEditorPage() {
         const rowId = parts[0];
         const colIndex = parseInt(parts[1], 10);
 
-        setDynamicRows((prevRows: Array<{ id: string; columns: number[] }>) => {
+        setDynamicRows(prevRows => {
             const rowItems = [...prevRows];
             const rowIndex = rowItems.findIndex(r => r.id === rowId);
             if (rowIndex === -1) return prevRows;
