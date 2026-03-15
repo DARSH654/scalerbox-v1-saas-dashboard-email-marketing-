@@ -183,7 +183,7 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
                 className={`absolute inset-x-0 pointer-events-none transition-opacity duration-300 z-[30] ${isSelected || isOpen ? 'opacity-100' : 'opacity-0 group-hover/structure:opacity-100 group-has-[.structure-container:hover]/structure:!opacity-0'}`}
             >
                 {/* Structure Layer Stack (Top Left usually, Bottom Left for top row) */}
-                <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[28px] left-[44px]' : '-top-[27px] left-[0px]'} w-auto flex flex-col items-start pointer-events-auto transition-all duration-200 group-has-[.structure-container:hover]/structure:opacity-0 group-has-[.structure-container:hover]/structure:pointer-events-none`}>
+                <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[28px] left-[44px]' : '-top-[27px] left-[0px]'} w-auto flex flex-col items-start pointer-events-auto transition-all duration-200 group-has-[.structure-container:hover]/structure:!opacity-0 group-has-[.structure-container:hover]/structure:pointer-events-none`}>
                     {/* Structure Pill Hitbox Extension */}
                     <div className={`absolute inset-x-0 ${isTopRow ? 'top-[-8px] h-[30px]' : 'top-0 h-[27px]'} pointer-events-auto z-[60]`}></div>
                     {[
@@ -223,7 +223,7 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
                 </div>
 
                 {/* Add Icon Dropdown (Bottom Left) */}
-                <div className={`absolute ${isTopRow ? '-bottom-[42px]' : '-bottom-[41px]'} left-[0px] pointer-events-auto transition-all duration-200 group-has-[.structure-container:hover]/structure:opacity-0 group-has-[.structure-container:hover]/structure:pointer-events-none`}>
+                <div className={`absolute ${isTopRow ? '-bottom-[42px]' : '-bottom-[41px]'} left-[0px] pointer-events-auto transition-all duration-200 group-has-[.structure-container:hover]/structure:!opacity-0 group-has-[.structure-container:hover]/structure:pointer-events-none`}>
                     {/* Plus Button Hitbox Extension */}
                     <div className="absolute inset-0 top-[-8px] h-[44px] pointer-events-auto z-[60]"></div>
                     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -278,7 +278,7 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
                 </div>
 
                 {/* 3 Dot Menu (Right Centered) with hover slide-in action panel */}
-                <div className="absolute top-1/2 -translate-y-1/2 right-0 translate-x-[44px] pointer-events-auto group/structurebtn flex items-center">
+                <div className="absolute top-1/2 -translate-y-1/2 right-0 translate-x-[44px] pointer-events-auto group/structurebtn flex items-center group-has-[.structure-container:hover]/structure:!opacity-0 group-has-[.structure-container:hover]/structure:pointer-events-none">
                     {/* Main button row: slide panel + 3-dot (reversed) */}
                     <div className="flex flex-row-reverse items-center">
                         {/* 3-dot / Save-as-module button — always visible, anchored at right */}
@@ -523,6 +523,25 @@ export default function EmailEditorPage() {
         return emailTree.find(bd => bd.id === selectedBackdropRowId) || null;
     }, [emailTree, selectedBackdropRowId]);
 
+    // Flat map: containerId → block.properties (for O(1) sidebar lookups)
+    const blockPropertiesMap = React.useMemo(() => {
+        const map: Record<string, Record<string, any>> = {};
+        for (const bd of emailTree) {
+            for (const st of bd.structures) {
+                for (const c of st.containers) {
+                    if (c.block) map[c.id] = c.block.properties;
+                }
+            }
+        }
+        return map;
+    }, [emailTree]);
+
+    const getBlockProperty = useCallback(
+        (containerId: string, key: string, fallback?: any) =>
+            blockPropertiesMap[containerId]?.[key] ?? fallback,
+        [blockPropertiesMap]
+    );
+
     // Text Block Properties State
     const [textPropertiesTab, setTextPropertiesTab] = useState<'settings' | 'styles'>('settings');
     const [activeEditor, setActiveEditor] = useState<any>(null);
@@ -564,17 +583,6 @@ export default function EmailEditorPage() {
         }
     }, [emailTree]);
 
-    // Helper: read a block property directly from the tree
-    const getBlockProperty = (containerId: string, key: string, fallback?: any) => {
-        for (const bd of emailTree) {
-            for (const st of bd.structures) {
-                for (const c of st.containers) {
-                    if (c.id === containerId) return c.block?.properties?.[key] ?? fallback;
-                }
-            }
-        }
-        return fallback;
-    };
 
     // Helper: update a single block property directly in emailTree
     const updateBlockProperty = (containerId: string, key: string, value: any) => {
@@ -839,7 +847,7 @@ export default function EmailEditorPage() {
         const colors = { container: '#3b82f6', structure: '#9a5353', backdrop: '#64748b' };
 
         return (
-            <div className={`absolute inset-0 pointer-events-none transition-opacity duration-200 z-[40] ${isContainerSelected ? 'opacity-100' : 'opacity-0 group-hover/container:opacity-100 group-has-[.group\\/block:hover]/container:opacity-0'
+            <div className={`absolute inset-0 pointer-events-none transition-opacity duration-200 z-[40] ${isContainerSelected ? 'opacity-100' : 'opacity-0 group-hover/container:opacity-100 group-has-[.group\\/block:hover]/container:!opacity-0'
                 }`}>
                 {/* Container border */}
                 <div className={`absolute inset-0 border-[2px] rounded-[4px] pointer-events-none ${isContainerSelected ? 'border-blue-500' : 'border-blue-400'
@@ -1016,7 +1024,7 @@ export default function EmailEditorPage() {
         if (state === 'image') {
             return (
                 <div
-                    className={`structure-container w-full relative border-[2px] rounded-[4px] bg-[#f9fafb] flex items-center justify-center group/container cursor-default min-h-[120px] ${isContainerSelected ? 'border-blue-500' : isSelected ? 'border-blue-300' : 'border-transparent'
+                    className={`structure-container w-full relative border-[2px] rounded-[4px] bg-[#f9fafb] flex items-center justify-center group/container cursor-default min-h-[120px] ${isContainerSelected ? 'border-blue-500' : isSelected ? 'border-blue-300' : 'border-transparent group-hover/container:border-blue-400'
                         } ${isSelected ? 'z-[20]' : 'z-[1]'}`}
                     onClick={(e) => { e.stopPropagation(); setSelectedBoxId(boxId); setSelectedLayer('container'); setSelectedBackdropRowId(null); }}
                 >
@@ -1032,7 +1040,7 @@ export default function EmailEditorPage() {
         if (state === 'text') {
             return (
                 <div
-                    className={`structure-container w-full relative border-[2px] rounded-[4px] bg-white group/container flex flex-col cursor-default ${isContainerSelected ? 'border-blue-500' : isSelected ? 'border-blue-300' : 'border-transparent'
+                    className={`structure-container w-full relative border-[2px] rounded-[4px] bg-white group/container flex flex-col cursor-default ${isContainerSelected ? 'border-blue-500' : isSelected ? 'border-blue-300' : 'border-transparent group-hover/container:border-blue-400'
                         } ${isSelected ? 'z-[20]' : 'z-[1]'}`}
                     onClick={(e) => { e.stopPropagation(); setSelectedBoxId(boxId); setSelectedLayer('container'); setSelectedBackdropRowId(null); }}
                 >
@@ -1065,13 +1073,20 @@ export default function EmailEditorPage() {
         if (state === 'button') {
             return (
                 <div
-                    className={`structure-container w-full py-5 relative border-[2px] rounded-[4px] bg-white flex items-center justify-center group/container cursor-default ${isContainerSelected ? 'border-blue-500' : isSelected ? 'border-blue-300' : 'border-transparent'
+                    className={`structure-container w-full py-5 relative border-[2px] rounded-[4px] bg-white flex items-center justify-center group/container cursor-default ${isContainerSelected ? 'border-blue-500' : isSelected ? 'border-blue-300' : 'border-transparent group-hover/container:border-blue-400'
                         } ${isSelected ? 'z-[20]' : 'z-[1]'}`}
                     onClick={(e) => { e.stopPropagation(); setSelectedBoxId(boxId); setSelectedLayer('container'); setSelectedBackdropRowId(null); }}
                 >
                     <div className="px-8 py-2 w-full flex justify-center cursor-default group/block relative" onClick={handleBlockSelection}>
-                        <button className="bg-[#22c55e] hover:bg-[#16a34a] text-white px-8 py-2.5 rounded-[12px] font-medium text-[15px] transition-colors border shadow-sm pointer-events-none">
-                            Button
+                        <button
+                            className="px-8 py-2.5 font-medium text-[15px] transition-colors border shadow-sm pointer-events-none"
+                            style={{
+                                backgroundColor: blockPropertiesMap[boxId]?.bgColor || '#22c55e',
+                                color: blockPropertiesMap[boxId]?.textColor || '#ffffff',
+                                borderRadius: `${blockPropertiesMap[boxId]?.borderRadius ?? 12}px`,
+                            }}
+                        >
+                            {blockPropertiesMap[boxId]?.label || 'Button'}
                         </button>
                         {renderBlockOverlay(boxId, structureId)}
                     </div>
@@ -2224,7 +2239,7 @@ export default function EmailEditorPage() {
 
                                         {/* 2. Backdrop Border Overlay */}
                                         <div
-                                            className={`absolute -inset-x-[60px] rounded-[4px] border-[2px] transition-all duration-150 pointer-events-none z-[5] ${selectedBackdropRowId === backdrop.id ? 'border-[#475569]' : 'border-transparent'}`}
+                                            className={`absolute -inset-x-[60px] rounded-[4px] border-[2px] transition-all duration-150 pointer-events-none z-[5] ${selectedBackdropRowId === backdrop.id ? 'border-[#475569]' : 'border-transparent group-hover/backdrop:border-[#64748b] group-has-[.group\\/structure:hover]/backdrop:!border-transparent'}`}
                                             style={{
                                                 top: globalStructureIndex === 0 ? '-34px' : '-26px',
                                                 bottom: 0
@@ -2558,6 +2573,189 @@ export default function EmailEditorPage() {
                                                         style={{ backgroundColor: color }}
                                                     />
                                                 ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : activeBlockNode?.type === 'image' ? (
+                            <div className="flex-1 bg-white dark:bg-background rounded-[24px] shadow-sm flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
+                                {/* Image Block Header */}
+                                <div className="pt-[10px] pb-[10px] flex items-center justify-between px-5 border-b border-gray-100 dark:border-border flex-shrink-0">
+                                    <span className="material-symbols-outlined text-[15px] font-medium text-gray-400 hover:text-gray-600 cursor-pointer" onClick={() => setSelectedBoxId(null)}>close</span>
+                                    <span className="font-medium text-[15px] text-gray-700 dark:text-foreground">Image Block</span>
+                                    <span className="material-symbols-outlined text-[15px] font-medium text-gray-400 cursor-pointer">keyboard_double_arrow_up</span>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-5 pt-4 space-y-5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-track]:my-5 [&::-webkit-scrollbar-thumb]:rounded-full">
+                                    {/* Image Upload / URL */}
+                                    <div className="space-y-2">
+                                        <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Image Source</label>
+                                        <div className="w-full bg-[#f1f5f9] dark:bg-accent/30 border-2 border-dashed border-gray-200 dark:border-border hover:border-primary rounded-[16px] p-6 flex flex-col items-center justify-center text-center gap-3 transition-colors cursor-pointer">
+                                            <span className="material-symbols-outlined text-[32px] text-gray-300">add_photo_alternate</span>
+                                            <div className="space-y-1">
+                                                <p className="text-[13px] font-medium text-gray-500 dark:text-foreground/70">Drop image or paste URL</p>
+                                                <p className="text-[11px] text-gray-400">PNG, JPG, GIF, WebP</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {/* Alt Text */}
+                                    <div className="space-y-2">
+                                        <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Alt Text</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Describe the image..."
+                                            value={getBlockProperty(selectedBoxId!, 'alt', '')}
+                                            onChange={(e) => updateBlockProperty(selectedBoxId!, 'alt', e.target.value)}
+                                            className="w-full h-[42px] px-4 bg-[#f1f5f9] dark:bg-accent/30 border border-transparent focus:border-primary rounded-[12px] outline-none text-[14px] text-gray-700 dark:text-foreground placeholder:text-gray-400 transition-colors"
+                                        />
+                                    </div>
+                                    {/* Link URL */}
+                                    <div className="space-y-2">
+                                        <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Link URL</label>
+                                        <input
+                                            type="text"
+                                            placeholder="https://..."
+                                            value={getBlockProperty(selectedBoxId!, 'href', '')}
+                                            onChange={(e) => updateBlockProperty(selectedBoxId!, 'href', e.target.value)}
+                                            className="w-full h-[42px] px-4 bg-[#f1f5f9] dark:bg-accent/30 border border-transparent focus:border-primary rounded-[12px] outline-none text-[14px] text-gray-700 dark:text-foreground placeholder:text-gray-400 transition-colors"
+                                        />
+                                    </div>
+                                    {/* Alignment */}
+                                    <div className="space-y-2">
+                                        <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Alignment</label>
+                                        <div className="flex bg-white dark:bg-accent border-[1.5px] border-gray-200 dark:border-border rounded-[10px] overflow-hidden">
+                                            {[
+                                                { id: 'left', icon: 'format_align_left' },
+                                                { id: 'center', icon: 'format_align_center' },
+                                                { id: 'right', icon: 'format_align_right' },
+                                            ].map((item, i, arr) => {
+                                                const isActive = (getBlockProperty(selectedBoxId!, 'align', 'center')) === item.id;
+                                                return (
+                                                    <div
+                                                        key={item.id}
+                                                        className={`flex-1 h-[38px] flex items-center justify-center cursor-pointer transition-colors ${i < arr.length - 1 ? 'border-r-[1.5px] border-gray-200 dark:border-border' : ''} ${isActive ? 'shadow-[inset_0_0_0_2px_currentColor] text-primary bg-primary/10 rounded-[8px] z-10' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                                                        onClick={() => updateBlockProperty(selectedBoxId!, 'align', item.id)}
+                                                    >
+                                                        <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                    {/* Width */}
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Width</label>
+                                        <div className="flex items-center gap-3 bg-gray-50 dark:bg-accent/20 border border-gray-200 dark:border-border rounded-[22px] p-[3px] shadow-sm">
+                                            <div className="w-9 h-9 flex items-center justify-center bg-white dark:bg-background rounded-full text-gray-400 hover:text-gray-600 cursor-pointer transition-all shadow-sm"
+                                                onClick={() => updateBlockProperty(selectedBoxId!, 'width', Math.max(10, (getBlockProperty(selectedBoxId!, 'width', 100) - 5)))}>
+                                                <span className="material-symbols-outlined text-[18px]">remove</span>
+                                            </div>
+                                            <span className="text-[14px] font-bold text-gray-600 dark:text-foreground min-w-[40px] text-center">{getBlockProperty(selectedBoxId!, 'width', 100)}%</span>
+                                            <div className="w-9 h-9 flex items-center justify-center bg-white dark:bg-background rounded-full text-gray-400 hover:text-gray-600 cursor-pointer transition-all shadow-sm"
+                                                onClick={() => updateBlockProperty(selectedBoxId!, 'width', Math.min(100, (getBlockProperty(selectedBoxId!, 'width', 100) + 5)))}>
+                                                <span className="material-symbols-outlined text-[18px]">add</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : activeBlockNode?.type === 'button' ? (
+                            <div className="flex-1 bg-white dark:bg-background rounded-[24px] shadow-sm flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
+                                {/* Button Block Header */}
+                                <div className="pt-[10px] pb-[10px] flex items-center justify-between px-5 border-b border-gray-100 dark:border-border flex-shrink-0">
+                                    <span className="material-symbols-outlined text-[15px] font-medium text-gray-400 hover:text-gray-600 cursor-pointer" onClick={() => setSelectedBoxId(null)}>close</span>
+                                    <span className="font-medium text-[15px] text-gray-700 dark:text-foreground">Button Block</span>
+                                    <span className="material-symbols-outlined text-[15px] font-medium text-gray-400 cursor-pointer">keyboard_double_arrow_up</span>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-5 pt-4 space-y-5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-track]:my-5 [&::-webkit-scrollbar-thumb]:rounded-full">
+                                    {/* Button Label */}
+                                    <div className="space-y-2">
+                                        <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Button Label</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Button"
+                                            value={getBlockProperty(selectedBoxId!, 'label', 'Button')}
+                                            onChange={(e) => updateBlockProperty(selectedBoxId!, 'label', e.target.value)}
+                                            className="w-full h-[42px] px-4 bg-[#f1f5f9] dark:bg-accent/30 border border-transparent focus:border-primary rounded-[12px] outline-none text-[14px] text-gray-700 dark:text-foreground placeholder:text-gray-400 transition-colors"
+                                        />
+                                    </div>
+                                    {/* Link URL */}
+                                    <div className="space-y-2">
+                                        <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Link URL</label>
+                                        <input
+                                            type="text"
+                                            placeholder="https://..."
+                                            value={getBlockProperty(selectedBoxId!, 'href', '')}
+                                            onChange={(e) => updateBlockProperty(selectedBoxId!, 'href', e.target.value)}
+                                            className="w-full h-[42px] px-4 bg-[#f1f5f9] dark:bg-accent/30 border border-transparent focus:border-primary rounded-[12px] outline-none text-[14px] text-gray-700 dark:text-foreground placeholder:text-gray-400 transition-colors"
+                                        />
+                                    </div>
+                                    {/* Alignment */}
+                                    <div className="space-y-2">
+                                        <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Alignment</label>
+                                        <div className="flex bg-white dark:bg-accent border-[1.5px] border-gray-200 dark:border-border rounded-[10px] overflow-hidden">
+                                            {[
+                                                { id: 'left', icon: 'format_align_left' },
+                                                { id: 'center', icon: 'format_align_center' },
+                                                { id: 'right', icon: 'format_align_right' },
+                                            ].map((item, i, arr) => {
+                                                const isActive = (getBlockProperty(selectedBoxId!, 'align', 'center')) === item.id;
+                                                return (
+                                                    <div
+                                                        key={item.id}
+                                                        className={`flex-1 h-[38px] flex items-center justify-center cursor-pointer transition-colors ${i < arr.length - 1 ? 'border-r-[1.5px] border-gray-200 dark:border-border' : ''} ${isActive ? 'shadow-[inset_0_0_0_2px_currentColor] text-primary bg-primary/10 rounded-[8px] z-10' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                                                        onClick={() => updateBlockProperty(selectedBoxId!, 'align', item.id)}
+                                                    >
+                                                        <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                    {/* Background Color */}
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Background Color</label>
+                                        <div className="h-[38px] px-5 w-[130px] rounded-full border border-gray-200 dark:border-border flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity relative overflow-hidden shadow-sm"
+                                            style={{ backgroundColor: getBlockProperty(selectedBoxId!, 'bgColor', '#22c55e') }}>
+                                            <input
+                                                type="color"
+                                                className="absolute top-[-10px] left-[-10px] w-[200px] h-[200px] opacity-0 cursor-pointer"
+                                                value={getBlockProperty(selectedBoxId!, 'bgColor', '#22c55e')}
+                                                onChange={(e) => updateBlockProperty(selectedBoxId!, 'bgColor', e.target.value)}
+                                            />
+                                            <span className="text-[13px] font-bold tracking-wider mix-blend-difference text-white">
+                                                {getBlockProperty(selectedBoxId!, 'bgColor', '#22c55e')}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {/* Text Color */}
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Text Color</label>
+                                        <div className="h-[38px] px-5 w-[130px] rounded-full border border-gray-200 dark:border-border flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity relative overflow-hidden shadow-sm"
+                                            style={{ backgroundColor: getBlockProperty(selectedBoxId!, 'textColor', '#ffffff') }}>
+                                            <input
+                                                type="color"
+                                                className="absolute top-[-10px] left-[-10px] w-[200px] h-[200px] opacity-0 cursor-pointer"
+                                                value={getBlockProperty(selectedBoxId!, 'textColor', '#ffffff')}
+                                                onChange={(e) => updateBlockProperty(selectedBoxId!, 'textColor', e.target.value)}
+                                            />
+                                            <span className="text-[13px] font-bold tracking-wider mix-blend-difference text-white">
+                                                {getBlockProperty(selectedBoxId!, 'textColor', '#ffffff')}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {/* Border Radius */}
+                                    <div className="flex items-center justify-between">
+                                        <label className="text-[14px] text-gray-500 dark:text-gray-400 font-medium tracking-wide">Border Radius</label>
+                                        <div className="flex items-center gap-3 bg-gray-50 dark:bg-accent/20 border border-gray-200 dark:border-border rounded-[22px] p-[3px] shadow-sm">
+                                            <div className="w-9 h-9 flex items-center justify-center bg-white dark:bg-background rounded-full text-gray-400 hover:text-gray-600 cursor-pointer transition-all shadow-sm"
+                                                onClick={() => updateBlockProperty(selectedBoxId!, 'borderRadius', Math.max(0, (getBlockProperty(selectedBoxId!, 'borderRadius', 12) - 2)))}>
+                                                <span className="material-symbols-outlined text-[18px]">remove</span>
+                                            </div>
+                                            <span className="text-[14px] font-bold text-gray-600 dark:text-foreground min-w-[40px] text-center">{getBlockProperty(selectedBoxId!, 'borderRadius', 12)}px</span>
+                                            <div className="w-9 h-9 flex items-center justify-center bg-white dark:bg-background rounded-full text-gray-400 hover:text-gray-600 cursor-pointer transition-all shadow-sm"
+                                                onClick={() => updateBlockProperty(selectedBoxId!, 'borderRadius', Math.min(50, (getBlockProperty(selectedBoxId!, 'borderRadius', 12) + 2)))}>
+                                                <span className="material-symbols-outlined text-[18px]">add</span>
                                             </div>
                                         </div>
                                     </div>
