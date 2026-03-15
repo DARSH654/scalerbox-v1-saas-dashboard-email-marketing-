@@ -98,17 +98,28 @@ const RichTextEditor = ({ boxId, isSelected, boxProperties, onEditorFocus, onEdi
             FontFamily,
             Color,
         ],
-        content: '<p>Type your text and work on its text styles, add merge tags and lists</p>',
+        content: boxProperties?.content || '<p>Type your text and work on its text styles, add merge tags and lists</p>',
         onFocus: ({ editor }) => onEditorFocus(editor),
         onBlur: ({ editor }) => onEditorBlur(editor),
         onTransaction: ({ editor }) => onTransaction(editor),
     });
 
+    // Standard focus sync
     useEffect(() => {
         if (isSelected && editor) {
             onEditorFocus(editor);
         }
     }, [isSelected, editor, onEditorFocus]);
+
+    // Undo/Redo sync: when emailTree is rewound externally, force Tiptap
+    // to update its internal HTML if it has drifted from the tree value.
+    useEffect(() => {
+        if (editor && boxProperties?.content !== undefined) {
+            if (editor.getHTML() !== boxProperties.content) {
+                editor.commands.setContent(boxProperties.content, false /* don't emit update */);
+            }
+        }
+    }, [editor, boxProperties?.content]);
 
     if (!editor) return null;
 
@@ -399,8 +410,8 @@ const buildInitialTree = (): BackdropData[] => [
             id: 'row1',
             columns: [0.3, 0.7],
             containers: [
-                { id: 'row1-col0', block: null },
-                { id: 'row1-col1', block: null },
+                { id: `container-${crypto.randomUUID()}`, block: null },
+                { id: `container-${crypto.randomUUID()}`, block: null },
             ],
         }],
     },
@@ -411,7 +422,7 @@ const buildInitialTree = (): BackdropData[] => [
             id: 'row2',
             columns: [1],
             containers: [
-                { id: 'row2-col0', block: null },
+                { id: `container-${crypto.randomUUID()}`, block: null },
             ],
         }],
     },
@@ -422,8 +433,8 @@ const buildInitialTree = (): BackdropData[] => [
             id: 'row3',
             columns: [1, 1],
             containers: [
-                { id: 'row3-col0', block: null },
-                { id: 'row3-col1', block: null },
+                { id: `container-${crypto.randomUUID()}`, block: null },
+                { id: `container-${crypto.randomUUID()}`, block: null },
             ],
         }],
     },
@@ -520,22 +531,38 @@ export default function EmailEditorPage() {
     // History tracks the entire emailTree for undo/redo
     const [history, setHistory] = useState<BackdropData[][]>([buildInitialTree()]);
     const [historyIndex, setHistoryIndex] = useState(0);
-    // Ref to avoid stale closure in saveHistoryState
+    // Ref to avoid stale closure in history tracking
     const historyIndexRef = useRef(0);
+    const isHistoryAction = useRef(false);
+    const lastSavedState = useRef(JSON.stringify(buildInitialTree()));
 
+    // Watch for emailTree changes and automatically sync to history.
+    // useEffect fires AFTER React has committed the state — meaning it always
+    // sees the final, settled value even when multiple state updates are batched.
+    useEffect(() => {
+        // If this change was triggered by Undo/Redo, skip saving a new snapshot
+        if (isHistoryAction.current) {
+            isHistoryAction.current = false;
+            lastSavedState.current = JSON.stringify(emailTree);
+            return;
+        }
 
-    // Save a deep-cloned snapshot of the tree into history
-    const saveHistoryState = (newTree: BackdropData[]) => {
-        const snapshot = JSON.parse(JSON.stringify(newTree)) as BackdropData[];
-        const currentIdx = historyIndexRef.current;
-        setHistory(prev => {
-            const next = prev.slice(0, currentIdx + 1);
-            next.push(snapshot);
-            return next;
-        });
-        historyIndexRef.current = currentIdx + 1;
-        setHistoryIndex(currentIdx + 1);
-    };
+        const currentStr = JSON.stringify(emailTree);
+        // Only push to history if the state actually changed
+        // (prevents React StrictMode double-invocation from creating duplicate entries)
+        if (currentStr !== lastSavedState.current) {
+            lastSavedState.current = currentStr;
+            const snapshot = JSON.parse(currentStr) as BackdropData[];
+            const currentIdx = historyIndexRef.current;
+            setHistory(prev => {
+                const next = prev.slice(0, currentIdx + 1);
+                next.push(snapshot);
+                return next;
+            });
+            historyIndexRef.current = currentIdx + 1;
+            setHistoryIndex(currentIdx + 1);
+        }
+    }, [emailTree]);
 
     // Helper: read a block property directly from the tree
     const getBlockProperty = (containerId: string, key: string, fallback?: any) => {
@@ -551,88 +578,97 @@ export default function EmailEditorPage() {
 
     // Helper: update a single block property directly in emailTree
     const updateBlockProperty = (containerId: string, key: string, value: any) => {
-        setEmailTree(prev => {
-            const next = prev.map(bd => ({
-                ...bd,
-                structures: bd.structures.map(st => ({
-                    ...st,
-                    containers: st.containers.map(c => {
-                        if (c.id !== containerId || !c.block) return c;
-                        return {
-                            ...c,
-                            block: {
-                                ...c.block,
-                                properties: { ...c.block.properties, [key]: value },
-                            },
-                        };
-                    }),
-                })),
-            }));
-            // Save history after computing new tree
-            saveHistoryState(next);
-            return next;
-        });
+        setEmailTree(prev => prev.map(bd => ({
+            ...bd,
+            structures: bd.structures.map(st => ({
+                ...st,
+                containers: st.containers.map(c => {
+                    if (c.id !== containerId || !c.block) return c;
+                    return {
+                        ...c,
+                        block: {
+                            ...c.block,
+                            properties: { ...c.block.properties, [key]: value },
+                        },
+                    };
+                }),
+            })),
+        })));
     };
 
     // Helper: set block type on a container directly in emailTree
     const setBlockType = (containerId: string, type: string) => {
+        setEmailTree(prev => prev.map(bd => ({
+            ...bd,
+            structures: bd.structures.map(st => ({
+                ...st,
+                containers: st.containers.map(c => {
+                    if (c.id !== containerId) return c;
+                    if (type === 'empty') return { ...c, block: null };
+                    return {
+                        ...c,
+                        block: {
+                            id: `block-${crypto.randomUUID()}`,
+                            type: type as BlockData['type'],
+                            properties: c.block?.properties ?? {},
+                        },
+                    };
+                }),
+            })),
+        })));
+    };
+
+    // Helper: Swap blocks between two containers
+    const swapBlocks = (sourceContainerId: string, targetContainerId: string) => {
         setEmailTree(prev => {
-            const next = prev.map(bd => ({
+            let sourceBlock: BlockData | null = null;
+            let targetBlock: BlockData | null = null;
+
+            prev.forEach(bd => bd.structures.forEach(st => st.containers.forEach(c => {
+                if (c.id === sourceContainerId) sourceBlock = c.block ?? null;
+                if (c.id === targetContainerId) targetBlock = c.block ?? null;
+            })));
+
+            return prev.map(bd => ({
                 ...bd,
                 structures: bd.structures.map(st => ({
                     ...st,
                     containers: st.containers.map(c => {
-                        if (c.id !== containerId) return c;
-                        if (type === 'empty') return { ...c, block: null };
-                        return {
-                            ...c,
-                            block: {
-                                id: `${c.id}-block`,
-                                type: type as BlockData['type'],
-                                properties: c.block?.properties ?? {},
-                            },
-                        };
+                        if (c.id === sourceContainerId) return { ...c, block: targetBlock };
+                        if (c.id === targetContainerId) return { ...c, block: sourceBlock };
+                        return c;
                     }),
                 })),
             }));
-            saveHistoryState(next);
-            return next;
         });
     };
 
     // Helper: set backdrop background color directly in emailTree
     const setBackdropColor = (backdropId: string, color: string) => {
-        setEmailTree(prev => {
-            const next = prev.map(bd => bd.id === backdropId ? { ...bd, backgroundColor: color } : bd);
-            saveHistoryState(next);
-            return next;
-        });
+        setEmailTree(prev => prev.map(bd => bd.id === backdropId ? { ...bd, backgroundColor: color } : bd));
     };
 
     const handleDeleteContainer = (boxId: string) => {
-        const parts = boxId.split('-col');
-        if (parts.length !== 2) return;
-        const structureId = parts[0];
-        const colIndex = parseInt(parts[1], 10);
+        setEmailTree(prev => prev.map(bd => ({
+            ...bd,
+            structures: bd.structures.map(st => {
+                // Check if THIS structure actually contains the container, ignoring string prefixes
+                const actualIndex = st.containers.findIndex(c => c.id === boxId);
+                if (actualIndex === -1) return st;
 
-        setEmailTree(prev => {
-            const next = prev.map(bd => ({
-                ...bd,
-                structures: bd.structures.map(st => {
-                    if (st.id !== structureId) return st;
-                    const nextContainers = st.containers.filter((_, i) => i !== colIndex);
-                    const nextColumns = st.columns.filter((_, i) => i !== colIndex);
-                    if (nextContainers.length === 0) return null as any;
-                    const sum = nextColumns.reduce((a, b) => a + b, 0);
-                    const normColumns = sum > 0 ? nextColumns.map(v => v / sum) : nextColumns;
-                    return { ...st, containers: nextContainers, columns: normColumns };
-                }).filter(Boolean),
-            })).filter(bd => bd.structures.length > 0);
-            saveHistoryState(next);
-            return next;
-        });
+                const nextContainers = st.containers.filter((_, i) => i !== actualIndex);
+                const nextColumns = st.columns.filter((_, i) => i !== actualIndex);
 
-        if (selectedBoxId === boxId || selectedBoxId?.startsWith(structureId + '-col')) {
+                if (nextContainers.length === 0) return null as any;
+
+                const sum = nextColumns.reduce((a, b) => a + b, 0);
+                const normColumns = sum > 0 ? nextColumns.map(v => v / sum) : nextColumns;
+
+                return { ...st, containers: nextContainers, columns: normColumns };
+            }).filter(Boolean),
+        })).filter(bd => bd.structures.length > 0));
+
+        if (selectedBoxId === boxId) {
             setSelectedBoxId(null);
             setSelectedLayer(null);
         }
@@ -640,6 +676,7 @@ export default function EmailEditorPage() {
 
     const handleUndo = () => {
         if (historyIndex > 0) {
+            isHistoryAction.current = true;
             const nextIndex = historyIndex - 1;
             historyIndexRef.current = nextIndex;
             setHistoryIndex(nextIndex);
@@ -650,6 +687,7 @@ export default function EmailEditorPage() {
 
     const handleRedo = () => {
         if (historyIndex < history.length - 1) {
+            isHistoryAction.current = true;
             const nextIndex = historyIndex + 1;
             historyIndexRef.current = nextIndex;
             setHistoryIndex(nextIndex);
@@ -687,50 +725,54 @@ export default function EmailEditorPage() {
     };
 
     const handleDeleteStructure = (structureId: string) => {
-        setEmailTree(prev => {
-            const next = prev
-                .map(bd => ({
-                    ...bd,
-                    structures: bd.structures.filter(st => st.id !== structureId),
-                }))
-                .filter(bd => bd.structures.length > 0);
-            saveHistoryState(next);
-            return next;
-        });
-        if (selectedBoxId?.startsWith(structureId)) { setSelectedBoxId(null); setSelectedLayer(null); }
+        // Find if the currently selected box belongs to the structure being deleted
+        const structureToDelete = emailTree.flatMap(bd => bd.structures).find(st => st.id === structureId);
+        const containsSelection = structureToDelete?.containers.some(c => c.id === selectedBoxId);
+
+        setEmailTree(prev => prev
+            .map(bd => ({ ...bd, structures: bd.structures.filter(st => st.id !== structureId) }))
+            .filter(bd => bd.structures.length > 0)
+        );
+
+        if (selectedBoxId === structureId || containsSelection) {
+            setSelectedBoxId(null);
+            setSelectedLayer(null);
+        }
     };
 
     const handleDuplicateStructure = (structureId: string) => {
-        setEmailTree(prev => {
-            const next = prev.map(bd => {
-                const idx = bd.structures.findIndex(st => st.id === structureId);
-                if (idx === -1) return bd;
-                const original = bd.structures[idx];
-                const newId = `row-${Date.now()}`;
-                const cloned = JSON.parse(JSON.stringify(original)) as typeof original;
-                cloned.id = newId;
-                cloned.containers = cloned.containers.map((c, i) => ({
-                    ...c,
-                    id: `${newId}-col${i}`,
-                    block: c.block ? { ...c.block, id: `${newId}-col${i}-block`, properties: { ...c.block.properties } } : null,
-                }));
-                const newStructures = [...bd.structures];
-                newStructures.splice(idx + 1, 0, cloned);
-                return { ...bd, structures: newStructures };
-            });
-            saveHistoryState(next);
-            return next;
-        });
+        setEmailTree(prev => prev.map(bd => {
+            const idx = bd.structures.findIndex(st => st.id === structureId);
+            if (idx === -1) return bd;
+            const original = bd.structures[idx];
+            const newId = `row-${Date.now()}`;
+            const cloned = JSON.parse(JSON.stringify(original)) as typeof original;
+            cloned.id = newId;
+            cloned.containers = cloned.containers.map((c) => ({
+                ...c,
+                id: `container-${crypto.randomUUID()}`,
+                block: c.block ? { ...c.block, id: `block-${crypto.randomUUID()}`, properties: { ...c.block.properties } } : null,
+            }));
+            const newStructures = [...bd.structures];
+            newStructures.splice(idx + 1, 0, cloned);
+            return { ...bd, structures: newStructures };
+        }));
     };
 
     const handleDeleteBackdropRow = (backdropId: string) => {
-        setEmailTree(prev => {
-            const next = prev.filter(bd => bd.id !== backdropId);
-            saveHistoryState(next);
-            return next;
-        });
-        if (selectedBoxId?.startsWith(backdropId)) { setSelectedBoxId(null); setSelectedLayer(null); }
-        if (selectedBackdropRowId === backdropId) setSelectedBackdropRowId(null);
+        // Check if the selection is inside the deleted backdrop
+        const backdropToDelete = emailTree.find(bd => bd.id === backdropId);
+        const containsSelection = backdropToDelete?.structures.some(st => 
+            st.id === selectedBoxId || st.containers.some(c => c.id === selectedBoxId)
+        );
+
+        setEmailTree(prev => prev.filter(bd => bd.id !== backdropId));
+
+        if (selectedBackdropRowId === backdropId || containsSelection) {
+            setSelectedBackdropRowId(null);
+            setSelectedBoxId(null);
+            setSelectedLayer(null);
+        }
     };
 
     const handleDuplicateBackdropRow = (backdropId: string) => {
@@ -742,20 +784,19 @@ export default function EmailEditorPage() {
             const cloned = JSON.parse(JSON.stringify(original)) as BackdropData;
             cloned.id = newId;
             cloned.structures = cloned.structures.map(st => {
-                const newStId = `${newId}-${st.id}`;
+                const newStId = `row-${crypto.randomUUID()}`;
                 return {
                     ...st,
                     id: newStId,
-                    containers: st.containers.map((c, i) => ({
+                    containers: st.containers.map((c) => ({
                         ...c,
-                        id: `${newStId}-col${i}`,
-                        block: c.block ? { ...c.block, id: `${newStId}-col${i}-block`, properties: { ...c.block.properties } } : null,
+                        id: `container-${crypto.randomUUID()}`,
+                        block: c.block ? { ...c.block, id: `block-${crypto.randomUUID()}`, properties: { ...c.block.properties } } : null,
                     })),
                 };
             });
             const next = [...prev];
             next.splice(idx + 1, 0, cloned);
-            saveHistoryState(next);
             return next;
         });
     };
@@ -780,13 +821,10 @@ export default function EmailEditorPage() {
     };
 
 
-    // Phase 5 helper — renders the container-layer breadcrumb pill + left delete button
-    // and the block-layer right 3-dot + drag pill, all as inline absolutely-positioned divs.
-    const renderContainerBlockOverlays = (boxId: string) => {
+    const renderContainerOverlay = (boxId: string, structureId: string, backdropId: string) => {
         const isSelected = selectedBoxId === boxId;
         const isContainerSelected = isSelected && selectedLayer === 'container';
-        const isBlockSelected = isSelected && selectedLayer === 'block';
-        const rowId = boxId.split('-col')[0];
+        const rowId = structureId;
         const isTopRow = (() => {
             let flat = 0;
             for (const bd of emailTree) {
@@ -801,153 +839,169 @@ export default function EmailEditorPage() {
         const colors = { container: '#3b82f6', structure: '#9a5353', backdrop: '#64748b' };
 
         return (
-            <>
-                {/* ── Container Overlay ─────────────────────────────── */}
-                <div className={`absolute inset-0 pointer-events-none transition-opacity duration-200 z-[40] ${
-                    isContainerSelected ? 'opacity-100' : 'opacity-0 group-hover/container:opacity-100'
+            <div className={`absolute inset-0 pointer-events-none transition-opacity duration-200 z-[40] ${isContainerSelected ? 'opacity-100' : 'opacity-0 group-hover/container:opacity-100 group-has-[.group\\/block:hover]/container:opacity-0'
                 }`}>
-                    {/* Container border */}
-                    <div className={`absolute inset-0 border-[2px] rounded-[4px] pointer-events-none ${
-                        isContainerSelected ? 'border-blue-500' : 'border-blue-400'
+                {/* Container border */}
+                <div className={`absolute inset-0 border-[2px] rounded-[4px] pointer-events-none ${isContainerSelected ? 'border-blue-500' : 'border-blue-400'
                     }`} />
 
-                    {/* Invisible hitbox bridge (towards floating controls) */}
-                    <div className={`absolute left-[28px] w-[75px] pointer-events-auto ${
-                        isTopRow ? '-bottom-[28px] h-[28px]' : '-top-[28px] h-[28px]'
+                {/* Invisible hitbox bridge (towards floating controls) */}
+                <div className={`absolute left-[28px] w-[75px] pointer-events-auto ${isTopRow ? '-bottom-[28px] h-[28px]' : '-top-[28px] h-[28px]'
                     }`} />
-                    <div className="absolute top-1/2 -translate-y-1/2 -left-[44px] w-[44px] h-[36px] pointer-events-auto" />
+                <div className="absolute top-1/2 -translate-y-1/2 -left-[44px] w-[44px] h-[36px] pointer-events-auto" />
 
-                    {/* Layer breadcrumb pill — Container > Structure > Backdrop */}
-                    <div className={`group/layerpill absolute ${
-                        isTopRow ? '-bottom-[19px]' : '-top-[28px]'
+                {/* Layer breadcrumb pill — Container > Structure > Backdrop */}
+                <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[19px]' : '-top-[28px]'
                     } left-[28px] w-auto flex flex-col items-start transition-opacity duration-300 z-50`}>
-                        {/* Hitbox bridge for pill expansion */}
-                        <div className="absolute inset-x-0 top-[28px] h-[28px] pointer-events-none group-hover/layerpill:pointer-events-auto z-[60]" />
-                        {[
-                            { id: 'container', label: 'Container', color: colors.container },
-                            { id: 'structure', label: 'Structure', color: colors.structure },
-                            { id: 'backdrop', label: 'Backdrop', color: colors.backdrop },
-                        ].map((layer, idx) => (
-                            <div
-                                key={layer.id}
-                                draggable={layer.id === 'structure'}
-                                onDragStart={(e) => {
-                                    if (layer.id === 'structure') {
-                                        e.dataTransfer.effectAllowed = 'move';
-                                        const img = new window.Image();
-                                        img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                                        e.dataTransfer.setDragImage(img, 0, 0);
-                                        setDraggingTool({ icon: 'layout', type: 'move_layout', id: boxId.split('-col')[0] });
-                                    }
-                                }}
-                                onDragEnd={() => {
-                                    if (layer.id === 'structure') {
-                                        setDraggingTool(null);
-                                        setDropInsertIndex(null);
-                                    }
-                                }}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (layer.id === 'backdrop') {
-                                        setSelectedBackdropRowId(rowId);
-                                        setSelectedBoxId(null);
-                                        setSelectedLayer('backdrop');
-                                        setActiveRightSidebarTab('general');
-                                    } else if (layer.id === 'structure') {
-                                        setSelectedBoxId(rowId);
-                                        setSelectedLayer('structure');
-                                        setSelectedBackdropRowId(null);
-                                    } else {
-                                        setSelectedBoxId(boxId);
-                                        setSelectedLayer('container');
-                                        setSelectedBackdropRowId(null);
-                                    }
-                                }}
-                                style={{ backgroundColor: layer.color, borderColor: layer.color, zIndex: 30 - idx }}
-                                className={`px-3 py-[3px] rounded-full border-0 text-[10.5px] font-medium text-white
-                                    transition-all duration-300 ease-in-out shadow-sm flex items-center justify-start
-                                    hover:scale-105 active:scale-95 pointer-events-auto
-                                    ${ idx === 0
-                                        ? 'relative cursor-pointer'
-                                        : '-mt-[26px] opacity-0 pointer-events-none group-hover/layerpill:mt-[4px] group-hover/layerpill:opacity-100 group-hover/layerpill:pointer-events-auto cursor-grab active:cursor-grabbing'
-                                    }`}
-                            >
-                                <span className="capitalize tracking-wide">{layer.label}</span>
-                                {idx !== 0 && (
-                                    <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor" className="opacity-80 rotate-90 ml-1.5 -mr-1 pointer-events-none">
-                                        <path d="M360-160q-33 0-56.5-23.5T280-240q0-33 23.5-56.5T360-320q33 0 56.5 23.5T440-240q0 33-23.5 56.5T360-160Zm240 0q-33 0-56.5-23.5T520-240q0-33 23.5-56.5T600-320q33 0 56.5 23.5T680-240q0 33-23.5 56.5T600-160ZM360-400q-33 0-56.5-23.5T280-480q0-33 23.5-56.5T360-560q33 0 56.5 23.5T440-480q0 33-23.5 56.5T360-400Zm240 0q-33 0-56.5-23.5T520-480q0-33 23.5-56.5T600-560q33 0 56.5 23.5T680-480q0 33-23.5 56.5T600-400ZM360-640q-33 0-56.5-23.5T280-720q0-33 23.5-56.5T360-800q33 0 56.5 23.5T440-720q0 33-23.5 56.5T360-640Zm240 0q-33 0-56.5-23.5T520-720q0-33 23.5-56.5T600-800q33 0 56.5 23.5T680-720q0 33-23.5 56.5T600-640Z" />
-                                    </svg>
-                                )}
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* Left delete button */}
-                    <div
-                        style={{ backgroundColor: colors.container }}
-                        className="absolute top-1/2 -translate-y-1/2 -left-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-all duration-300 group/delbtn z-[50]"
-                        onClick={(e) => { e.stopPropagation(); handleDeleteContainer(boxId); }}
-                    >
-                        <TooltipProvider delayDuration={0}>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <div className="flex items-center justify-center w-full h-full relative">
-                                        <div className="flex items-center justify-center gap-[3px] absolute transition-opacity duration-200 group-hover/delbtn:opacity-0 opacity-100">
-                                            <div className="w-[4px] h-[4px] rounded-full bg-white" />
-                                            <div className="w-[4px] h-[4px] rounded-full bg-white" />
-                                            <div className="w-[4px] h-[4px] rounded-full bg-white" />
-                                        </div>
-                                        <span className="material-symbols-outlined text-[18px] absolute transition-opacity duration-200 group-hover/delbtn:opacity-100 opacity-0">delete_outline</span>
-                                    </div>
-                                </TooltipTrigger>
-                                <TooltipContent side="left" sideOffset={12}>Delete Container</TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    </div>
+                    {/* Hitbox bridge for pill expansion */}
+                    <div className="absolute inset-x-0 top-[28px] h-[28px] pointer-events-none group-hover/layerpill:pointer-events-auto z-[60]" />
+                    {[
+                        { id: 'container', label: 'Container', color: colors.container },
+                        { id: 'structure', label: 'Structure', color: colors.structure },
+                        { id: 'backdrop', label: 'Backdrop', color: colors.backdrop },
+                    ].map((layer, idx) => (
+                        <div
+                            key={layer.id}
+                            draggable={layer.id === 'structure'}
+                            onDragStart={(e) => {
+                                if (layer.id === 'structure') {
+                                    e.dataTransfer.effectAllowed = 'move';
+                                    const img = new window.Image();
+                                    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                                    e.dataTransfer.setDragImage(img, 0, 0);
+                                    setDraggingTool({ icon: 'layout', type: 'move_structure', id: structureId });
+                                }
+                            }}
+                            onDragEnd={() => {
+                                if (layer.id === 'structure') {
+                                    setDraggingTool(null);
+                                    setDropInsertIndex(null);
+                                }
+                            }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (layer.id === 'backdrop') {
+                                    setSelectedBackdropRowId(rowId);
+                                    setSelectedBoxId(null);
+                                    setSelectedLayer('backdrop');
+                                    setActiveRightSidebarTab('general');
+                                } else if (layer.id === 'structure') {
+                                    setSelectedBoxId(rowId);
+                                    setSelectedLayer('structure');
+                                    setSelectedBackdropRowId(null);
+                                } else {
+                                    setSelectedBoxId(boxId);
+                                    setSelectedLayer('container');
+                                    setSelectedBackdropRowId(null);
+                                }
+                            }}
+                            style={{ backgroundColor: layer.color, borderColor: layer.color, zIndex: 30 - idx }}
+                            className={`px-3 py-[3px] rounded-full border-0 text-[10.5px] font-medium text-white
+                                transition-all duration-300 ease-in-out shadow-sm flex items-center justify-start
+                                hover:scale-105 active:scale-95 pointer-events-auto
+                                ${idx === 0
+                                    ? 'relative cursor-pointer'
+                                    : '-mt-[26px] opacity-0 pointer-events-none group-hover/layerpill:mt-[4px] group-hover/layerpill:opacity-100 group-hover/layerpill:pointer-events-auto cursor-grab active:cursor-grabbing'
+                                }`}
+                        >
+                            <span className="capitalize tracking-wide">{layer.label}</span>
+                            {idx !== 0 && (
+                                <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor" className="opacity-80 rotate-90 ml-1.5 -mr-1 pointer-events-none">
+                                    <path d="M360-160q-33 0-56.5-23.5T280-240q0-33 23.5-56.5T360-320q33 0 56.5 23.5T440-240q0 33-23.5 56.5T360-160Zm240 0q-33 0-56.5-23.5T520-240q0-33 23.5-56.5T600-320q33 0 56.5 23.5T680-240q0 33-23.5 56.5T600-160ZM360-400q-33 0-56.5-23.5T280-480q0-33 23.5-56.5T360-560q33 0 56.5 23.5T440-480q0 33-23.5 56.5T360-400Zm240 0q-33 0-56.5-23.5T520-480q0-33 23.5-56.5T600-560q33 0 56.5 23.5T680-480q0 33-23.5 56.5T600-400ZM360-640q-33 0-56.5-23.5T280-720q0-33 23.5-56.5T360-800q33 0 56.5 23.5T440-720q0 33-23.5 56.5T360-640Zm240 0q-33 0-56.5-23.5T520-720q0-33 23.5-56.5T600-800q33 0 56.5 23.5T680-720q0 33-23.5 56.5T600-640Z" />
+                                </svg>
+                            )}
+                        </div>
+                    ))}
                 </div>
 
-                {/* ── Block Overlay ──────────────────────────────────── */}
-                <div className={`absolute inset-0 pointer-events-none transition-opacity duration-200 z-[50] ${
-                    isBlockSelected ? 'opacity-100' : 'opacity-0 group-hover/container:opacity-100'
+                {/* Left delete button */}
+                <div
+                    style={{ backgroundColor: colors.container }}
+                    className="absolute top-1/2 -translate-y-1/2 -left-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-all duration-300 group/delbtn z-[50]"
+                    onClick={(e) => { e.stopPropagation(); handleDeleteContainer(boxId); }}
+                >
+                    <TooltipProvider delayDuration={0}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="flex items-center justify-center w-full h-full relative">
+                                    <div className="flex items-center justify-center gap-[3px] absolute transition-opacity duration-200 group-hover/delbtn:opacity-0 opacity-100">
+                                        <div className="w-[4px] h-[4px] rounded-full bg-white" />
+                                        <div className="w-[4px] h-[4px] rounded-full bg-white" />
+                                        <div className="w-[4px] h-[4px] rounded-full bg-white" />
+                                    </div>
+                                    <span className="material-symbols-outlined text-[18px] absolute transition-opacity duration-200 group-hover/delbtn:opacity-100 opacity-0">delete_outline</span>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="left" sideOffset={12}>Delete Container</TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                </div>
+            </div>
+        );
+    };
+
+    const renderBlockOverlay = (boxId: string, structureId: string) => {
+        const isSelected = selectedBoxId === boxId;
+        const isBlockSelected = isSelected && selectedLayer === 'block';
+        const rowId = structureId;
+        const isTopRow = (() => {
+            let flat = 0;
+            for (const bd of emailTree) {
+                for (const st of bd.structures) {
+                    if (st.id === rowId) return flat === 0;
+                    flat++;
+                }
+            }
+            return false;
+        })();
+
+        return (
+            <div className={`absolute inset-0 pointer-events-none transition-opacity duration-200 z-[50] ${isBlockSelected ? 'opacity-100' : 'opacity-0 group-hover/block:opacity-100'
                 }`}>
-                    {/* Block border */}
-                    <div className={`absolute inset-0 border-[2px] rounded-[4px] pointer-events-none ${
-                        isBlockSelected ? 'border-[#4b5b75]' : 'border-[#4b5b75]/60'
+                {/* Block border */}
+                <div className={`absolute inset-0 border-[2px] rounded-[4px] pointer-events-none ${isBlockSelected ? 'border-[#4b5b75]' : 'border-[#4b5b75]/60'
                     }`} />
 
-                    {/* Right 3-dot button */}
-                    <div
-                        className="absolute top-1/2 -translate-y-1/2 -right-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-transform bg-[#4b5b75] z-[50]"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {/* Hitbox bridge */}
-                        <div className="absolute inset-y-0 right-0 left-[-12px] top-0 h-[37px] pointer-events-auto z-[60]" />
-                        <div className="flex gap-[3px]">
-                            <div className="w-[4px] h-[4px] rounded-full bg-white" />
-                            <div className="w-[4px] h-[4px] rounded-full bg-white" />
-                            <div className="w-[4px] h-[4px] rounded-full bg-white" />
-                        </div>
-                    </div>
-
-                    {/* Drag pill */}
-                    <div
-                        className={`absolute ${
-                            isTopRow ? '-bottom-[28px]' : '-top-[32px]'
-                        } left-[16px] text-white rounded-[12px] w-[36px] h-[24px] flex items-center justify-center pointer-events-auto cursor-grab active:cursor-grabbing shadow-md hover:scale-105 transition-all bg-[#4b5b75] z-[50]`}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className={`absolute inset-x-0 ${
-                            isTopRow ? 'top-[-8px] h-[30px]' : 'top-0 h-[32px]'
-                        } pointer-events-auto z-[60]`} />
-                        <span className="material-symbols-outlined text-[18px] rotate-90">drag_indicator</span>
+                {/* Right 3-dot button */}
+                <div
+                    className="absolute top-1/2 -translate-y-1/2 -right-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-transform bg-[#4b5b75] z-[50]"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {/* Hitbox bridge */}
+                    <div className="absolute inset-y-0 right-0 left-[-12px] top-0 h-[37px] pointer-events-auto z-[60]" />
+                    <div className="flex gap-[3px]">
+                        <div className="w-[4px] h-[4px] rounded-full bg-white" />
+                        <div className="w-[4px] h-[4px] rounded-full bg-white" />
+                        <div className="w-[4px] h-[4px] rounded-full bg-white" />
                     </div>
                 </div>
-            </>
+
+                {/* Drag pill */}
+                <div
+                    className={`absolute ${isTopRow ? '-bottom-[28px]' : '-top-[32px]'
+                        } left-[16px] text-white rounded-[12px] w-[36px] h-[24px] flex items-center justify-center pointer-events-auto cursor-grab active:cursor-grabbing shadow-md hover:scale-105 transition-all bg-[#4b5b75] z-[50]`}
+                    onClick={(e) => e.stopPropagation()}
+                    draggable
+                    onDragStart={(e) => {
+                        e.stopPropagation();
+                        e.dataTransfer.effectAllowed = 'move';
+                        const img = new window.Image();
+                        img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                        e.dataTransfer.setDragImage(img, 0, 0);
+                        setDraggingTool({ icon: 'drag_indicator', type: 'move_block', id: boxId });
+                    }}
+                    onDragEnd={() => setDraggingTool(null)}
+                >
+                    <div className={`absolute inset-x-0 ${isTopRow ? 'top-[-8px] h-[30px]' : 'top-0 h-[32px]'
+                        } pointer-events-auto z-[60]`} />
+                    <span className="material-symbols-outlined text-[18px] rotate-90">drag_indicator</span>
+                </div>
+            </div>
         );
     };
 
 
-    const renderBoxContent = (state: string, boxId: string) => {
+    const renderBoxContent = (state: string, boxId: string, structureId: string, backdropId: string) => {
         const isSelected = selectedBoxId === boxId;
         const isContainerSelected = isSelected && selectedLayer === 'container';
         const isBlockSelected = isSelected && selectedLayer === 'block';
@@ -962,15 +1016,15 @@ export default function EmailEditorPage() {
         if (state === 'image') {
             return (
                 <div
-                    className={`structure-container w-full relative border-[2px] rounded-[4px] bg-[#f9fafb] flex items-center justify-center group/container cursor-default min-h-[120px] ${
-                        isContainerSelected ? 'border-blue-500' : isSelected ? 'border-blue-300' : 'border-transparent'
-                    } ${isSelected ? 'z-[20]' : 'z-[1]'}`}
+                    className={`structure-container w-full relative border-[2px] rounded-[4px] bg-[#f9fafb] flex items-center justify-center group/container cursor-default min-h-[120px] ${isContainerSelected ? 'border-blue-500' : isSelected ? 'border-blue-300' : 'border-transparent'
+                        } ${isSelected ? 'z-[20]' : 'z-[1]'}`}
                     onClick={(e) => { e.stopPropagation(); setSelectedBoxId(boxId); setSelectedLayer('container'); setSelectedBackdropRowId(null); }}
                 >
-                    <div className="w-full h-full flex items-center justify-center pointer-events-none cursor-default">
-                        <span className="material-symbols-outlined text-[24px] text-gray-400">image</span>
+                    <div className="w-full h-full flex items-center justify-center group/block relative" onClick={handleBlockSelection}>
+                        <span className="material-symbols-outlined text-[24px] text-gray-400 pointer-events-none">image</span>
+                        {renderBlockOverlay(boxId, structureId)}
                     </div>
-                    {renderContainerBlockOverlays(boxId)}
+                    {renderContainerOverlay(boxId, structureId, backdropId)}
                 </div>
             );
         }
@@ -978,13 +1032,13 @@ export default function EmailEditorPage() {
         if (state === 'text') {
             return (
                 <div
-                    className={`structure-container w-full relative border-[2px] rounded-[4px] bg-white group/container flex flex-col cursor-default ${
-                        isContainerSelected ? 'border-blue-500' : isSelected ? 'border-blue-300' : 'border-transparent'
-                    } ${isSelected ? 'z-[20]' : 'z-[1]'}`}
+                    className={`structure-container w-full relative border-[2px] rounded-[4px] bg-white group/container flex flex-col cursor-default ${isContainerSelected ? 'border-blue-500' : isSelected ? 'border-blue-300' : 'border-transparent'
+                        } ${isSelected ? 'z-[20]' : 'z-[1]'}`}
                     onClick={(e) => { e.stopPropagation(); setSelectedBoxId(boxId); setSelectedLayer('container'); setSelectedBackdropRowId(null); }}
                 >
-                    <div className="flex-1 p-3 w-full cursor-default">
+                    <div className="flex-1 p-3 w-full cursor-default group/block relative">
                         <RichTextEditor
+                            key={boxId}
                             boxId={boxId}
                             isSelected={isBlockSelected}
                             boxProperties={activeBlockNode?.properties || {}}
@@ -994,13 +1048,16 @@ export default function EmailEditorPage() {
                                 setSelectedLayer('block');
                                 setSelectedBackdropRowId(null);
                             }}
-                            onEditorBlur={() => { }}
+                            onEditorBlur={(editor: any) => {
+                                updateBlockProperty(boxId, 'content', editor.getHTML());
+                            }}
                             onTransaction={(editor: any) => {
                                 if (activeEditor === editor) setEditorUpdateTicker(t => t + 1);
                             }}
                         />
+                        {renderBlockOverlay(boxId, structureId)}
                     </div>
-                    {renderContainerBlockOverlays(boxId)}
+                    {renderContainerOverlay(boxId, structureId, backdropId)}
                 </div>
             );
         }
@@ -1008,17 +1065,17 @@ export default function EmailEditorPage() {
         if (state === 'button') {
             return (
                 <div
-                    className={`structure-container w-full py-5 relative border-[2px] rounded-[4px] bg-white flex items-center justify-center group/container cursor-default ${
-                        isContainerSelected ? 'border-blue-500' : isSelected ? 'border-blue-300' : 'border-transparent'
-                    } ${isSelected ? 'z-[20]' : 'z-[1]'}`}
+                    className={`structure-container w-full py-5 relative border-[2px] rounded-[4px] bg-white flex items-center justify-center group/container cursor-default ${isContainerSelected ? 'border-blue-500' : isSelected ? 'border-blue-300' : 'border-transparent'
+                        } ${isSelected ? 'z-[20]' : 'z-[1]'}`}
                     onClick={(e) => { e.stopPropagation(); setSelectedBoxId(boxId); setSelectedLayer('container'); setSelectedBackdropRowId(null); }}
                 >
-                    <div className="px-8 py-2 w-full flex justify-center pointer-events-none cursor-default">
-                        <button className="bg-[#22c55e] hover:bg-[#16a34a] text-white px-8 py-2.5 rounded-[12px] font-medium text-[15px] transition-colors border shadow-sm">
+                    <div className="px-8 py-2 w-full flex justify-center cursor-default group/block relative" onClick={handleBlockSelection}>
+                        <button className="bg-[#22c55e] hover:bg-[#16a34a] text-white px-8 py-2.5 rounded-[12px] font-medium text-[15px] transition-colors border shadow-sm pointer-events-none">
                             Button
                         </button>
+                        {renderBlockOverlay(boxId, structureId)}
                     </div>
-                    {renderContainerBlockOverlays(boxId)}
+                    {renderContainerOverlay(boxId, structureId, backdropId)}
                 </div>
             );
         }
@@ -1047,7 +1104,18 @@ export default function EmailEditorPage() {
                 }}
                 onDrop={(e) => {
                     e.preventDefault();
+                    e.stopPropagation(); // Prevent bubbling to canvas layout drop
                     setDraggedOverBox(null);
+
+                    // Handle block swap from drag pill
+                    if (draggingTool?.type === 'move_block' && draggingTool.id) {
+                        swapBlocks(draggingTool.id, boxId);
+                        setSelectedBoxId(boxId);
+                        setSelectedLayer('block');
+                        return;
+                    }
+
+                    // Handle sidebar tool drop
                     const toolType = e.dataTransfer.getData('application/tool-type');
                     if (toolType === 'image' || toolType === 'text' || toolType === 'button') {
                         setBlockType(boxId, toolType);
@@ -1605,10 +1673,11 @@ export default function EmailEditorPage() {
                         {/* Stacking Effects Behind the Panel */}
                         <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-[94%] h-4 bg-white/60 dark:bg-white/10 rounded-b-[24px] pointer-events-none -z-10 shadow-sm border border-gray-200/40 dark:border-white/10 opacity-90" />
                         <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-[88%] h-4 bg-white/30 dark:bg-white/5 rounded-b-[24px] pointer-events-none -z-20 shadow-sm border border-gray-100/20 dark:border-white/5 opacity-70" />
-                        
+
                         <div className="h-full w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[24px] shadow-xl flex flex-col overflow-hidden pointer-events-auto relative">
-                             {/* Gradient Animation Style */}
-                             <style dangerouslySetInnerHTML={{ __html: `
+                            {/* Gradient Animation Style */}
+                            <style dangerouslySetInnerHTML={{
+                                __html: `
                                 @keyframes gradient-move {
                                     0% { background-position: 0% 50%; }
                                     50% { background-position: 100% 50%; }
@@ -1956,123 +2025,170 @@ export default function EmailEditorPage() {
                         className={`w-full max-w-[620px] bg-white dark:bg-accent shadow-sm flex flex-col pt-[34px] pb-8 gap-6 relative`}
                         onClick={(e) => e.stopPropagation()}
                         onDragOver={(e) => {
-                            if (draggingTool?.type === 'layout' || draggingTool?.type === 'move_layout') {
+                            const t = draggingTool?.type;
+                            if (t === 'layout' || t === 'move_structure' || t === 'move_backdrop') {
                                 e.preventDefault();
-                                e.dataTransfer.dropEffect = draggingTool.type === 'move_layout' ? 'move' : 'copy';
+                                e.dataTransfer.dropEffect = t === 'layout' ? 'copy' : 'move';
 
-                                // Calculate nearest gap
+                                // Calculate nearest gap between flat structure rows
                                 const canvas = canvasRef.current;
                                 if (!canvas) return;
-                                const children = Array.from(canvas.querySelectorAll(':scope > [data-structure-row]'));
+                                // BUG 1 FIX: Remove ':scope >' — structures are nested inside
+                                // backdrop wrappers, not direct children of the canvas div.
+                                const children = Array.from(canvas.querySelectorAll('[data-structure-row]'));
                                 const mouseY = e.clientY;
 
-                                if (children.length === 0) {
-                                    setDropInsertIndex(0);
-                                    return;
-                                }
+                                if (children.length === 0) { setDropInsertIndex(0); return; }
 
-                                // Check gaps: before first, between each pair, after last
                                 let closestIndex = 0;
                                 let closestDist = Infinity;
 
-                                // Gap before first row
                                 const firstRect = children[0].getBoundingClientRect();
                                 const distToTop = Math.abs(mouseY - firstRect.top);
-                                if (distToTop < closestDist) {
-                                    closestDist = distToTop;
-                                    closestIndex = 0;
-                                }
+                                if (distToTop < closestDist) { closestDist = distToTop; closestIndex = 0; }
 
-                                // Gaps between rows
                                 for (let i = 0; i < children.length - 1; i++) {
                                     const bottomOfCurrent = children[i].getBoundingClientRect().bottom;
                                     const topOfNext = children[i + 1].getBoundingClientRect().top;
                                     const gapCenter = (bottomOfCurrent + topOfNext) / 2;
                                     const dist = Math.abs(mouseY - gapCenter);
-                                    if (dist < closestDist) {
-                                        closestDist = dist;
-                                        closestIndex = i + 1;
-                                    }
+                                    if (dist < closestDist) { closestDist = dist; closestIndex = i + 1; }
                                 }
 
-                                // Gap after last row
                                 const lastRect = children[children.length - 1].getBoundingClientRect();
-                                const distToBottom = Math.abs(mouseY - lastRect.bottom);
-                                if (distToBottom < closestDist) {
-                                    closestIndex = children.length;
-                                }
+                                if (Math.abs(mouseY - lastRect.bottom) < closestDist) { closestIndex = children.length; }
 
                                 setDropInsertIndex(closestIndex);
                             }
                         }}
                         onDragLeave={(e) => {
-                            // Only clear if leaving the canvas entirely
                             if (!canvasRef.current?.contains(e.relatedTarget as Node)) {
                                 setDropInsertIndex(null);
                             }
                         }}
                         onDrop={(e) => {
-                            if ((draggingTool?.type === 'layout' || draggingTool?.type === 'move_layout') && dropInsertIndex !== null) {
+                            const t = draggingTool?.type;
+                            if ((t === 'layout' || t === 'move_structure' || t === 'move_backdrop') && dropInsertIndex !== null) {
                                 e.preventDefault();
 
-                                if (draggingTool.type === 'move_layout' && draggingTool.id) {
-                                    // Handle moving existing structure within the tree
-                                    const draggedId = draggingTool.id;
+                                if (t === 'move_backdrop' && draggingTool!.id) {
+                                    // ─── Move entire Backdrop ───
+                                    const draggedId = draggingTool!.id;
+                                    const capturedIdx = dropInsertIndex;
                                     setEmailTree(prev => {
-                                        // Build flat list of all structures with their backdrop parent
-                                        const flat: Array<{ bd: BackdropData; st: StructureData }> = [];
-                                        prev.forEach(bd => bd.structures.forEach(st => flat.push({ bd, st })));
-                                        const currentIndex = flat.findIndex(f => f.st.id === draggedId);
+                                        const currentIndex = prev.findIndex(bd => bd.id === draggedId);
                                         if (currentIndex === -1) return prev;
-                                        const effectiveInsertAt = dropInsertIndex! > currentIndex ? dropInsertIndex! - 1 : dropInsertIndex!;
-                                        // Remove from old backdrop, insert into target position
-                                        const draggedSt = flat[currentIndex].st;
-                                        const cleaned = prev.map(bd => ({
-                                            ...bd,
-                                            structures: bd.structures.filter(s => s.id !== draggedId),
-                                        })).filter(bd => bd.structures.length > 0);
-                                        // Rebuild flat to find insertion point
-                                        const cleanFlat: Array<{ bdIdx: number; stIdx: number }> = [];
-                                        cleaned.forEach((bd, bi) => bd.structures.forEach((_, si) => cleanFlat.push({ bdIdx: bi, stIdx: si })));
-                                        if (effectiveInsertAt >= cleanFlat.length) {
-                                            // Append to last backdrop
-                                            const last = cleaned[cleaned.length - 1];
-                                            last.structures.push(draggedSt);
-                                        } else {
-                                            const target = cleanFlat[effectiveInsertAt];
-                                            cleaned[target.bdIdx].structures.splice(target.stIdx, 0, draggedSt);
+                                        const draggedBd = prev[currentIndex];
+
+                                        // Convert flat-structure index → backdrop index
+                                        let count = 0;
+                                        let targetBdIdx = prev.length;
+                                        for (let i = 0; i < prev.length; i++) {
+                                            if (count >= capturedIdx) { targetBdIdx = i; break; }
+                                            count += prev[i].structures.length;
                                         }
-                                        saveHistoryState(cleaned);
-                                        return cleaned;
+                                        if (currentIndex < targetBdIdx) targetBdIdx -= 1;
+
+                                        const cleaned = prev.filter(bd => bd.id !== draggedId);
+                                        const next = [...cleaned];
+                                        next.splice(Math.min(targetBdIdx, next.length), 0, draggedBd);
+                                        return next;
                                     });
-                                } else if (draggingTool.columns) {
-                                    // Handle new row from menu — insert directly into emailTree
-                                    const newRowId = `row-${Date.now()}`;
-                                    const cols = draggingTool.columns!;
+
+                                } else if (t === 'move_structure' && draggingTool!.id) {
+                                    // ─── Move Structure ───
+                                    // Inject into the TARGET backdrop (not a forced new wrapper)
+                                    // so structures sharing a backdrop keep their background colors.
+                                    const draggedId = draggingTool!.id;
+                                    const capturedIdx = dropInsertIndex;
                                     setEmailTree(prev => {
-                                        const containers: ContainerData[] = cols.map((_, i) => ({
-                                            id: `${newRowId}-col${i}`,
+                                        let draggedSt: StructureData | null = null;
+                                        let oldFlatIndex = -1;
+                                        let currentFlat = 0;
+
+                                        // Extract structure, record original flat position
+                                        const cleaned = prev.map(bd => {
+                                            const stIdx = bd.structures.findIndex(s => s.id === draggedId);
+                                            if (stIdx !== -1) {
+                                                draggedSt = bd.structures[stIdx];
+                                                oldFlatIndex = currentFlat + stIdx;
+                                            }
+                                            currentFlat += bd.structures.length;
+                                            return { ...bd, structures: bd.structures.filter(s => s.id !== draggedId) };
+                                        }).filter(bd => bd.structures.length > 0);
+
+                                        if (!draggedSt) return prev;
+
+                                        // 🛡️ Safety net: canvas emptied
+                                        if (cleaned.length === 0) {
+                                            return [{ id: `row-${Date.now()}`, backgroundColor: '', structures: [draggedSt] }];
+                                        }
+
+                                        // Offset by -1 when moving downward (extraction shifted indices up)
+                                        const effectiveIdx = (oldFlatIndex !== -1 && capturedIdx > oldFlatIndex)
+                                            ? capturedIdx - 1
+                                            : capturedIdx;
+
+                                        // Walk cleaned backdrops, inject into the CORRECT one
+                                        const next = [...cleaned];
+                                        let count = 0;
+                                        let inserted = false;
+                                        for (let b = 0; b < next.length; b++) {
+                                            const len = next[b].structures.length;
+                                            if (effectiveIdx <= count + len) {
+                                                next[b] = { ...next[b], structures: [...next[b].structures] };
+                                                next[b].structures.splice(effectiveIdx - count, 0, draggedSt);
+                                                inserted = true;
+                                                break;
+                                            }
+                                            count += len;
+                                        }
+                                        if (!inserted) {
+                                            next[next.length - 1] = {
+                                                ...next[next.length - 1],
+                                                structures: [...next[next.length - 1].structures, draggedSt],
+                                            };
+                                        }
+                                        return next;
+                                    });
+
+                                } else if (t === 'layout' && draggingTool!.columns) {
+                                    // ─── Insert new Layout from sidebar ───
+                                    // Inject new structure directly into the targeted Backdrop
+                                    // so it shares that backdrop's background color.
+                                    const newRowId = `row-${Date.now()}`;
+                                    const cols = draggingTool!.columns!;
+                                    const capturedIdx = dropInsertIndex;
+                                    setEmailTree(prev => {
+                                        const containers: ContainerData[] = cols.map(() => ({
+                                            id: `container-${crypto.randomUUID()}`,
                                             block: null,
                                         }));
-                                        const newBackdrop: BackdropData = {
-                                            id: newRowId,
-                                            backgroundColor: '',
-                                            structures: [{ id: newRowId, columns: cols, containers }],
-                                        };
-                                        // Find the flat insertion point
-                                        const flat: string[] = [];
-                                        prev.forEach(bd => bd.structures.forEach(st => flat.push(st.id)));
-                                        // Insert as a new backdrop at the correct position
-                                        const next = [...prev];
-                                        // Map dropInsertIndex (flat structure index) to backdrop array index
-                                        let count = 0;
-                                        let bdInsertIdx = next.length;
-                                        for (let i = 0; i < next.length; i++) {
-                                            if (count >= dropInsertIndex!) { bdInsertIdx = i; break; }
-                                            count += next[i].structures.length;
+                                        const newSt: StructureData = { id: newRowId, columns: cols, containers };
+
+                                        if (prev.length === 0) {
+                                            return [{ id: newRowId, backgroundColor: '', structures: [newSt] }];
                                         }
-                                        next.splice(bdInsertIdx, 0, newBackdrop);
-                                        saveHistoryState(next);
+
+                                        const next = [...prev];
+                                        let count = 0;
+                                        let inserted = false;
+                                        for (let b = 0; b < next.length; b++) {
+                                            const len = next[b].structures.length;
+                                            if (capturedIdx <= count + len) {
+                                                next[b] = { ...next[b], structures: [...next[b].structures] };
+                                                next[b].structures.splice(capturedIdx - count, 0, newSt);
+                                                inserted = true;
+                                                break;
+                                            }
+                                            count += len;
+                                        }
+                                        if (!inserted) {
+                                            next[next.length - 1] = {
+                                                ...next[next.length - 1],
+                                                structures: [...next[next.length - 1].structures, newSt],
+                                            };
+                                        }
                                         return next;
                                     });
                                 }
@@ -2257,7 +2373,7 @@ export default function EmailEditorPage() {
                                                                                 const img = new window.Image();
                                                                                 img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
                                                                                 e.dataTransfer.setDragImage(img, 0, 0);
-                                                                                setDraggingTool({ icon: 'layout', type: 'move_layout', id: backdrop.id });
+                                                                                setDraggingTool({ icon: 'layout', type: 'move_backdrop', id: backdrop.id });
                                                                             }}
                                                                             onDragEnd={() => { setDraggingTool(null); setDropInsertIndex(null); }}
                                                                         >
@@ -2282,11 +2398,10 @@ export default function EmailEditorPage() {
                                                 <div
                                                     key={structure.id}
                                                     data-structure-row
-                                                    className={`relative ${
-                                                        (selectedBoxId === structure.id || (selectedBoxId && selectedBoxId.startsWith(structure.id + '-')) || selectedBackdropRowId === backdrop.id)
+                                                    className={`relative ${(selectedBoxId === structure.id || (selectedBoxId && selectedBoxId.startsWith(structure.id + '-')) || selectedBackdropRowId === backdrop.id)
                                                             ? 'z-[60]'
                                                             : 'z-[10]'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     {/* Drop indicator TOP (first structure of first backdrop only) */}
                                                     {dropInsertIndex === 0 && flatIdx === 0 && (
@@ -2309,7 +2424,7 @@ export default function EmailEditorPage() {
                                                             const img = new window.Image();
                                                             img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
                                                             e.dataTransfer.setDragImage(img, 0, 0);
-                                                            setDraggingTool({ icon: 'layout', type: 'move_layout', id: structure.id });
+                                                            setDraggingTool({ icon: 'layout', type: 'move_structure', id: structure.id });
                                                         }}
                                                         onMoveDragEnd={() => {
                                                             setDraggingTool(null);
@@ -2326,7 +2441,7 @@ export default function EmailEditorPage() {
                                                         <div className="flex gap-4 w-full items-start isolation-auto" style={{ height: 'auto' }}>
                                                             {structure.containers.map((container, ci) => (
                                                                 <div key={container.id} style={{ flex: structure.columns[ci] ?? 1 }} className="w-full">
-                                                                    {renderBoxContent(container.block ? container.block.type : 'empty', container.id)}
+                                                                    {renderBoxContent(container.block ? container.block.type : 'empty', container.id, structure.id, backdrop.id)}
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -2385,7 +2500,7 @@ export default function EmailEditorPage() {
                     )}
                     <div className="pointer-events-auto flex flex-col h-full w-full">
                         {selectedBackdropRowId ? (
-                             <div className="flex-1 bg-white dark:bg-background rounded-[24px] shadow-sm flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
+                            <div className="flex-1 bg-white dark:bg-background rounded-[24px] shadow-sm flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
                                 {/* Backdrop Header */}
                                 <div className="pt-[10px] pb-[10px] flex items-center justify-between px-5 border-b border-gray-100 dark:border-border flex-shrink-0">
                                     <span className="material-symbols-outlined text-[15px] font-medium text-gray-400 hover:text-gray-600 cursor-pointer" onClick={() => {
@@ -2447,7 +2562,7 @@ export default function EmailEditorPage() {
                                         </div>
                                     </div>
                                 </div>
-                             </div>
+                            </div>
                         ) : activeBlockNode?.type === 'text' ? (
                             <div className="flex-1 bg-white dark:bg-background rounded-[24px] shadow-sm flex flex-col overflow-hidden animate-in fade-in slide-in-from-right-4 duration-300">
                                 {/* Text Block Header */}
@@ -2745,7 +2860,7 @@ export default function EmailEditorPage() {
                                                                 <div className="absolute right-[calc(100%+16px)] top-1/2 -translate-y-1/2 z-[200] animate-in fade-in zoom-in-95 duration-200">
                                                                     {/* Triangle Arrow */}
                                                                     <div className="absolute right-[-6px] top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-t border-r border-gray-100 rotate-45 z-[210]"></div>
-                                                                    
+
                                                                     <div
                                                                         className="fixed inset-0 z-[190]"
                                                                         onClick={(e) => {
@@ -2806,7 +2921,7 @@ export default function EmailEditorPage() {
                                                                 <div className="absolute right-[calc(100%+16px)] top-1/2 -translate-y-1/2 z-[200] animate-in fade-in zoom-in-95 duration-200">
                                                                     {/* Triangle Arrow */}
                                                                     <div className="absolute right-[-6px] top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-t border-r border-gray-100 rotate-45 z-[210]"></div>
-                                                                    
+
                                                                     <div
                                                                         className="fixed inset-0 z-[190]"
                                                                         onClick={(e) => {
@@ -2833,7 +2948,7 @@ export default function EmailEditorPage() {
                                                             )}
                                                         </div>
                                                         <div className="bg-white dark:bg-background rounded-full p-[2px] shadow-sm flex items-center justify-center relative">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor" className="text-gray-600 dark:text-gray-300 hover:text-gray-800 transition-colors cursor-pointer"><path d="M80-240v-480h80v480H80Zm560 0-57-56 144-144H240v-80h487L584-664l56-56 240 240-240 240Z"/></svg>
+                                                            <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor" className="text-gray-600 dark:text-gray-300 hover:text-gray-800 transition-colors cursor-pointer"><path d="M80-240v-480h80v480H80Zm560 0-57-56 144-144H240v-80h487L584-664l56-56 240 240-240 240Z" /></svg>
                                                         </div>
                                                         <div className="flex items-center justify-center h-[26px]">
                                                             <span className="text-[13px] text-gray-400 dark:text-gray-500 font-medium tracking-wide">{preheaderText.length}</span>
@@ -2958,12 +3073,12 @@ export default function EmailEditorPage() {
                                                                                 <div className="absolute top-[46px] right-0 z-[200] w-[260px] bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-[20px] shadow-[0_20px_50px_rgba(0,0,0,0.2)] animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
                                                                                     {/* Triangle Arrow */}
                                                                                     <div className="absolute -top-[6px] right-[24px] w-3 h-3 bg-white dark:bg-[#1a1a1a] border-t border-l border-gray-200 dark:border-white/10 rotate-45 z-[210]"></div>
-                                                                                    
+
                                                                                     <div className="flex flex-col p-4 gap-4">
                                                                                         {/* Picker Section */}
                                                                                         <div className="color-picker-custom w-full">
-                                                                                            <HexColorPicker 
-                                                                                                color={globalStyles.displayBackground} 
+                                                                                            <HexColorPicker
+                                                                                                color={globalStyles.displayBackground}
                                                                                                 onChange={(c) => setGlobalStyles(prev => ({ ...prev, displayBackground: c }))}
                                                                                                 style={{ width: '100%', height: '140px' }}
                                                                                             />
@@ -2972,7 +3087,7 @@ export default function EmailEditorPage() {
                                                                                         {/* HEX Input Section */}
                                                                                         <div className="flex items-center gap-2 bg-gray-50 dark:bg-white/5 p-2 rounded-xl border border-gray-100 dark:border-white/5">
                                                                                             <span className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase px-1">Hex</span>
-                                                                                            <input 
+                                                                                            <input
                                                                                                 className="flex-1 bg-transparent border-none outline-none text-[13px] font-mono font-bold text-gray-700 dark:text-gray-200 uppercase"
                                                                                                 value={globalStyles.displayBackground}
                                                                                                 onChange={(e) => {
@@ -2993,9 +3108,9 @@ export default function EmailEditorPage() {
                                                                                             </div>
                                                                                             <div className="grid grid-cols-6 gap-2">
                                                                                                 {['#f6f6f6', '#ffffff', '#000000', '#eb4132', '#3478f6', '#32d74b', '#ff9f0a', '#5856d6', '#af52de', '#ff3b30', '#ffcc00', '#8e8e93'].map(c => (
-                                                                                                    <div 
+                                                                                                    <div
                                                                                                         key={c}
-                                                                                                        className={`w-7 h-7 rounded-full border border-gray-100 dark:border-white/10 cursor-pointer transition-transform hover:scale-110 shadow-sm ${globalStyles.displayBackground.toLowerCase() === c.toLowerCase() ? 'ring-2 ring-primary ring-offset-2 dark:ring-offset-[#1a1a1a]' : ''}`} 
+                                                                                                        className={`w-7 h-7 rounded-full border border-gray-100 dark:border-white/10 cursor-pointer transition-transform hover:scale-110 shadow-sm ${globalStyles.displayBackground.toLowerCase() === c.toLowerCase() ? 'ring-2 ring-primary ring-offset-2 dark:ring-offset-[#1a1a1a]' : ''}`}
                                                                                                         style={{ backgroundColor: c }}
                                                                                                         onClick={() => setGlobalStyles(prev => ({ ...prev, displayBackground: c }))}
                                                                                                     />
@@ -3029,14 +3144,14 @@ export default function EmailEditorPage() {
                                                                             <span className="text-[14px] font-medium text-gray-500 dark:text-foreground/70">Background Image</span>
                                                                             <TooltipProvider><Tooltip><TooltipTrigger className="flex items-center"><span className="material-symbols-outlined text-[20px] text-gray-300 hover:text-gray-400 transition-colors">help</span></TooltipTrigger><TooltipContent className="max-w-[280px]">Background image for the entire email. Some email clients (Windows 10 Mail, Android 4.4, the Gmail app for iOS, and Android for non-Gmail accounts) do not support background images. Thus, we recommend choosing a background color for the entire email similar to the selected image as a fallback.</TooltipContent></Tooltip></TooltipProvider>
                                                                         </div>
-                                                                        <div 
+                                                                        <div
                                                                             onClick={() => setIsBgImageEnabled(!isBgImageEnabled)}
                                                                             className={`w-[54px] h-[30px] rounded-full relative cursor-pointer shadow-inner border transition-all duration-300 ${isBgImageEnabled ? 'bg-[#10b981] border-green-500' : 'bg-gray-100 dark:bg-accent/40 border-gray-200'}`}
                                                                         >
                                                                             <div className={`w-[24px] h-[24px] bg-white rounded-full absolute top-[2px] shadow-md transition-all duration-300 ${isBgImageEnabled ? 'right-[2px]' : 'left-[2px]'}`}></div>
                                                                         </div>
                                                                     </div>
-                                                                    
+
                                                                     {isBgImageEnabled && (
                                                                         <div className="px-8 pb-6 animate-in slide-in-from-bottom-8 fade-in duration-500 ease-out">
                                                                             <div className="flex flex-col gap-1.5 p-1 bg-gray-50/50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5">
@@ -3048,7 +3163,7 @@ export default function EmailEditorPage() {
                                                                                     { label: 'Icons', icon: 'category' },
                                                                                     { label: 'GIF', icon: 'gif' }
                                                                                 ].map(cat => (
-                                                                                    <div 
+                                                                                    <div
                                                                                         key={cat.label}
                                                                                         className="group flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-white dark:hover:bg-white/10 cursor-pointer transition-all hover:shadow-sm hover:scale-[1.01] active:scale-[0.99]"
                                                                                     >
@@ -3192,7 +3307,7 @@ export default function EmailEditorPage() {
                                                                         <span className="text-[14px] font-medium text-gray-500 dark:text-foreground/70">Default Structure Padding on Desktop</span>
                                                                         <TooltipProvider><Tooltip><TooltipTrigger className="flex items-center"><span className="material-symbols-outlined text-[20px] text-gray-300 hover:text-gray-400 transition-colors">help</span></TooltipTrigger><TooltipContent className="max-w-[280px]">Default padding for all structure elements when viewed on desktop screens.</TooltipContent></Tooltip></TooltipProvider>
                                                                     </div>
-                                                                    
+
                                                                     {/* Padding Grid Control */}
                                                                     <div className="relative w-full h-[220px] flex items-center justify-center bg-white dark:bg-background/20 rounded-3xl border border-gray-50 dark:border-white/5 py-4">
                                                                         {/* Top */}
@@ -3253,9 +3368,9 @@ export default function EmailEditorPage() {
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <div 
+                                                <div
                                                     className="w-full relative transition-all duration-500 ease-in-out"
-                                                    style={{ 
+                                                    style={{
                                                         height: isGeneralHovered ? '220px' : '110px',
                                                         paddingTop: '8px'
                                                     }}
@@ -3268,7 +3383,7 @@ export default function EmailEditorPage() {
                                                         'Heading Styles',
                                                         'Button Styles'
                                                     ].map((text, idx) => (
-                                                        <div 
+                                                        <div
                                                             key={text}
                                                             onClick={() => setSelectedGeneralStyle(text)}
                                                             className={`bg-gradient-to-b from-white to-[#f9fafb] dark:from-accent/60 dark:to-accent/40 rounded-[28px] border border-gray-200/80 dark:border-border/40 flex items-center justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-all duration-300 ease-out group active:scale-[0.98] absolute h-[52px] overflow-hidden`}
