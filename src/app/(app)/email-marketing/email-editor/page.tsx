@@ -2221,7 +2221,13 @@ export default function EmailEditorPage() {
                             let globalStructureIndex = 0;
                             return emailTree.map((backdrop) => {
                                 return (
-                                    <div key={backdrop.id} className="relative group/backdrop w-full">
+                                    <div
+                                        key={backdrop.id}
+                                        className="relative group/backdrop w-full"
+                                        onClick={(e) => {
+                                            if (selectedBackdropRowId === backdrop.id) e.stopPropagation();
+                                        }}
+                                    >
                                         {/* 1. Backdrop Full-Width Color Strip */}
                                         {backdrop.backgroundColor && (
                                             <div
@@ -2413,6 +2419,7 @@ export default function EmailEditorPage() {
                                                 <div
                                                     key={structure.id}
                                                     data-structure-row
+                                                    onClick={(e) => e.stopPropagation()}
                                                     className={`relative ${(selectedBoxId === structure.id || (selectedBoxId && selectedBoxId.startsWith(structure.id + '-')) || selectedBackdropRowId === backdrop.id)
                                                             ? 'z-[60]'
                                                             : 'z-[10]'
