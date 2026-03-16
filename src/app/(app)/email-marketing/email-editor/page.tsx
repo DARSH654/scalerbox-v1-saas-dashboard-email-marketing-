@@ -136,17 +136,394 @@ const RichTextEditor = ({ boxId, isSelected, boxProperties, onEditorFocus, onEdi
     );
 };
 
+const BlockLayer = ({
+    containerId,
+    structureId,
+    block,
+    isTopRow,
+    selectedBoxId,
+    selectedLayer,
+    setSelectedBoxId,
+    setSelectedLayer,
+    setSelectedBackdropRowId,
+    draggingTool,
+    setDraggingTool,
+    activeBlockNode,
+    activeEditor,
+    setActiveEditor,
+    updateBlockProperty,
+    setEditorUpdateTicker,
+    blockPropertiesMap,
+    handleBoxClick,
+}: {
+    containerId: string,
+    structureId: string,
+    block: BlockData,
+    isTopRow: boolean,
+    selectedBoxId: string | null,
+    selectedLayer: 'block' | 'container' | 'structure' | 'backdrop' | null,
+    setSelectedBoxId: (id: string | null) => void,
+    setSelectedLayer: (layer: 'block' | 'container' | 'structure' | 'backdrop' | null) => void,
+    setSelectedBackdropRowId: (id: string | null) => void,
+    draggingTool: any,
+    setDraggingTool: (tool: any) => void,
+    activeBlockNode: BlockData | null,
+    activeEditor: any,
+    setActiveEditor: (editor: any) => void,
+    updateBlockProperty: (containerId: string, key: string, value: any) => void,
+    setEditorUpdateTicker: (fn: (t: number) => number) => void,
+    blockPropertiesMap: Record<string, Record<string, any>>,
+    handleBoxClick: (boxId: string, type: string, e: React.MouseEvent) => void,
+}) => {
+    const isSelected = selectedBoxId === containerId;
+    const isBlockSelected = isSelected && selectedLayer === 'block';
+
+    const handleBlockSelection = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setSelectedBoxId(containerId);
+        setSelectedLayer('block');
+        setSelectedBackdropRowId(null);
+    };
+
+    return (
+        <div className="relative group/block w-full h-full" onClick={handleBlockSelection}>
+            {/* Block Content */}
+            {block.type === 'image' && (
+                <div className="w-full h-full flex items-center justify-center min-h-[80px]">
+                    <span className="material-symbols-outlined text-[24px] text-gray-400 pointer-events-none">image</span>
+                </div>
+            )}
+            {block.type === 'text' && (
+                <div className="flex-1 p-3 w-full cursor-default">
+                    <RichTextEditor
+                        key={containerId}
+                        boxId={containerId}
+                        isSelected={isBlockSelected}
+                        boxProperties={blockPropertiesMap[containerId] || {}}
+                        onEditorFocus={(editor: any) => {
+                            setActiveEditor(editor);
+                            setSelectedBoxId(containerId);
+                            setSelectedLayer('block');
+                            setSelectedBackdropRowId(null);
+                        }}
+                        onEditorBlur={(editor: any) => {
+                            updateBlockProperty(containerId, 'content', editor.getHTML());
+                        }}
+                        onTransaction={(editor: any) => {
+                            if (activeEditor === editor) setEditorUpdateTicker(t => t + 1);
+                        }}
+                    />
+                </div>
+            )}
+            {block.type === 'button' && (
+                <div className="px-8 py-2 w-full flex justify-center">
+                    <button
+                        className="px-8 py-2.5 font-medium text-[15px] transition-colors border shadow-sm pointer-events-none"
+                        style={{
+                            backgroundColor: blockPropertiesMap[containerId]?.bgColor || '#22c55e',
+                            color: blockPropertiesMap[containerId]?.textColor || '#ffffff',
+                            borderRadius: `${blockPropertiesMap[containerId]?.borderRadius ?? 12}px`,
+                        }}
+                    >
+                        {blockPropertiesMap[containerId]?.label || 'Button'}
+                    </button>
+                </div>
+            )}
+
+            {/* Block Border — CSS hover, no JS */}
+            <div className={`absolute inset-0 border-[2px] rounded-[4px] pointer-events-none transition-opacity duration-200 z-[50] ${isBlockSelected ? 'opacity-100 border-[#4b5b75]' : 'opacity-0 group-hover/block:opacity-100 border-[#4b5b75]/60'}`} />
+
+            {/* Right 3-dot button — CSS hover */}
+            <div
+                className="absolute top-1/2 -translate-y-1/2 -right-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-transform bg-[#4b5b75] z-[50] opacity-0 group-hover/block:opacity-100"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="absolute inset-y-0 right-0 left-[-12px] top-0 h-[37px] pointer-events-auto z-[60]" />
+                <div className="flex gap-[3px]">
+                    <div className="w-[4px] h-[4px] rounded-full bg-white" />
+                    <div className="w-[4px] h-[4px] rounded-full bg-white" />
+                    <div className="w-[4px] h-[4px] rounded-full bg-white" />
+                </div>
+            </div>
+
+            {/* Drag pill — CSS hover */}
+            <div
+                className={`absolute ${isTopRow ? '-bottom-[28px]' : '-top-[32px]'} left-[16px] text-white rounded-[12px] w-[36px] h-[24px] flex items-center justify-center pointer-events-auto cursor-grab active:cursor-grabbing shadow-md hover:scale-105 transition-all bg-[#4b5b75] z-[50] opacity-0 group-hover/block:opacity-100`}
+                onClick={(e) => e.stopPropagation()}
+                draggable
+                onDragStart={(e) => {
+                    e.stopPropagation();
+                    e.dataTransfer.effectAllowed = 'move';
+                    const img = new window.Image();
+                    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                    e.dataTransfer.setDragImage(img, 0, 0);
+                    setDraggingTool({ icon: 'drag_indicator', type: 'move_block', id: containerId });
+                }}
+                onDragEnd={() => setDraggingTool(null)}
+            >
+                <div className={`absolute inset-x-0 ${isTopRow ? 'top-[-8px] h-[30px]' : 'top-0 h-[32px]'} pointer-events-auto z-[60]`} />
+                <span className="material-symbols-outlined text-[18px] rotate-90">drag_indicator</span>
+            </div>
+        </div>
+    );
+};
+
+const ContainerLayer = ({
+    containerId,
+    structureId,
+    backdropId,
+    block,
+    columnFlex,
+    isTopRow,
+    selectedBoxId,
+    selectedLayer,
+    setSelectedBoxId,
+    setSelectedLayer,
+    setSelectedBackdropRowId,
+    setActiveRightSidebarTab,
+    draggedOverBox,
+    setDraggedOverBox,
+    draggingTool,
+    setDraggingTool,
+    swapBlocks,
+    setBlockType,
+    handleDeleteContainer,
+    handleBoxClick,
+    blockPropertiesMap,
+    activeBlockNode,
+    activeEditor,
+    setActiveEditor,
+    updateBlockProperty,
+    setEditorUpdateTicker,
+    emailTree,
+}: {
+    containerId: string,
+    structureId: string,
+    backdropId: string,
+    block: BlockData | null,
+    columnFlex: number,
+    isTopRow: boolean,
+    selectedBoxId: string | null,
+    selectedLayer: 'block' | 'container' | 'structure' | 'backdrop' | null,
+    setSelectedBoxId: (id: string | null) => void,
+    setSelectedLayer: (layer: 'block' | 'container' | 'structure' | 'backdrop' | null) => void,
+    setSelectedBackdropRowId: (id: string | null) => void,
+    setActiveRightSidebarTab: (tab: 'general' | 'message') => void,
+    draggedOverBox: string | null,
+    setDraggedOverBox: (id: string | null) => void,
+    draggingTool: any,
+    setDraggingTool: (tool: any) => void,
+    swapBlocks: (sourceId: string, targetId: string) => void,
+    setBlockType: (containerId: string, type: string) => void,
+    handleDeleteContainer: (boxId: string) => void,
+    handleBoxClick: (boxId: string, type: string, e: React.MouseEvent) => void,
+    blockPropertiesMap: Record<string, Record<string, any>>,
+    activeBlockNode: BlockData | null,
+    activeEditor: any,
+    setActiveEditor: (editor: any) => void,
+    updateBlockProperty: (containerId: string, key: string, value: any) => void,
+    setEditorUpdateTicker: (fn: (t: number) => number) => void,
+    emailTree: BackdropData[],
+}) => {
+    const isSelected = selectedBoxId === containerId;
+    const isContainerSelected = isSelected && selectedLayer === 'container';
+    const isDragOver = draggedOverBox === containerId;
+    const colors = { container: '#3b82f6', structure: '#9a5353', backdrop: '#64748b' };
+
+    const handleContainerClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setSelectedBoxId(containerId);
+        setSelectedLayer('container');
+        setSelectedBackdropRowId(null);
+    };
+
+    if (!block) {
+        // Empty drop zone
+        return (
+            <div
+                style={{ flex: columnFlex }}
+                className={`structure-container w-full min-h-[120px] group border-[2px] rounded-[4px] flex flex-col items-center justify-center cursor-default relative transition-all duration-300 flex-1 ${isSelected ? 'border-solid border-blue-500 bg-blue-50/50 text-blue-500/90' : (isDragOver ? 'border-solid border-blue-400 bg-blue-50 dark:bg-blue-900/40 text-blue-500' : 'border-dashed border-blue-400/20 bg-[#f0f7ff] dark:bg-blue-900/10 text-blue-400')} ${isSelected ? 'z-[20]' : 'z-[1]'}`}
+                onClick={handleContainerClick}
+                onDragOver={(e) => {
+                    e.preventDefault();
+                    if (e.dataTransfer.types.includes('application/tool-type')) {
+                        e.dataTransfer.dropEffect = 'copy';
+                        if (draggedOverBox !== containerId) setDraggedOverBox(containerId);
+                    }
+                }}
+                onDragLeave={() => setDraggedOverBox(null)}
+                onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDraggedOverBox(null);
+                    if (draggingTool?.type === 'move_block' && draggingTool.id) {
+                        swapBlocks(draggingTool.id, containerId);
+                        setSelectedBoxId(containerId);
+                        setSelectedLayer('block');
+                        return;
+                    }
+                    const toolType = e.dataTransfer.getData('application/tool-type');
+                    if (toolType === 'image' || toolType === 'text' || toolType === 'button') {
+                        setBlockType(containerId, toolType);
+                        setSelectedBoxId(containerId);
+                        setSelectedLayer('block');
+                    }
+                }}
+            >
+                {isDragOver ? (
+                    <div className="bg-[#333] text-white text-[11px] font-medium px-3 py-1 rounded-full shadow-md whitespace-nowrap pointer-events-none z-[65]">
+                        Drop here
+                    </div>
+                ) : (
+                    <>
+                        <div className="flex flex-col items-center gap-[2px] transition-transform duration-300 group-hover:-translate-y-3">
+                            <span className="material-symbols-outlined text-[20px] opacity-70">file_download</span>
+                            <span className="text-[13px] font-medium opacity-80">Drop content here</span>
+                        </div>
+                        <div className="absolute bottom-[20px] pointer-events-none group-hover:pointer-events-auto left-0 right-0 flex items-center justify-center gap-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                            <span className="material-symbols-outlined text-[18px] hover:text-blue-600 transition-all cursor-pointer" onClick={(e) => handleBoxClick(containerId, 'image', e)}>image</span>
+                            <span className="material-symbols-outlined text-[18px] hover:text-blue-600 transition-all cursor-pointer" onClick={(e) => handleBoxClick(containerId, 'text', e)}>title</span>
+                            <span className="material-symbols-outlined text-[18px] hover:text-blue-600 transition-all cursor-pointer" onClick={(e) => handleBoxClick(containerId, 'button', e)}>smart_button</span>
+                        </div>
+                    </>
+                )}
+            </div>
+        );
+    }
+
+    // Container with block inside
+    return (
+        <div
+            style={{ flex: columnFlex }}
+            className={`structure-container w-full relative border-[2px] rounded-[4px] bg-white group/container cursor-default flex flex-col ${isContainerSelected ? 'border-blue-500' : isSelected ? 'border-blue-300' : 'border-transparent group-hover/container:border-blue-400'} ${isSelected ? 'z-[20]' : 'z-[1]'}`}
+            onClick={handleContainerClick}
+        >
+            {/* Block content */}
+            <BlockLayer
+                containerId={containerId}
+                structureId={structureId}
+                block={block}
+                isTopRow={isTopRow}
+                selectedBoxId={selectedBoxId}
+                selectedLayer={selectedLayer}
+                setSelectedBoxId={setSelectedBoxId}
+                setSelectedLayer={setSelectedLayer}
+                setSelectedBackdropRowId={setSelectedBackdropRowId}
+                draggingTool={draggingTool}
+                setDraggingTool={setDraggingTool}
+                activeBlockNode={activeBlockNode}
+                activeEditor={activeEditor}
+                setActiveEditor={setActiveEditor}
+                updateBlockProperty={updateBlockProperty}
+                setEditorUpdateTicker={setEditorUpdateTicker}
+                blockPropertiesMap={blockPropertiesMap}
+                handleBoxClick={handleBoxClick}
+            />
+
+            {/* Container Overlay — CSS hover, suppressed when block is hovered */}
+            <div className={`absolute inset-0 pointer-events-none transition-opacity duration-200 z-[40] ${isContainerSelected ? 'opacity-100' : 'opacity-0 group-hover/container:opacity-100 group-has-[.group\\/block:hover]/container:!opacity-0'}`}>
+                {/* Container border */}
+                <div className={`absolute inset-0 border-[2px] rounded-[4px] pointer-events-none ${isContainerSelected ? 'border-blue-500' : 'border-blue-400'}`} />
+
+                {/* Hitbox bridges */}
+                <div className={`absolute left-[28px] w-[75px] pointer-events-auto ${isTopRow ? '-bottom-[28px] h-[28px]' : '-top-[28px] h-[28px]'}`} />
+                <div className="absolute top-1/2 -translate-y-1/2 -left-[44px] w-[44px] h-[36px] pointer-events-auto" />
+
+                {/* Layer breadcrumb pill */}
+                <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[19px]' : '-top-[28px]'} left-[28px] w-auto flex flex-col items-start transition-opacity duration-300 z-50`}>
+                    <div className="absolute inset-x-0 top-[28px] h-[28px] pointer-events-none group-hover/layerpill:pointer-events-auto z-[60]" />
+                    {[
+                        { id: 'container', label: 'Container', color: colors.container },
+                        { id: 'structure', label: 'Structure', color: colors.structure },
+                        { id: 'backdrop', label: 'Backdrop', color: colors.backdrop },
+                    ].map((layer, idx) => (
+                        <div
+                            key={layer.id}
+                            draggable={layer.id === 'structure'}
+                            onDragStart={(e) => {
+                                if (layer.id === 'structure') {
+                                    e.dataTransfer.effectAllowed = 'move';
+                                    const img = new window.Image();
+                                    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                                    e.dataTransfer.setDragImage(img, 0, 0);
+                                    setDraggingTool({ icon: 'layout', type: 'move_structure', id: structureId });
+                                }
+                            }}
+                            onDragEnd={() => {
+                                if (layer.id === 'structure') {
+                                    setDraggingTool(null);
+                                }
+                            }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (layer.id === 'backdrop') {
+                                    setSelectedBackdropRowId(backdropId);
+                                    setSelectedBoxId(null);
+                                    setSelectedLayer('backdrop');
+                                    setActiveRightSidebarTab('general');
+                                } else if (layer.id === 'structure') {
+                                    setSelectedBoxId(structureId);
+                                    setSelectedLayer('structure');
+                                    setSelectedBackdropRowId(null);
+                                } else {
+                                    setSelectedBoxId(containerId);
+                                    setSelectedLayer('container');
+                                    setSelectedBackdropRowId(null);
+                                }
+                            }}
+                            style={{ backgroundColor: layer.color, borderColor: layer.color, zIndex: 30 - idx }}
+                            className={`px-3 py-[3px] rounded-full border-0 text-[10.5px] font-medium text-white transition-all duration-300 ease-in-out shadow-sm flex items-center justify-start hover:scale-105 active:scale-95 pointer-events-auto ${idx === 0 ? 'relative cursor-pointer' : '-mt-[26px] opacity-0 pointer-events-none group-hover/layerpill:mt-[4px] group-hover/layerpill:opacity-100 group-hover/layerpill:pointer-events-auto cursor-grab active:cursor-grabbing'}`}
+                        >
+                            <span className="capitalize tracking-wide">{layer.label}</span>
+                            {idx !== 0 && (
+                                <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor" className="opacity-80 rotate-90 ml-1.5 -mr-1 pointer-events-none">
+                                    <path d="M360-160q-33 0-56.5-23.5T280-240q0-33 23.5-56.5T360-320q33 0 56.5 23.5T440-240q0 33-23.5 56.5T360-160Zm240 0q-33 0-56.5-23.5T520-240q0-33 23.5-56.5T600-320q33 0 56.5 23.5T680-240q0 33-23.5 56.5T600-160ZM360-400q-33 0-56.5-23.5T280-480q0-33 23.5-56.5T360-560q33 0 56.5 23.5T440-480q0 33-23.5 56.5T360-400Zm240 0q-33 0-56.5-23.5T520-480q0-33 23.5-56.5T600-560q33 0 56.5 23.5T680-480q0 33-23.5 56.5T600-400ZM360-640q-33 0-56.5-23.5T280-720q0-33 23.5-56.5T360-800q33 0 56.5 23.5T440-720q0 33-23.5 56.5T360-640Zm240 0q-33 0-56.5-23.5T520-720q0-33 23.5-56.5T600-800q33 0 56.5 23.5T680-720q0 33-23.5 56.5T600-640Z" />
+                                </svg>
+                            )}
+                        </div>
+                    ))}
+                </div>
+
+                {/* Left delete button */}
+                <div
+                    style={{ backgroundColor: colors.container }}
+                    className="absolute top-1/2 -translate-y-1/2 -left-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-all duration-300 group/delbtn z-[50]"
+                    onClick={(e) => { e.stopPropagation(); handleDeleteContainer(containerId); }}
+                >
+                    <TooltipProvider delayDuration={0}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div className="flex items-center justify-center w-full h-full relative">
+                                    <div className="flex items-center justify-center gap-[3px] absolute transition-opacity duration-200 group-hover/delbtn:opacity-0 opacity-100">
+                                        <div className="w-[4px] h-[4px] rounded-full bg-white" />
+                                        <div className="w-[4px] h-[4px] rounded-full bg-white" />
+                                        <div className="w-[4px] h-[4px] rounded-full bg-white" />
+                                    </div>
+                                    <span className="material-symbols-outlined text-[18px] absolute transition-opacity duration-200 group-hover/delbtn:opacity-100 opacity-0">delete_outline</span>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="left" sideOffset={12}>Delete Container</TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onMoveDragStart, onMoveDragEnd, isDraggingLayout, topOffset = "-2px", isTopRow, children,
     setSelectedBackdropRowId,
     setSelectedBoxId,
     setSelectedLayer,
-    setActiveRightSidebarTab
+    setActiveRightSidebarTab,
+    onAddStructure
 }: {
     id?: string, isSelected?: boolean, onSelect?: () => void, onDelete?: () => void, onDuplicate?: () => void, onMoveDragStart?: (e: React.DragEvent) => void, onMoveDragEnd?: () => void, isDraggingLayout?: boolean, topOffset?: string, isTopRow?: boolean, children: React.ReactNode,
     setSelectedBackdropRowId: (id: string | null) => void,
     setSelectedBoxId: (id: string | null) => void,
     setSelectedLayer: (layer: 'block' | 'container' | 'structure' | 'backdrop' | null) => void,
-    setActiveRightSidebarTab: (tab: 'general' | 'message') => void
+    setActiveRightSidebarTab: (tab: 'general' | 'message') => void,
+    onAddStructure?: (columns: number[]) => void
 }) => {
     const [isOpen, setIsOpen] = useState(false);
 
@@ -827,339 +1204,6 @@ export default function EmailEditorPage() {
         };
         document.addEventListener('dragend', onEnd);
     };
-
-
-    const renderContainerOverlay = (boxId: string, structureId: string, backdropId: string) => {
-        const isSelected = selectedBoxId === boxId;
-        const isContainerSelected = isSelected && selectedLayer === 'container';
-        const rowId = structureId;
-        const isTopRow = (() => {
-            let flat = 0;
-            for (const bd of emailTree) {
-                for (const st of bd.structures) {
-                    if (st.id === rowId) return flat === 0;
-                    flat++;
-                }
-            }
-            return false;
-        })();
-
-        const colors = { container: '#3b82f6', structure: '#9a5353', backdrop: '#64748b' };
-
-        return (
-            <div className={`absolute inset-0 pointer-events-none transition-opacity duration-200 z-[40] ${isContainerSelected ? 'opacity-100' : 'opacity-0 group-hover/container:opacity-100 group-has-[.group\\/block:hover]/container:!opacity-0'
-                }`}>
-                {/* Container border */}
-                <div className={`absolute inset-0 border-[2px] rounded-[4px] pointer-events-none ${isContainerSelected ? 'border-blue-500' : 'border-blue-400'
-                    }`} />
-
-                {/* Invisible hitbox bridge (towards floating controls) */}
-                <div className={`absolute left-[28px] w-[75px] pointer-events-auto ${isTopRow ? '-bottom-[28px] h-[28px]' : '-top-[28px] h-[28px]'
-                    }`} />
-                <div className="absolute top-1/2 -translate-y-1/2 -left-[44px] w-[44px] h-[36px] pointer-events-auto" />
-
-                {/* Layer breadcrumb pill — Container > Structure > Backdrop */}
-                <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[19px]' : '-top-[28px]'
-                    } left-[28px] w-auto flex flex-col items-start transition-opacity duration-300 z-50`}>
-                    {/* Hitbox bridge for pill expansion */}
-                    <div className="absolute inset-x-0 top-[28px] h-[28px] pointer-events-none group-hover/layerpill:pointer-events-auto z-[60]" />
-                    {[
-                        { id: 'container', label: 'Container', color: colors.container },
-                        { id: 'structure', label: 'Structure', color: colors.structure },
-                        { id: 'backdrop', label: 'Backdrop', color: colors.backdrop },
-                    ].map((layer, idx) => (
-                        <div
-                            key={layer.id}
-                            draggable={layer.id === 'structure'}
-                            onDragStart={(e) => {
-                                if (layer.id === 'structure') {
-                                    e.dataTransfer.effectAllowed = 'move';
-                                    const img = new window.Image();
-                                    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                                    e.dataTransfer.setDragImage(img, 0, 0);
-                                    setDraggingTool({ icon: 'layout', type: 'move_structure', id: structureId });
-                                }
-                            }}
-                            onDragEnd={() => {
-                                if (layer.id === 'structure') {
-                                    setDraggingTool(null);
-                                    setDropInsertIndex(null);
-                                }
-                            }}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                if (layer.id === 'backdrop') {
-                                    setSelectedBackdropRowId(rowId);
-                                    setSelectedBoxId(null);
-                                    setSelectedLayer('backdrop');
-                                    setActiveRightSidebarTab('general');
-                                } else if (layer.id === 'structure') {
-                                    setSelectedBoxId(rowId);
-                                    setSelectedLayer('structure');
-                                    setSelectedBackdropRowId(null);
-                                } else {
-                                    setSelectedBoxId(boxId);
-                                    setSelectedLayer('container');
-                                    setSelectedBackdropRowId(null);
-                                }
-                            }}
-                            style={{ backgroundColor: layer.color, borderColor: layer.color, zIndex: 30 - idx }}
-                            className={`px-3 py-[3px] rounded-full border-0 text-[10.5px] font-medium text-white
-                                transition-all duration-300 ease-in-out shadow-sm flex items-center justify-start
-                                hover:scale-105 active:scale-95 pointer-events-auto
-                                ${idx === 0
-                                    ? 'relative cursor-pointer'
-                                    : '-mt-[26px] opacity-0 pointer-events-none group-hover/layerpill:mt-[4px] group-hover/layerpill:opacity-100 group-hover/layerpill:pointer-events-auto cursor-grab active:cursor-grabbing'
-                                }`}
-                        >
-                            <span className="capitalize tracking-wide">{layer.label}</span>
-                            {idx !== 0 && (
-                                <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor" className="opacity-80 rotate-90 ml-1.5 -mr-1 pointer-events-none">
-                                    <path d="M360-160q-33 0-56.5-23.5T280-240q0-33 23.5-56.5T360-320q33 0 56.5 23.5T440-240q0 33-23.5 56.5T360-160Zm240 0q-33 0-56.5-23.5T520-240q0-33 23.5-56.5T600-320q33 0 56.5 23.5T680-240q0 33-23.5 56.5T600-160ZM360-400q-33 0-56.5-23.5T280-480q0-33 23.5-56.5T360-560q33 0 56.5 23.5T440-480q0 33-23.5 56.5T360-400Zm240 0q-33 0-56.5-23.5T520-480q0-33 23.5-56.5T600-560q33 0 56.5 23.5T680-480q0 33-23.5 56.5T600-400ZM360-640q-33 0-56.5-23.5T280-720q0-33 23.5-56.5T360-800q33 0 56.5 23.5T440-720q0 33-23.5 56.5T360-640Zm240 0q-33 0-56.5-23.5T520-720q0-33 23.5-56.5T600-800q33 0 56.5 23.5T680-720q0 33-23.5 56.5T600-640Z" />
-                                </svg>
-                            )}
-                        </div>
-                    ))}
-                </div>
-
-                {/* Left delete button */}
-                <div
-                    style={{ backgroundColor: colors.container }}
-                    className="absolute top-1/2 -translate-y-1/2 -left-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-all duration-300 group/delbtn z-[50]"
-                    onClick={(e) => { e.stopPropagation(); handleDeleteContainer(boxId); }}
-                >
-                    <TooltipProvider delayDuration={0}>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <div className="flex items-center justify-center w-full h-full relative">
-                                    <div className="flex items-center justify-center gap-[3px] absolute transition-opacity duration-200 group-hover/delbtn:opacity-0 opacity-100">
-                                        <div className="w-[4px] h-[4px] rounded-full bg-white" />
-                                        <div className="w-[4px] h-[4px] rounded-full bg-white" />
-                                        <div className="w-[4px] h-[4px] rounded-full bg-white" />
-                                    </div>
-                                    <span className="material-symbols-outlined text-[18px] absolute transition-opacity duration-200 group-hover/delbtn:opacity-100 opacity-0">delete_outline</span>
-                                </div>
-                            </TooltipTrigger>
-                            <TooltipContent side="left" sideOffset={12}>Delete Container</TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                </div>
-            </div>
-        );
-    };
-
-    const renderBlockOverlay = (boxId: string, structureId: string) => {
-        const isSelected = selectedBoxId === boxId;
-        const isBlockSelected = isSelected && selectedLayer === 'block';
-        const rowId = structureId;
-        const isTopRow = (() => {
-            let flat = 0;
-            for (const bd of emailTree) {
-                for (const st of bd.structures) {
-                    if (st.id === rowId) return flat === 0;
-                    flat++;
-                }
-            }
-            return false;
-        })();
-
-        return (
-            <div className={`absolute inset-0 pointer-events-none transition-opacity duration-200 z-[50] ${isBlockSelected ? 'opacity-100' : 'opacity-0 group-hover/block:opacity-100'
-                }`}>
-                {/* Block border */}
-                <div className={`absolute inset-0 border-[2px] rounded-[4px] pointer-events-none ${isBlockSelected ? 'border-[#4b5b75]' : 'border-[#4b5b75]/60'
-                    }`} />
-
-                {/* Right 3-dot button */}
-                <div
-                    className="absolute top-1/2 -translate-y-1/2 -right-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-transform bg-[#4b5b75] z-[50]"
-                    onClick={(e) => e.stopPropagation()}
-                >
-                    {/* Hitbox bridge */}
-                    <div className="absolute inset-y-0 right-0 left-[-12px] top-0 h-[37px] pointer-events-auto z-[60]" />
-                    <div className="flex gap-[3px]">
-                        <div className="w-[4px] h-[4px] rounded-full bg-white" />
-                        <div className="w-[4px] h-[4px] rounded-full bg-white" />
-                        <div className="w-[4px] h-[4px] rounded-full bg-white" />
-                    </div>
-                </div>
-
-                {/* Drag pill */}
-                <div
-                    className={`absolute ${isTopRow ? '-bottom-[28px]' : '-top-[32px]'
-                        } left-[16px] text-white rounded-[12px] w-[36px] h-[24px] flex items-center justify-center pointer-events-auto cursor-grab active:cursor-grabbing shadow-md hover:scale-105 transition-all bg-[#4b5b75] z-[50]`}
-                    onClick={(e) => e.stopPropagation()}
-                    draggable
-                    onDragStart={(e) => {
-                        e.stopPropagation();
-                        e.dataTransfer.effectAllowed = 'move';
-                        const img = new window.Image();
-                        img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                        e.dataTransfer.setDragImage(img, 0, 0);
-                        setDraggingTool({ icon: 'drag_indicator', type: 'move_block', id: boxId });
-                    }}
-                    onDragEnd={() => setDraggingTool(null)}
-                >
-                    <div className={`absolute inset-x-0 ${isTopRow ? 'top-[-8px] h-[30px]' : 'top-0 h-[32px]'
-                        } pointer-events-auto z-[60]`} />
-                    <span className="material-symbols-outlined text-[18px] rotate-90">drag_indicator</span>
-                </div>
-            </div>
-        );
-    };
-
-
-    const renderBoxContent = (state: string, boxId: string, structureId: string, backdropId: string) => {
-        const isSelected = selectedBoxId === boxId;
-        const isContainerSelected = isSelected && selectedLayer === 'container';
-        const isBlockSelected = isSelected && selectedLayer === 'block';
-
-        const handleBlockSelection = (e: React.MouseEvent) => {
-            e.stopPropagation();
-            setSelectedBoxId(boxId);
-            setSelectedLayer('block');
-            setSelectedBackdropRowId(null);
-        };
-
-        if (state === 'image') {
-            return (
-                <div
-                    className={`structure-container w-full relative border-[2px] rounded-[4px] bg-[#f9fafb] flex items-center justify-center group/container cursor-default min-h-[120px] ${isContainerSelected ? 'border-blue-500' : isSelected ? 'border-blue-300' : 'border-transparent group-hover/container:border-blue-400'
-                        } ${isSelected ? 'z-[20]' : 'z-[1]'}`}
-                    onClick={(e) => { e.stopPropagation(); setSelectedBoxId(boxId); setSelectedLayer('container'); setSelectedBackdropRowId(null); }}
-                >
-                    <div className="w-full h-full flex items-center justify-center group/block relative" onClick={handleBlockSelection}>
-                        <span className="material-symbols-outlined text-[24px] text-gray-400 pointer-events-none">image</span>
-                        {renderBlockOverlay(boxId, structureId)}
-                    </div>
-                    {renderContainerOverlay(boxId, structureId, backdropId)}
-                </div>
-            );
-        }
-
-        if (state === 'text') {
-            return (
-                <div
-                    className={`structure-container w-full relative border-[2px] rounded-[4px] bg-white group/container flex flex-col cursor-default ${isContainerSelected ? 'border-blue-500' : isSelected ? 'border-blue-300' : 'border-transparent group-hover/container:border-blue-400'
-                        } ${isSelected ? 'z-[20]' : 'z-[1]'}`}
-                    onClick={(e) => { e.stopPropagation(); setSelectedBoxId(boxId); setSelectedLayer('container'); setSelectedBackdropRowId(null); }}
-                >
-                    <div className="flex-1 p-3 w-full cursor-default group/block relative">
-                        <RichTextEditor
-                            key={boxId}
-                            boxId={boxId}
-                            isSelected={isBlockSelected}
-                            boxProperties={activeBlockNode?.properties || {}}
-                            onEditorFocus={(editor: any) => {
-                                setActiveEditor(editor);
-                                setSelectedBoxId(boxId);
-                                setSelectedLayer('block');
-                                setSelectedBackdropRowId(null);
-                            }}
-                            onEditorBlur={(editor: any) => {
-                                updateBlockProperty(boxId, 'content', editor.getHTML());
-                            }}
-                            onTransaction={(editor: any) => {
-                                if (activeEditor === editor) setEditorUpdateTicker(t => t + 1);
-                            }}
-                        />
-                        {renderBlockOverlay(boxId, structureId)}
-                    </div>
-                    {renderContainerOverlay(boxId, structureId, backdropId)}
-                </div>
-            );
-        }
-
-        if (state === 'button') {
-            return (
-                <div
-                    className={`structure-container w-full py-5 relative border-[2px] rounded-[4px] bg-white flex items-center justify-center group/container cursor-default ${isContainerSelected ? 'border-blue-500' : isSelected ? 'border-blue-300' : 'border-transparent group-hover/container:border-blue-400'
-                        } ${isSelected ? 'z-[20]' : 'z-[1]'}`}
-                    onClick={(e) => { e.stopPropagation(); setSelectedBoxId(boxId); setSelectedLayer('container'); setSelectedBackdropRowId(null); }}
-                >
-                    <div className="px-8 py-2 w-full flex justify-center cursor-default group/block relative" onClick={handleBlockSelection}>
-                        <button
-                            className="px-8 py-2.5 font-medium text-[15px] transition-colors border shadow-sm pointer-events-none"
-                            style={{
-                                backgroundColor: blockPropertiesMap[boxId]?.bgColor || '#22c55e',
-                                color: blockPropertiesMap[boxId]?.textColor || '#ffffff',
-                                borderRadius: `${blockPropertiesMap[boxId]?.borderRadius ?? 12}px`,
-                            }}
-                        >
-                            {blockPropertiesMap[boxId]?.label || 'Button'}
-                        </button>
-                        {renderBlockOverlay(boxId, structureId)}
-                    </div>
-                    {renderContainerOverlay(boxId, structureId, backdropId)}
-                </div>
-            );
-        }
-
-        const isDragOver = draggedOverBox === boxId;
-
-        // Default empty state
-        return (
-            <div
-                className={`structure-container w-full min-h-[120px] group border-[2px] rounded-[4px] flex flex-col items-center justify-center cursor-default relative transition-all duration-300 flex-1 ${isSelected ? 'border-solid border-blue-500 bg-blue-50/50 text-blue-500/90' : (isDragOver ? 'border-solid border-blue-400 bg-blue-50 dark:bg-blue-900/40 text-blue-500' : 'border-dashed border-blue-400/20 bg-[#f0f7ff] dark:bg-blue-900/10 text-blue-400')} ${isSelected ? 'z-[20]' : 'z-[1]'}`}
-                onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedBoxId(boxId);
-                    setSelectedLayer('container');
-                    setSelectedBackdropRowId(null);
-                }}
-                onDragOver={(e) => {
-                    e.preventDefault();
-                    if (e.dataTransfer.types.includes('application/tool-type')) {
-                        e.dataTransfer.dropEffect = 'copy';
-                        if (draggedOverBox !== boxId) setDraggedOverBox(boxId);
-                    }
-                }}
-                onDragLeave={() => {
-                    setDraggedOverBox(null);
-                }}
-                onDrop={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation(); // Prevent bubbling to canvas layout drop
-                    setDraggedOverBox(null);
-
-                    // Handle block swap from drag pill
-                    if (draggingTool?.type === 'move_block' && draggingTool.id) {
-                        swapBlocks(draggingTool.id, boxId);
-                        setSelectedBoxId(boxId);
-                        setSelectedLayer('block');
-                        return;
-                    }
-
-                    // Handle sidebar tool drop
-                    const toolType = e.dataTransfer.getData('application/tool-type');
-                    if (toolType === 'image' || toolType === 'text' || toolType === 'button') {
-                        setBlockType(boxId, toolType);
-                        setSelectedBoxId(boxId);
-                        setSelectedLayer('block');
-                    }
-                }}
-            >
-                {isDragOver ? (
-                    <div className="bg-[#333] text-white text-[11px] font-medium px-3 py-1 rounded-full shadow-md whitespace-nowrap pointer-events-none z-[65]">
-                        Drop here
-                    </div>
-                ) : (
-                    <>
-                        <div className="flex flex-col items-center gap-[2px] transition-transform duration-300 group-hover:-translate-y-3">
-                            <span className="material-symbols-outlined text-[20px] opacity-70">file_download</span>
-                            <span className="text-[13px] font-medium opacity-80">Drop content here</span>
-                        </div>
-                        <div className="absolute bottom-[20px] pointer-events-none group-hover:pointer-events-auto left-0 right-0 flex items-center justify-center gap-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                            <span className="material-symbols-outlined text-[18px] hover:text-blue-600 transition-all cursor-pointer" onClick={(e) => handleBoxClick(boxId, 'image', e)}>image</span>
-                            <span className="material-symbols-outlined text-[18px] hover:text-blue-600 transition-all cursor-pointer" onClick={(e) => handleBoxClick(boxId, 'text', e)}>title</span>
-                            <span className="material-symbols-outlined text-[18px] hover:text-blue-600 transition-all cursor-pointer" onClick={(e) => handleBoxClick(boxId, 'button', e)}>smart_button</span>
-                        </div>
-                    </>
-                )}
-            </div>
-        );
-    };
-
 
 
     // --- Tool strip chevron scroll logic (mirrors sidebar pattern) ---
@@ -2462,9 +2506,36 @@ export default function EmailEditorPage() {
                                                     >
                                                         <div className="flex gap-4 w-full items-start isolation-auto" style={{ height: 'auto' }}>
                                                             {structure.containers.map((container, ci) => (
-                                                                <div key={container.id} style={{ flex: structure.columns[ci] ?? 1 }} className="w-full">
-                                                                    {renderBoxContent(container.block ? container.block.type : 'empty', container.id, structure.id, backdrop.id)}
-                                                                </div>
+                                                                <ContainerLayer
+                                                                    key={container.id}
+                                                                    containerId={container.id}
+                                                                    structureId={structure.id}
+                                                                    backdropId={backdrop.id}
+                                                                    block={container.block}
+                                                                    columnFlex={structure.columns[ci] ?? 1}
+                                                                    isTopRow={isTopRow}
+                                                                    selectedBoxId={selectedBoxId}
+                                                                    selectedLayer={selectedLayer}
+                                                                    setSelectedBoxId={setSelectedBoxId}
+                                                                    setSelectedLayer={setSelectedLayer}
+                                                                    setSelectedBackdropRowId={setSelectedBackdropRowId}
+                                                                    setActiveRightSidebarTab={setActiveRightSidebarTab}
+                                                                    draggedOverBox={draggedOverBox}
+                                                                    setDraggedOverBox={setDraggedOverBox}
+                                                                    draggingTool={draggingTool}
+                                                                    setDraggingTool={setDraggingTool}
+                                                                    swapBlocks={swapBlocks}
+                                                                    setBlockType={setBlockType}
+                                                                    handleDeleteContainer={handleDeleteContainer}
+                                                                    handleBoxClick={handleBoxClick}
+                                                                    blockPropertiesMap={blockPropertiesMap}
+                                                                    activeBlockNode={activeBlockNode}
+                                                                    activeEditor={activeEditor}
+                                                                    setActiveEditor={setActiveEditor}
+                                                                    updateBlockProperty={updateBlockProperty}
+                                                                    setEditorUpdateTicker={setEditorUpdateTicker}
+                                                                    emailTree={emailTree}
+                                                                />
                                                             ))}
                                                         </div>
                                                     </StructureWrapper>
