@@ -334,7 +334,7 @@ const ContainerLayer = ({
     const isSelected = selectedBoxId === containerId;
     const isContainerSelected = isSelected && selectedLayer === 'container';
     const isDragOver = draggedOverBox === containerId;
-    const colors = { container: '#3b82f6', structure: '#9a5353', backdrop: '#64748b' };
+    const colors = { container: '#498dfc', structure: '#9a5353', backdrop: '#64748b' };
 
     const handleContainerClick = (e: React.MouseEvent) => {
         e.stopPropagation();
