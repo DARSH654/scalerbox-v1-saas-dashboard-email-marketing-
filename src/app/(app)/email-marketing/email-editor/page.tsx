@@ -237,11 +237,11 @@ const BlockLayer = ({
             )}
 
             {/* 2. VISUAL BORDER: Changed to -inset-[2px] so it perfectly overrides container boundary */}
-            <div className={`absolute -inset-[2px] border-[2px] rounded-[4px] pointer-events-none transition-opacity duration-200 z-[50] ${isBlockSelected ? 'opacity-100 border-[#4b5b75]' : 'opacity-0 group-hover/block:opacity-100 border-[#4b5b75]/60'}`} />
+            <div className={`absolute -inset-[2px] border-[2px] rounded-[4px] pointer-events-none transition-opacity duration-200 z-[50] ${isBlockSelected ? 'opacity-100 border-[#4b5b75]' : 'opacity-0 group-hover/block:opacity-100 border-[#647082]'}`} />
 
             {/* Right 3-dot button — Adjusted -right position to account for new boundary */}
             <div
-                className={`absolute top-1/2 -translate-y-1/2 -right-[46px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-transform bg-[#4b5b75] z-[50] ${isBlockSelected ? 'opacity-100' : 'opacity-0 group-hover/block:opacity-100'}`}
+                className={`absolute top-1/2 -translate-y-1/2 -right-[46px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-transform z-[50] ${isBlockSelected ? 'opacity-100 bg-[#4b5b75]' : 'opacity-0 group-hover/block:opacity-100 bg-[#647082] hover:bg-[#4b5b75]'}`}
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="absolute inset-y-0 right-0 left-[-12px] top-0 h-[37px] pointer-events-auto z-[60]" />
@@ -254,7 +254,7 @@ const BlockLayer = ({
 
             {/* Drag pill — Adjusted top/bottom position to account for new boundary */}
             <div
-                className={`absolute ${isTopRow ? '-bottom-[30px]' : '-top-[34px]'} left-[16px] text-white rounded-[12px] w-[36px] h-[24px] flex items-center justify-center pointer-events-auto cursor-grab active:cursor-grabbing shadow-md hover:scale-105 transition-all bg-[#4b5b75] z-[50] ${isBlockSelected ? 'opacity-100' : 'opacity-0 group-hover/block:opacity-100'}`}
+                className={`absolute ${isTopRow ? '-bottom-[30px]' : '-top-[34px]'} left-[16px] text-white rounded-[12px] w-[36px] h-[24px] flex items-center justify-center pointer-events-auto cursor-grab active:cursor-grabbing shadow-md hover:scale-105 transition-all z-[50] ${isBlockSelected ? 'opacity-100 bg-[#4b5b75]' : 'opacity-0 group-hover/block:opacity-100 bg-[#647082] hover:bg-[#4b5b75]'}`}
                 onClick={(e) => e.stopPropagation()}
                 draggable
                 onDragStart={(e) => {
