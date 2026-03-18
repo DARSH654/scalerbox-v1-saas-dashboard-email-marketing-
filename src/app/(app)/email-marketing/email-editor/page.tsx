@@ -186,15 +186,20 @@ const BlockLayer = ({
     };
 
     return (
-        <div data-layer="block" className="relative group/block w-full h-full" onClick={handleBlockSelection}>
-            {/* Block Content */}
+        // FIX 1: Added `flex-1 flex flex-col` so the block stretches to the bottom of the container
+        <div data-layer="block" className="relative group/block w-full flex-1 flex flex-col" onClick={handleBlockSelection}>
+            {/* INVISIBLE HITBOX EXPANDER: Bridges the 2px gap to swallow edge hovers */}
+            <div className="absolute -inset-[2px]" />
+
+            {/* Block Content (added relative z-10 to stay above hitbox) */}
             {block.type === 'image' && (
-                <div className="w-full h-full flex items-center justify-center min-h-[80px]">
+                // FIX 2: Added `flex-1` to the image wrapper
+                <div className="relative z-10 w-full flex-1 flex items-center justify-center min-h-[80px]">
                     <span className="material-symbols-outlined text-[24px] text-gray-400 pointer-events-none">image</span>
                 </div>
             )}
             {block.type === 'text' && (
-                <div className="flex-1 p-3 w-full cursor-default">
+                <div className="relative z-10 flex-1 p-3 w-full cursor-default">
                     <RichTextEditor
                         key={containerId}
                         boxId={containerId}
@@ -216,7 +221,8 @@ const BlockLayer = ({
                 </div>
             )}
             {block.type === 'button' && (
-                <div className="px-8 py-2 w-full flex justify-center">
+                // FIX 3: Added `flex-1 items-center` to center the button vertically if it stretches
+                <div className="relative z-10 flex-1 px-8 py-2 w-full flex items-center justify-center">
                     <button
                         className="px-8 py-2.5 font-medium text-[15px] transition-colors border shadow-sm pointer-events-none"
                         style={{
@@ -230,12 +236,12 @@ const BlockLayer = ({
                 </div>
             )}
 
-            {/* Block Border — CSS hover, no JS */}
-            <div className={`absolute inset-0 border-[2px] rounded-[4px] pointer-events-none transition-opacity duration-200 z-[50] ${isBlockSelected ? 'opacity-100 border-[#4b5b75]' : 'opacity-0 group-hover/block:opacity-100 border-[#4b5b75]/60'}`} />
+            {/* 2. VISUAL BORDER: Changed to -inset-[2px] so it perfectly overrides container boundary */}
+            <div className={`absolute -inset-[2px] border-[2px] rounded-[4px] pointer-events-none transition-opacity duration-200 z-[50] ${isBlockSelected ? 'opacity-100 border-[#4b5b75]' : 'opacity-0 group-hover/block:opacity-100 border-[#4b5b75]/60'}`} />
 
-            {/* Right 3-dot button — CSS hover */}
+            {/* Right 3-dot button — Adjusted -right position to account for new boundary */}
             <div
-                className={`absolute top-1/2 -translate-y-1/2 -right-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-transform bg-[#4b5b75] z-[50] ${isBlockSelected ? 'opacity-100' : 'opacity-0 group-hover/block:opacity-100'}`}
+                className={`absolute top-1/2 -translate-y-1/2 -right-[46px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-transform bg-[#4b5b75] z-[50] ${isBlockSelected ? 'opacity-100' : 'opacity-0 group-hover/block:opacity-100'}`}
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="absolute inset-y-0 right-0 left-[-12px] top-0 h-[37px] pointer-events-auto z-[60]" />
@@ -246,9 +252,9 @@ const BlockLayer = ({
                 </div>
             </div>
 
-            {/* Drag pill — CSS hover */}
+            {/* Drag pill — Adjusted top/bottom position to account for new boundary */}
             <div
-                className={`absolute ${isTopRow ? '-bottom-[28px]' : '-top-[32px]'} left-[16px] text-white rounded-[12px] w-[36px] h-[24px] flex items-center justify-center pointer-events-auto cursor-grab active:cursor-grabbing shadow-md hover:scale-105 transition-all bg-[#4b5b75] z-[50] ${isBlockSelected ? 'opacity-100' : 'opacity-0 group-hover/block:opacity-100'}`}
+                className={`absolute ${isTopRow ? '-bottom-[30px]' : '-top-[34px]'} left-[16px] text-white rounded-[12px] w-[36px] h-[24px] flex items-center justify-center pointer-events-auto cursor-grab active:cursor-grabbing shadow-md hover:scale-105 transition-all bg-[#4b5b75] z-[50] ${isBlockSelected ? 'opacity-100' : 'opacity-0 group-hover/block:opacity-100'}`}
                 onClick={(e) => e.stopPropagation()}
                 draggable
                 onDragStart={(e) => {
