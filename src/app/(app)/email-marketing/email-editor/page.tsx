@@ -382,9 +382,9 @@ const ContainerLayer = ({
                             <span className="text-[13px] font-medium opacity-80">Drop content here</span>
                         </div>
                         <div className="absolute bottom-[20px] pointer-events-none group-hover/container:pointer-events-auto left-0 right-0 flex items-center justify-center gap-4 opacity-0 transition-opacity duration-300 group-hover/container:opacity-100">
-                            <span className="material-symbols-outlined text-[18px] hover:text-blue-600 transition-all cursor-pointer" onClick={(e) => handleBoxClick(containerId, 'image', e)}>image</span>
-                            <span className="material-symbols-outlined text-[18px] hover:text-blue-600 transition-all cursor-pointer" onClick={(e) => handleBoxClick(containerId, 'text', e)}>title</span>
-                            <span className="material-symbols-outlined text-[18px] hover:text-blue-600 transition-all cursor-pointer" onClick={(e) => handleBoxClick(containerId, 'button', e)}>smart_button</span>
+                            <span className="material-symbols-outlined text-[18px] hover:text-blue-400 transition-all cursor-pointer" onClick={(e) => handleBoxClick(containerId, 'image', e)}>image</span>
+                            <span className="material-symbols-outlined text-[18px] hover:text-blue-400 transition-all cursor-pointer" onClick={(e) => handleBoxClick(containerId, 'text', e)}>title</span>
+                            <span className="material-symbols-outlined text-[18px] hover:text-blue-400 transition-all cursor-pointer" onClick={(e) => handleBoxClick(containerId, 'button', e)}>smart_button</span>
                         </div>
                     </>
                 )}
@@ -399,7 +399,7 @@ const ContainerLayer = ({
                     <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[19px]' : '-top-[28px]'} left-[28px] w-auto flex flex-col items-start transition-opacity duration-300 z-50`}>
                         <div className="absolute inset-x-0 top-[28px] h-[28px] pointer-events-none group-hover/layerpill:pointer-events-auto z-[60]" />
                         {[
-                            { id: 'container', label: 'Container', color: colors.container },
+                            { id: 'container', label: 'Container', color: isContainerSelected ? '#3b82f6' : '#60a5fa' },
                             { id: 'structure', label: 'Structure', color: colors.structure },
                             { id: 'backdrop', label: 'Backdrop', color: colors.backdrop },
                         ].map((layer, idx) => (
@@ -452,7 +452,7 @@ const ContainerLayer = ({
 
                     {/* Left delete button */}
                     <div
-                        style={{ backgroundColor: colors.container }}
+                        style={{ backgroundColor: isContainerSelected ? '#3b82f6' : '#60a5fa' }}
                         className="absolute top-1/2 -translate-y-1/2 -left-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-all duration-300 group/delbtn z-[50]"
                         onClick={(e) => { e.stopPropagation(); handleDeleteContainer(containerId); }}
                     >
@@ -520,7 +520,7 @@ const ContainerLayer = ({
                 <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[19px]' : '-top-[28px]'} left-[28px] w-auto flex flex-col items-start transition-opacity duration-300 z-50`}>
                     <div className="absolute inset-x-0 top-[28px] h-[28px] pointer-events-none group-hover/layerpill:pointer-events-auto z-[60]" />
                     {[
-                        { id: 'container', label: 'Container', color: colors.container },
+                        { id: 'container', label: 'Container', color: isContainerSelected ? '#3b82f6' : '#60a5fa' },
                         { id: 'structure', label: 'Structure', color: colors.structure },
                         { id: 'backdrop', label: 'Backdrop', color: colors.backdrop },
                     ].map((layer, idx) => (
@@ -573,7 +573,7 @@ const ContainerLayer = ({
 
                 {/* Left delete button */}
                 <div
-                    style={{ backgroundColor: colors.container }}
+                    style={{ backgroundColor: isContainerSelected ? '#3b82f6' : '#60a5fa' }}
                     className="absolute top-1/2 -translate-y-1/2 -left-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-all duration-300 group/delbtn z-[50]"
                     onClick={(e) => { e.stopPropagation(); handleDeleteContainer(containerId); }}
                 >
