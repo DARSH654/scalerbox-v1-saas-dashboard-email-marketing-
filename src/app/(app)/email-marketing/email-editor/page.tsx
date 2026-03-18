@@ -235,7 +235,7 @@ const BlockLayer = ({
 
             {/* Right 3-dot button — CSS hover */}
             <div
-                className="absolute top-1/2 -translate-y-1/2 -right-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-transform bg-[#4b5b75] z-[50] opacity-0 group-hover/block:opacity-100"
+                className={`absolute top-1/2 -translate-y-1/2 -right-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-transform bg-[#4b5b75] z-[50] ${isBlockSelected ? 'opacity-100' : 'opacity-0 group-hover/block:opacity-100'}`}
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="absolute inset-y-0 right-0 left-[-12px] top-0 h-[37px] pointer-events-auto z-[60]" />
@@ -248,7 +248,7 @@ const BlockLayer = ({
 
             {/* Drag pill — CSS hover */}
             <div
-                className={`absolute ${isTopRow ? '-bottom-[28px]' : '-top-[32px]'} left-[16px] text-white rounded-[12px] w-[36px] h-[24px] flex items-center justify-center pointer-events-auto cursor-grab active:cursor-grabbing shadow-md hover:scale-105 transition-all bg-[#4b5b75] z-[50] opacity-0 group-hover/block:opacity-100`}
+                className={`absolute ${isTopRow ? '-bottom-[28px]' : '-top-[32px]'} left-[16px] text-white rounded-[12px] w-[36px] h-[24px] flex items-center justify-center pointer-events-auto cursor-grab active:cursor-grabbing shadow-md hover:scale-105 transition-all bg-[#4b5b75] z-[50] ${isBlockSelected ? 'opacity-100' : 'opacity-0 group-hover/block:opacity-100'}`}
                 onClick={(e) => e.stopPropagation()}
                 draggable
                 onDragStart={(e) => {
