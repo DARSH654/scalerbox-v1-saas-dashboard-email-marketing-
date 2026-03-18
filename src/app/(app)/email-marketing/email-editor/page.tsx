@@ -186,7 +186,7 @@ const BlockLayer = ({
     };
 
     return (
-        <div className="relative group/block w-full h-full" onClick={handleBlockSelection}>
+        <div data-layer="block" className="relative group/block w-full h-full" onClick={handleBlockSelection}>
             {/* Block Content */}
             {block.type === 'image' && (
                 <div className="w-full h-full flex items-center justify-center min-h-[80px]">
@@ -341,8 +341,9 @@ const ContainerLayer = ({
         // Empty drop zone
         return (
             <div
+                data-layer="container"
                 style={{ flex: columnFlex }}
-                className={`structure-container w-full min-h-[120px] group border-[2px] rounded-[4px] flex flex-col items-center justify-center cursor-default relative transition-all duration-300 flex-1 ${isSelected ? 'border-solid border-blue-500 bg-blue-50/50 text-blue-500/90' : (isDragOver ? 'border-solid border-blue-400 bg-blue-50 dark:bg-blue-900/40 text-blue-500' : 'border-dashed border-blue-400/20 bg-[#f0f7ff] dark:bg-blue-900/10 text-blue-400')} ${isSelected ? 'z-[20]' : 'z-[1]'}`}
+                className={`structure-container w-full min-h-[120px] group/container border-[2px] rounded-[4px] flex flex-col items-center justify-center cursor-default relative transition-all duration-300 flex-1 ${isSelected ? 'border-solid border-blue-500 bg-blue-50/50 text-blue-500/90' : (isDragOver ? 'border-solid border-blue-400 bg-blue-50 dark:bg-blue-900/40 text-blue-500' : 'border-dashed border-blue-400/20 bg-[#f0f7ff] dark:bg-blue-900/10 text-blue-400 group-hover/container:border-solid group-hover/container:border-blue-400')} ${isSelected ? 'z-[20]' : 'z-[1]'}`}
                 onClick={handleContainerClick}
                 onDragOver={(e) => {
                     e.preventDefault();
@@ -376,17 +377,102 @@ const ContainerLayer = ({
                     </div>
                 ) : (
                     <>
-                        <div className="flex flex-col items-center gap-[2px] transition-transform duration-300 group-hover:-translate-y-3">
+                        <div className="flex flex-col items-center gap-[2px] transition-transform duration-300 group-hover/container:-translate-y-3">
                             <span className="material-symbols-outlined text-[20px] opacity-70">file_download</span>
                             <span className="text-[13px] font-medium opacity-80">Drop content here</span>
                         </div>
-                        <div className="absolute bottom-[20px] pointer-events-none group-hover:pointer-events-auto left-0 right-0 flex items-center justify-center gap-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                        <div className="absolute bottom-[20px] pointer-events-none group-hover/container:pointer-events-auto left-0 right-0 flex items-center justify-center gap-4 opacity-0 transition-opacity duration-300 group-hover/container:opacity-100">
                             <span className="material-symbols-outlined text-[18px] hover:text-blue-600 transition-all cursor-pointer" onClick={(e) => handleBoxClick(containerId, 'image', e)}>image</span>
                             <span className="material-symbols-outlined text-[18px] hover:text-blue-600 transition-all cursor-pointer" onClick={(e) => handleBoxClick(containerId, 'text', e)}>title</span>
                             <span className="material-symbols-outlined text-[18px] hover:text-blue-600 transition-all cursor-pointer" onClick={(e) => handleBoxClick(containerId, 'button', e)}>smart_button</span>
                         </div>
                     </>
                 )}
+
+                {/* Container Overlay — CSS hover */}
+                <div className={`absolute inset-0 pointer-events-none transition-opacity duration-200 z-[40] ${isContainerSelected ? 'opacity-100' : 'opacity-0 group-hover/container:opacity-100'}`}>
+                    {/* Hitbox bridges */}
+                    <div className={`absolute left-[28px] w-[75px] pointer-events-auto ${isTopRow ? '-bottom-[28px] h-[28px]' : '-top-[28px] h-[28px]'}`} />
+                    <div className="absolute top-1/2 -translate-y-1/2 -left-[44px] w-[44px] h-[36px] pointer-events-auto" />
+
+                    {/* Layer breadcrumb pill */}
+                    <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[19px]' : '-top-[28px]'} left-[28px] w-auto flex flex-col items-start transition-opacity duration-300 z-50`}>
+                        <div className="absolute inset-x-0 top-[28px] h-[28px] pointer-events-none group-hover/layerpill:pointer-events-auto z-[60]" />
+                        {[
+                            { id: 'container', label: 'Container', color: colors.container },
+                            { id: 'structure', label: 'Structure', color: colors.structure },
+                            { id: 'backdrop', label: 'Backdrop', color: colors.backdrop },
+                        ].map((layer, idx) => (
+                            <div
+                                key={layer.id}
+                                draggable={layer.id === 'structure'}
+                                onDragStart={(e) => {
+                                    if (layer.id === 'structure') {
+                                        e.dataTransfer.effectAllowed = 'move';
+                                        const img = new window.Image();
+                                        img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                                        e.dataTransfer.setDragImage(img, 0, 0);
+                                        setDraggingTool({ icon: 'layout', type: 'move_structure', id: structureId });
+                                    }
+                                }}
+                                onDragEnd={() => {
+                                    if (layer.id === 'structure') {
+                                        setDraggingTool(null);
+                                    }
+                                }}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (layer.id === 'backdrop') {
+                                        setSelectedBackdropRowId(backdropId);
+                                        setSelectedBoxId(null);
+                                        setSelectedLayer('backdrop');
+                                        setActiveRightSidebarTab('general');
+                                    } else if (layer.id === 'structure') {
+                                        setSelectedBoxId(structureId);
+                                        setSelectedLayer('structure');
+                                        setSelectedBackdropRowId(null);
+                                    } else {
+                                        setSelectedBoxId(containerId);
+                                        setSelectedLayer('container');
+                                        setSelectedBackdropRowId(null);
+                                    }
+                                }}
+                                style={{ backgroundColor: layer.color, borderColor: layer.color, zIndex: 30 - idx }}
+                                className={`px-3 py-[3px] rounded-full border-0 text-[10.5px] font-medium text-white transition-all duration-300 ease-in-out shadow-sm flex items-center justify-start hover:scale-105 active:scale-95 pointer-events-auto ${idx === 0 ? 'relative cursor-pointer' : '-mt-[26px] opacity-0 pointer-events-none group-hover/layerpill:mt-[4px] group-hover/layerpill:opacity-100 group-hover/layerpill:pointer-events-auto cursor-grab active:cursor-grabbing'}`}
+                            >
+                                <span className="capitalize tracking-wide">{layer.label}</span>
+                                {idx !== 0 && (
+                                    <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor" className="opacity-80 rotate-90 ml-1.5 -mr-1 pointer-events-none">
+                                        <path d="M360-160q-33 0-56.5-23.5T280-240q0-33 23.5-56.5T360-320q33 0 56.5 23.5T440-240q0 33-23.5 56.5T360-160Zm240 0q-33 0-56.5-23.5T520-240q0-33 23.5-56.5T600-320q33 0 56.5 23.5T680-240q0 33-23.5 56.5T600-160ZM360-400q-33 0-56.5-23.5T280-480q0-33 23.5-56.5T360-560q33 0 56.5 23.5T440-480q0 33-23.5 56.5T360-400Zm240 0q-33 0-56.5-23.5T520-480q0-33 23.5-56.5T600-560q33 0 56.5 23.5T680-480q0 33-23.5 56.5T600-400ZM360-640q-33 0-56.5-23.5T280-720q0-33 23.5-56.5T360-800q33 0 56.5 23.5T440-720q0 33-23.5 56.5T360-640Zm240 0q-33 0-56.5-23.5T520-720q0-33 23.5-56.5T600-800q33 0 56.5 23.5T680-720q0 33-23.5 56.5T600-640Z" />
+                                    </svg>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Left delete button */}
+                    <div
+                        style={{ backgroundColor: colors.container }}
+                        className="absolute top-1/2 -translate-y-1/2 -left-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-all duration-300 group/delbtn z-[50]"
+                        onClick={(e) => { e.stopPropagation(); handleDeleteContainer(containerId); }}
+                    >
+                        <TooltipProvider delayDuration={0}>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div className="flex items-center justify-center w-full h-full relative">
+                                        <div className="flex items-center justify-center gap-[3px] absolute transition-opacity duration-200 group-hover/delbtn:opacity-0 opacity-100">
+                                            <div className="w-[4px] h-[4px] rounded-full bg-white" />
+                                            <div className="w-[4px] h-[4px] rounded-full bg-white" />
+                                            <div className="w-[4px] h-[4px] rounded-full bg-white" />
+                                        </div>
+                                        <span className="material-symbols-outlined text-[18px] absolute transition-opacity duration-200 group-hover/delbtn:opacity-100 opacity-0">delete_outline</span>
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="left" sideOffset={12}>Delete Container</TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    </div>
+                </div>
             </div>
         );
     }
@@ -394,8 +480,9 @@ const ContainerLayer = ({
     // Container with block inside
     return (
         <div
+            data-layer="container"
             style={{ flex: columnFlex }}
-            className={`structure-container w-full relative border-[2px] rounded-[4px] bg-white group/container cursor-default flex flex-col ${isContainerSelected ? 'border-blue-500' : isSelected ? 'border-blue-300' : 'border-transparent group-hover/container:border-blue-400'} ${isSelected ? 'z-[20]' : 'z-[1]'}`}
+            className={`structure-container w-full relative border-[2px] rounded-[4px] bg-white group/container cursor-default flex flex-col ${isContainerSelected ? 'border-blue-500' : (isSelected && selectedLayer !== 'block') ? 'border-blue-300' : 'border-transparent group-hover/container:border-blue-400'} ${isSelected ? 'z-[20]' : 'z-[1]'}`}
             onClick={handleContainerClick}
         >
             {/* Block content */}
@@ -535,6 +622,7 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
 
     return (
         <div
+            data-layer="structure"
             className={`relative group/structure w-full h-full px-8`}
             onClick={(e) => {
                 if (onSelect) {
@@ -615,35 +703,35 @@ const StructureWrapper = ({ id, isSelected, onSelect, onDelete, onDuplicate, onM
                         <DropdownMenuContent side="bottom" align="start" sideOffset={12} className="w-[200px] p-2 rounded-[16px] z-[100] shadow-xl">
                             <div className="grid grid-cols-3 gap-1.5">
                                 {/* Left Heavy (1:2) */}
-                                <div className="h-[34px] bg-white dark:bg-background border border-gray-200 dark:border-border rounded-[2px] p-1 cursor-pointer hover:border-primary hover:bg-gray-50 flex gap-0.5 shadow-sm transition-colors">
+                                <div onClick={() => { if (onAddStructure) { onAddStructure([1, 2]); setIsOpen(false); } }} className="h-[34px] bg-white dark:bg-background border border-gray-200 dark:border-border rounded-[2px] p-1 cursor-pointer hover:border-primary hover:bg-gray-50 flex gap-0.5 shadow-sm transition-colors">
                                     <div className="w-[33%] h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
                                     <div className="flex-1 h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
                                 </div>
                                 {/* Right Heavy (2:1) */}
-                                <div className="h-[34px] bg-white dark:bg-background border border-gray-200 dark:border-border rounded-[2px] p-1 cursor-pointer hover:border-primary hover:bg-gray-50 flex gap-0.5 shadow-sm transition-colors">
+                                <div onClick={() => { if (onAddStructure) { onAddStructure([2, 1]); setIsOpen(false); } }} className="h-[34px] bg-white dark:bg-background border border-gray-200 dark:border-border rounded-[2px] p-1 cursor-pointer hover:border-primary hover:bg-gray-50 flex gap-0.5 shadow-sm transition-colors">
                                     <div className="flex-1 h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
                                     <div className="w-[33%] h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
                                 </div>
                                 {/* Center Heavy (1:2:1) */}
-                                <div className="h-[34px] bg-white dark:bg-background border border-gray-200 dark:border-border rounded-[2px] p-1 cursor-pointer hover:border-primary hover:bg-gray-50 flex gap-0.5 shadow-sm transition-colors">
+                                <div onClick={() => { if (onAddStructure) { onAddStructure([1, 2, 1]); setIsOpen(false); } }} className="h-[34px] bg-white dark:bg-background border border-gray-200 dark:border-border rounded-[2px] p-1 cursor-pointer hover:border-primary hover:bg-gray-50 flex gap-0.5 shadow-sm transition-colors">
                                     <div className="w-[25%] h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
                                     <div className="flex-1 h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
                                     <div className="w-[25%] h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
                                 </div>
                                 {/* Left Heavy Double (2:1:1) */}
-                                <div className="h-[34px] bg-white dark:bg-background border border-gray-200 dark:border-border rounded-[2px] p-1 cursor-pointer hover:border-primary hover:bg-gray-50 flex gap-0.5 shadow-sm transition-colors">
+                                <div onClick={() => { if (onAddStructure) { onAddStructure([2, 1, 1]); setIsOpen(false); } }} className="h-[34px] bg-white dark:bg-background border border-gray-200 dark:border-border rounded-[2px] p-1 cursor-pointer hover:border-primary hover:bg-gray-50 flex gap-0.5 shadow-sm transition-colors">
                                     <div className="flex-1 h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
                                     <div className="w-[25%] h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
                                     <div className="w-[25%] h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
                                 </div>
                                 {/* Right Heavy Double (1:1:2) */}
-                                <div className="h-[34px] bg-white dark:bg-background border border-gray-200 dark:border-border rounded-[2px] p-1 cursor-pointer hover:border-primary hover:bg-gray-50 flex gap-0.5 shadow-sm transition-colors">
+                                <div onClick={() => { if (onAddStructure) { onAddStructure([1, 1, 2]); setIsOpen(false); } }} className="h-[34px] bg-white dark:bg-background border border-gray-200 dark:border-border rounded-[2px] p-1 cursor-pointer hover:border-primary hover:bg-gray-50 flex gap-0.5 shadow-sm transition-colors">
                                     <div className="w-[25%] h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
                                     <div className="w-[25%] h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
                                     <div className="flex-1 h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
                                 </div>
                                 {/* Splits (1:1:1:3) */}
-                                <div className="h-[34px] bg-white dark:bg-background border border-gray-200 dark:border-border rounded-[2px] p-1 cursor-pointer hover:border-primary hover:bg-gray-50 flex gap-0.5 shadow-sm transition-colors">
+                                <div onClick={() => { if (onAddStructure) { onAddStructure([1, 1, 1, 3]); setIsOpen(false); } }} className="h-[34px] bg-white dark:bg-background border border-gray-200 dark:border-border rounded-[2px] p-1 cursor-pointer hover:border-primary hover:bg-gray-50 flex gap-0.5 shadow-sm transition-colors">
                                     <div className="w-[16%] h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
                                     <div className="w-[16%] h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
                                     <div className="w-[16%] h-full bg-[#f0f7ff] dark:bg-blue-900/10 border border-dashed border-blue-300 dark:border-blue-500/30 rounded-[2px]"></div>
@@ -1147,7 +1235,7 @@ export default function EmailEditorPage() {
     const handleDeleteBackdropRow = (backdropId: string) => {
         // Check if the selection is inside the deleted backdrop
         const backdropToDelete = emailTree.find(bd => bd.id === backdropId);
-        const containsSelection = backdropToDelete?.structures.some(st => 
+        const containsSelection = backdropToDelete?.structures.some(st =>
             st.id === selectedBoxId || st.containers.some(c => c.id === selectedBoxId)
         );
 
@@ -2269,7 +2357,7 @@ export default function EmailEditorPage() {
                                         key={backdrop.id}
                                         className="relative group/backdrop w-full"
                                         onClick={(e) => {
-                                            if (selectedBackdropRowId === backdrop.id) e.stopPropagation();
+                                            e.stopPropagation();
                                         }}
                                     >
                                         {/* 1. Backdrop Full-Width Color Strip */}
@@ -2289,7 +2377,7 @@ export default function EmailEditorPage() {
 
                                         {/* 2. Backdrop Border Overlay */}
                                         <div
-                                            className={`absolute -inset-x-[60px] rounded-[4px] border-[2px] transition-all duration-150 pointer-events-none z-[5] ${selectedBackdropRowId === backdrop.id ? 'border-[#475569]' : 'border-transparent group-hover/backdrop:border-[#64748b] group-has-[.group\\/structure:hover]/backdrop:!border-transparent'}`}
+                                            className={`absolute -inset-x-[60px] rounded-[4px] border-[2px] transition-all duration-150 pointer-events-none z-[5] ${selectedBackdropRowId === backdrop.id ? 'border-[#475569]' : 'border-transparent group-hover/backdrop:border-[#64748b] group-has-[[data-layer=structure]:hover]/backdrop:!border-transparent group-has-[[data-layer=container]:hover]/backdrop:!border-transparent group-has-[[data-layer=block]:hover]/backdrop:!border-transparent'}`}
                                             style={{
                                                 top: globalStructureIndex === 0 ? '-34px' : '-26px',
                                                 bottom: 0
@@ -2322,139 +2410,135 @@ export default function EmailEditorPage() {
                                             }}
                                         />
 
-                                        {/* 5. Backdrop Controls (Pill, Plus, 3-dot) — shows on select only */}
-                                        {selectedBackdropRowId === backdrop.id && (
-                                            <>
-                                                {/* Backdrop Pill */}
+                                        {/* 5. Backdrop Controls (Pill, Plus, 3-dot) */}
+                                        <>
+                                            {/* Backdrop Pill */}
+                                            <div
+                                                className={`absolute left-[-60px] z-[80] pointer-events-auto transition-all duration-200 group-has-[[data-layer=structure]:hover]/backdrop:!opacity-0 group-has-[[data-layer=structure]:hover]/backdrop:pointer-events-none group-has-[[data-layer=container]:hover]/backdrop:!opacity-0 group-has-[[data-layer=container]:hover]/backdrop:pointer-events-none group-has-[[data-layer=block]:hover]/backdrop:!opacity-0 group-has-[[data-layer=block]:hover]/backdrop:pointer-events-none ${selectedBackdropRowId === backdrop.id ? 'opacity-100' : 'opacity-0 group-hover/backdrop:opacity-100'}`}
+                                                style={globalStructureIndex === 0
+                                                    ? { bottom: '-28px', left: '-18px' }
+                                                    : { top: '-53px' }
+                                                }
+                                            >
+                                                <div className={`absolute inset-x-0 ${globalStructureIndex === 0 ? 'top-[-8px] h-[30px]' : 'top-0 h-[27px]'} pointer-events-auto z-[60]`} />
                                                 <div
-                                                    className="absolute left-[-60px] z-[80] pointer-events-auto animate-in fade-in duration-200"
-                                                    style={globalStructureIndex === 0
-                                                        ? { bottom: '-28px', left: '-18px' }
-                                                        : { top: '-53px' }
-                                                    }
+                                                    className="px-3 py-[3px] rounded-full text-white text-[10.5px] font-medium shadow-sm flex items-center cursor-pointer hover:scale-105 active:scale-95 transition-all"
+                                                    style={{ backgroundColor: selectedBackdropRowId === backdrop.id ? '#475569' : '#64748b' }}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedBackdropRowId(backdrop.id);
+                                                        setSelectedBoxId(null);
+                                                        setSelectedLayer('backdrop');
+                                                        setActiveRightSidebarTab('general');
+                                                    }}
                                                 >
-                                                    <div className={`absolute inset-x-0 ${globalStructureIndex === 0 ? 'top-[-8px] h-[30px]' : 'top-0 h-[27px]'} pointer-events-auto z-[60]`} />
-                                                    <div
-                                                        className="px-3 py-[3px] rounded-full text-white text-[10.5px] font-medium shadow-sm flex items-center cursor-pointer hover:scale-105 active:scale-95 transition-all"
-                                                        style={{ backgroundColor: selectedBackdropRowId === backdrop.id ? '#475569' : '#64748b' }}
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setSelectedBackdropRowId(backdrop.id);
-                                                            setSelectedBoxId(null);
-                                                            setSelectedLayer('backdrop');
-                                                            setActiveRightSidebarTab('general');
-                                                        }}
-                                                    >
-                                                        <span className="capitalize tracking-wide">Backdrop</span>
-                                                        <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor" className="opacity-80 rotate-90 ml-1.5 -mr-1">
-                                                            <path d="M360-160q-33 0-56.5-23.5T280-240q0-33 23.5-56.5T360-320q33 0 56.5 23.5T440-240q0 33-23.5 56.5T360-160Zm240 0q-33 0-56.5-23.5T520-240q0-33 23.5-56.5T600-320q33 0 56.5 23.5T680-240q0 33-23.5 56.5T600-160ZM360-400q-33 0-56.5-23.5T280-480q0-33 23.5-56.5T360-560q33 0 56.5 23.5T440-480q0 33-23.5 56.5T360-400Zm240 0q-33 0-56.5-23.5T520-480q0-33 23.5-56.5T600-560q33 0 56.5 23.5T680-480q0 33-23.5 56.5T600-400ZM360-640q-33 0-56.5-23.5T280-720q0-33 23.5-56.5T360-800q33 0 56.5 23.5T440-720q0 33-23.5 56.5T360-640Zm240 0q-33 0-56.5-23.5T520-720q0-33 23.5-56.5T600-800q33 0 56.5 23.5T680-720q0 33-23.5 56.5T600-640Z" />
-                                                        </svg>
-                                                    </div>
+                                                    <span className="capitalize tracking-wide">Backdrop</span>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor" className="opacity-80 rotate-90 ml-1.5 -mr-1">
+                                                        <path d="M360-160q-33 0-56.5-23.5T280-240q0-33 23.5-56.5T360-320q33 0 56.5 23.5T440-240q0 33-23.5 56.5T360-160Zm240 0q-33 0-56.5-23.5T520-240q0-33 23.5-56.5T600-320q33 0 56.5 23.5T680-240q0 33-23.5 56.5T600-160ZM360-400q-33 0-56.5-23.5T280-480q0-33 23.5-56.5T360-560q33 0 56.5 23.5T440-480q0 33-23.5 56.5T360-400Zm240 0q-33 0-56.5-23.5T520-480q0-33 23.5-56.5T600-560q33 0 56.5 23.5T680-480q0 33-23.5 56.5T600-400ZM360-640q-33 0-56.5-23.5T280-720q0-33 23.5-56.5T360-800q33 0 56.5 23.5T440-720q0 33-23.5 56.5T360-640Zm240 0q-33 0-56.5-23.5T520-720q0-33 23.5-56.5T600-800q33 0 56.5 23.5T680-720q0 33-23.5 56.5T600-640Z" />
+                                                    </svg>
                                                 </div>
+                                            </div>
 
-                                                {/* Plus Button */}
-                                                <div className="absolute -bottom-[42px] left-[-60px] z-[80] pointer-events-auto">
-                                                    <div className="absolute inset-0 top-[-8px] h-[44px] pointer-events-auto z-[60]" />
-                                                    <div
-                                                        className="w-[36px] h-[36px] rounded-[12px] text-white flex items-center justify-center cursor-pointer shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
-                                                        style={{ backgroundColor: selectedBackdropRowId === backdrop.id ? '#475569' : '#64748b' }}
-                                                        onClick={(e) => e.stopPropagation()}
-                                                    >
-                                                        <span className="material-symbols-outlined text-[20px]">add</span>
-                                                    </div>
-                                                </div>
-
-                                                {/* 3-dot menu */}
+                                            {/* Plus Button */}
+                                            <div className={`absolute -bottom-[42px] left-[-60px] z-[80] pointer-events-auto transition-all duration-200 group-has-[[data-layer=structure]:hover]/backdrop:!opacity-0 group-has-[[data-layer=structure]:hover]/backdrop:pointer-events-none group-has-[[data-layer=container]:hover]/backdrop:!opacity-0 group-has-[[data-layer=container]:hover]/backdrop:pointer-events-none group-has-[[data-layer=block]:hover]/backdrop:!opacity-0 group-has-[[data-layer=block]:hover]/backdrop:pointer-events-none ${selectedBackdropRowId === backdrop.id ? 'opacity-100' : 'opacity-0 group-hover/backdrop:opacity-100'}`}>
+                                                <div className="absolute inset-0 top-[-8px] h-[44px] pointer-events-auto z-[60]" />
                                                 <div
-                                                    className="absolute -translate-y-1/2 right-[-52px] z-[80] pointer-events-auto group/backdropbtn flex items-center"
-                                                    style={{ top: globalStructureIndex === 0 ? 'calc(50% - 17px)' : 'calc(50% - 13px)' }}
+                                                    className="w-[36px] h-[36px] rounded-[12px] text-white flex items-center justify-center cursor-pointer shadow-md hover:scale-105 active:scale-95 transition-all duration-200"
+                                                    style={{ backgroundColor: selectedBackdropRowId === backdrop.id ? '#475569' : '#64748b' }}
+                                                    onClick={(e) => e.stopPropagation()}
                                                 >
-                                                    <div className="flex flex-row-reverse items-center">
+                                                    <span className="material-symbols-outlined text-[20px]">add</span>
+                                                </div>
+                                            </div>
+
+                                            {/* 3-dot menu */}
+                                            <div
+                                                className={`absolute -translate-y-1/2 right-[-52px] z-[80] pointer-events-auto group/backdropbtn flex items-center transition-all duration-200 group-has-[[data-layer=structure]:hover]/backdrop:!opacity-0 group-has-[[data-layer=structure]:hover]/backdrop:pointer-events-none group-has-[[data-layer=container]:hover]/backdrop:!opacity-0 group-has-[[data-layer=container]:hover]/backdrop:pointer-events-none group-has-[[data-layer=block]:hover]/backdrop:!opacity-0 group-has-[[data-layer=block]:hover]/backdrop:pointer-events-none ${selectedBackdropRowId === backdrop.id ? 'opacity-100' : 'opacity-0 group-hover/backdrop:opacity-100'}`}
+                                                style={{ top: globalStructureIndex === 0 ? 'calc(50% - 17px)' : 'calc(50% - 13px)' }}
+                                            >
+                                                <div className="flex flex-row-reverse items-center">
+                                                    <TooltipProvider delayDuration={0}>
+                                                        <Tooltip>
+                                                            <TooltipTrigger asChild>
+                                                                <div
+                                                                    className="w-[36px] h-[36px] rounded-[12px] text-white flex items-center justify-center cursor-pointer shadow-md hover:scale-105 active:scale-95 transition-all duration-200 flex-shrink-0 relative overflow-hidden"
+                                                                    style={{ backgroundColor: selectedBackdropRowId === backdrop.id ? '#475569' : '#64748b' }}
+                                                                >
+                                                                    <div className="absolute inset-y-0 right-0 left-[-12px] top-0 h-[37px] pointer-events-auto z-[60]" />
+                                                                    <div className="absolute inset-0 flex items-center justify-center gap-[3px] transition-opacity duration-200 opacity-100 group-hover/backdropbtn:opacity-0">
+                                                                        <div className="w-[4px] h-[4px] rounded-full bg-white" />
+                                                                        <div className="w-[4px] h-[4px] rounded-full bg-white" />
+                                                                        <div className="w-[4px] h-[4px] rounded-full bg-white" />
+                                                                    </div>
+                                                                    <div className="absolute inset-0 flex items-center justify-center transition-opacity duration-200 opacity-0 group-hover/backdropbtn:opacity-100">
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="currentColor">
+                                                                            <path d="M800-160H160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h400v80H160v480h640v-280h80v280q0 33-23.5 56.5T800-160ZM240-320h280v-120H240v120Zm0-200h280v-120H240v120Zm360 200h120v-200H600v200Zm-440 80v-480 480Zm560-360v-80h-80v-80h80v-80h80v80h80v80h-80v80h-80Z" />
+                                                                        </svg>
+                                                                    </div>
+                                                                </div>
+                                                            </TooltipTrigger>
+                                                            <TooltipContent side="right" sideOffset={8}>Save as Module</TooltipContent>
+                                                        </Tooltip>
+                                                    </TooltipProvider>
+                                                    <div className="flex items-center gap-[6px] mr-[6px] overflow-hidden transition-all duration-200 ease-out max-w-0 opacity-0 group-hover/backdropbtn:max-w-[124px] group-hover/backdropbtn:opacity-100">
+                                                        {/* Delete */}
                                                         <TooltipProvider delayDuration={0}>
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
                                                                     <div
-                                                                        className="w-[36px] h-[36px] rounded-[12px] text-white flex items-center justify-center cursor-pointer shadow-md hover:scale-105 active:scale-95 transition-all duration-200 flex-shrink-0 relative overflow-hidden"
+                                                                        className="w-[32px] h-[32px] rounded-[10px] text-white flex items-center justify-center cursor-pointer shadow-md hover:brightness-110 active:scale-90 transition-all duration-150 flex-shrink-0"
                                                                         style={{ backgroundColor: selectedBackdropRowId === backdrop.id ? '#475569' : '#64748b' }}
+                                                                        onClick={(e) => { e.stopPropagation(); handleDeleteBackdropRow(backdrop.id); }}
                                                                     >
-                                                                        <div className="absolute inset-y-0 right-0 left-[-12px] top-0 h-[37px] pointer-events-auto z-[60]" />
-                                                                        <div className="absolute inset-0 flex items-center justify-center gap-[3px] transition-opacity duration-200 opacity-100 group-hover/backdropbtn:opacity-0">
-                                                                            <div className="w-[4px] h-[4px] rounded-full bg-white" />
-                                                                            <div className="w-[4px] h-[4px] rounded-full bg-white" />
-                                                                            <div className="w-[4px] h-[4px] rounded-full bg-white" />
-                                                                        </div>
-                                                                        <div className="absolute inset-0 flex items-center justify-center transition-opacity duration-200 opacity-0 group-hover/backdropbtn:opacity-100">
-                                                                            <svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="currentColor">
-                                                                                <path d="M800-160H160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h400v80H160v480h640v-280h80v280q0 33-23.5 56.5T800-160ZM240-320h280v-120H240v120Zm0-200h280v-120H240v120Zm360 200h120v-200H600v200Zm-440 80v-480 480Zm560-360v-80h-80v-80h80v-80h80v80h80v80h-80v80h-80Z" />
-                                                                            </svg>
-                                                                        </div>
+                                                                        <span className="material-symbols-outlined text-[16px]">delete_outline</span>
                                                                     </div>
                                                                 </TooltipTrigger>
-                                                                <TooltipContent side="right" sideOffset={8}>Save as Module</TooltipContent>
+                                                                <TooltipContent side="top" sideOffset={8}>Delete Backdrop Row</TooltipContent>
                                                             </Tooltip>
                                                         </TooltipProvider>
-                                                        <div className="flex items-center gap-[6px] mr-[6px] overflow-hidden transition-all duration-200 ease-out max-w-0 opacity-0 group-hover/backdropbtn:max-w-[124px] group-hover/backdropbtn:opacity-100">
-                                                            {/* Delete */}
-                                                            <TooltipProvider delayDuration={0}>
-                                                                <Tooltip>
-                                                                    <TooltipTrigger asChild>
-                                                                        <div
-                                                                            className="w-[32px] h-[32px] rounded-[10px] text-white flex items-center justify-center cursor-pointer shadow-md hover:brightness-110 active:scale-90 transition-all duration-150 flex-shrink-0"
-                                                                            style={{ backgroundColor: selectedBackdropRowId === backdrop.id ? '#475569' : '#64748b' }}
-                                                                            onClick={(e) => { e.stopPropagation(); handleDeleteBackdropRow(backdrop.id); }}
-                                                                        >
-                                                                            <span className="material-symbols-outlined text-[16px]">delete_outline</span>
-                                                                        </div>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent side="top" sideOffset={8}>Delete Backdrop Row</TooltipContent>
-                                                                </Tooltip>
-                                                            </TooltipProvider>
-                                                            {/* Duplicate */}
-                                                            <TooltipProvider delayDuration={0}>
-                                                                <Tooltip>
-                                                                    <TooltipTrigger asChild>
-                                                                        <div
-                                                                            className="w-[32px] h-[32px] rounded-[10px] text-white flex items-center justify-center cursor-pointer shadow-md hover:brightness-110 active:scale-90 transition-all duration-150 flex-shrink-0"
-                                                                            style={{ backgroundColor: selectedBackdropRowId === backdrop.id ? '#475569' : '#64748b' }}
-                                                                            onClick={(e) => { e.stopPropagation(); handleDuplicateBackdropRow(backdrop.id); }}
-                                                                        >
-                                                                            <span className="material-symbols-outlined text-[16px]">content_copy</span>
-                                                                        </div>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent side="top" sideOffset={8}>Duplicate Backdrop Row</TooltipContent>
-                                                                </Tooltip>
-                                                            </TooltipProvider>
-                                                            {/* Move */}
-                                                            <TooltipProvider delayDuration={0}>
-                                                                <Tooltip>
-                                                                    <TooltipTrigger asChild>
-                                                                        <div
-                                                                            className="w-[32px] h-[32px] rounded-[10px] text-white flex items-center justify-center cursor-grab active:cursor-grabbing shadow-md hover:brightness-110 active:scale-90 transition-all duration-150 flex-shrink-0"
-                                                                            style={{ backgroundColor: selectedBackdropRowId === backdrop.id ? '#475569' : '#64748b' }}
-                                                                            onClick={(e) => e.stopPropagation()}
-                                                                            draggable
-                                                                            onDragStart={(e) => {
-                                                                                e.dataTransfer.effectAllowed = 'move';
-                                                                                const img = new window.Image();
-                                                                                img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                                                                                e.dataTransfer.setDragImage(img, 0, 0);
-                                                                                setDraggingTool({ icon: 'layout', type: 'move_backdrop', id: backdrop.id });
-                                                                            }}
-                                                                            onDragEnd={() => { setDraggingTool(null); setDropInsertIndex(null); }}
-                                                                        >
-                                                                            <span className="material-symbols-outlined text-[16px]">open_with</span>
-                                                                        </div>
-                                                                    </TooltipTrigger>
-                                                                    <TooltipContent side="top" sideOffset={8}>Move Backdrop Row</TooltipContent>
-                                                                </Tooltip>
-                                                            </TooltipProvider>
-                                                        </div>
+                                                        {/* Duplicate */}
+                                                        <TooltipProvider delayDuration={0}>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <div
+                                                                        className="w-[32px] h-[32px] rounded-[10px] text-white flex items-center justify-center cursor-pointer shadow-md hover:brightness-110 active:scale-90 transition-all duration-150 flex-shrink-0"
+                                                                        style={{ backgroundColor: selectedBackdropRowId === backdrop.id ? '#475569' : '#64748b' }}
+                                                                        onClick={(e) => { e.stopPropagation(); handleDuplicateBackdropRow(backdrop.id); }}
+                                                                    >
+                                                                        <span className="material-symbols-outlined text-[16px]">content_copy</span>
+                                                                    </div>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent side="top" sideOffset={8}>Duplicate Backdrop Row</TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                        {/* Move */}
+                                                        <TooltipProvider delayDuration={0}>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <div
+                                                                        className="w-[32px] h-[32px] rounded-[10px] text-white flex items-center justify-center cursor-grab active:cursor-grabbing shadow-md hover:brightness-110 active:scale-90 transition-all duration-150 flex-shrink-0"
+                                                                        style={{ backgroundColor: selectedBackdropRowId === backdrop.id ? '#475569' : '#64748b' }}
+                                                                        onClick={(e) => e.stopPropagation()}
+                                                                        draggable
+                                                                        onDragStart={(e) => {
+                                                                            e.dataTransfer.effectAllowed = 'move';
+                                                                            const img = new window.Image();
+                                                                            img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+                                                                            e.dataTransfer.setDragImage(img, 0, 0);
+                                                                            setDraggingTool({ icon: 'layout', type: 'move_backdrop', id: backdrop.id });
+                                                                        }}
+                                                                        onDragEnd={() => { setDraggingTool(null); setDropInsertIndex(null); }}
+                                                                    >
+                                                                        <span className="material-symbols-outlined text-[16px]">open_with</span>
+                                                                    </div>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent side="top" sideOffset={8}>Move Backdrop Row</TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
                                                     </div>
                                                 </div>
-                                            </>
-                                        )}
-
-                                        {/* 6. Structures inside this backdrop */}
+                                            </div>
+                                        </>                                        {/* 6. Structures inside this backdrop */}
                                         {backdrop.structures.map((structure, structureIndex) => {
                                             const flatIdx = globalStructureIndex++;
                                             const isTopRow = flatIdx === 0;
@@ -2465,8 +2549,8 @@ export default function EmailEditorPage() {
                                                     data-structure-row
                                                     onClick={(e) => e.stopPropagation()}
                                                     className={`relative ${(selectedBoxId === structure.id || (selectedBoxId && selectedBoxId.startsWith(structure.id + '-')) || selectedBackdropRowId === backdrop.id)
-                                                            ? 'z-[60]'
-                                                            : 'z-[10]'
+                                                        ? 'z-[60]'
+                                                        : 'z-[10]'
                                                         }`}
                                                 >
                                                     {/* Drop indicator TOP (first structure of first backdrop only) */}
@@ -2503,6 +2587,24 @@ export default function EmailEditorPage() {
                                                         setSelectedBoxId={setSelectedBoxId}
                                                         setSelectedLayer={setSelectedLayer}
                                                         setActiveRightSidebarTab={setActiveRightSidebarTab}
+                                                        onAddStructure={(columns) => {
+                                                            const newId = `row-${Date.now()}`;
+                                                            const newSt: StructureData = {
+                                                                id: newId,
+                                                                columns,
+                                                                containers: columns.map(() => ({
+                                                                    id: `container-${crypto.randomUUID()}`,
+                                                                    block: null,
+                                                                })),
+                                                            };
+                                                            setEmailTree(prev => prev.map(bd => {
+                                                                const idx = bd.structures.findIndex(st => st.id === structure.id);
+                                                                if (idx === -1) return bd;
+                                                                const newStructures = [...bd.structures];
+                                                                newStructures.splice(idx + 1, 0, newSt);
+                                                                return { ...bd, structures: newStructures };
+                                                            }));
+                                                        }}
                                                     >
                                                         <div className="flex gap-4 w-full items-start isolation-auto" style={{ height: 'auto' }}>
                                                             {structure.containers.map((container, ci) => (
