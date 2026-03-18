@@ -482,8 +482,33 @@ const ContainerLayer = ({
         <div
             data-layer="container"
             style={{ flex: columnFlex }}
-            className={`structure-container w-full relative border-[2px] rounded-[4px] bg-white group/container cursor-default flex flex-col ${isContainerSelected ? 'border-blue-500' : (isSelected && selectedLayer !== 'block') ? 'border-blue-300' : 'border-transparent hover:border-blue-400/80'} ${isSelected ? 'z-[20]' : 'z-[1]'}`}
+            className={`structure-container w-full relative border-[2px] rounded-[4px] bg-white group/container cursor-default flex flex-col ${isContainerSelected ? 'border-blue-500' : isDragOver ? 'border-solid border-blue-400 bg-blue-50/20' : (isSelected && selectedLayer !== 'block') ? 'border-blue-300' : 'border-transparent group-hover/container:border-blue-400 group-has-[[data-layer=block]:hover]/container:!border-transparent'} ${isSelected ? 'z-[20]' : 'z-[1]'}`}
             onClick={handleContainerClick}
+            onDragOver={(e) => {
+                e.preventDefault();
+                if (e.dataTransfer.types.includes('application/tool-type')) {
+                    e.dataTransfer.dropEffect = 'copy';
+                    if (draggedOverBox !== containerId) setDraggedOverBox(containerId);
+                }
+            }}
+            onDragLeave={() => setDraggedOverBox(null)}
+            onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setDraggedOverBox(null);
+                if (draggingTool?.type === 'move_block' && draggingTool.id) {
+                    swapBlocks(draggingTool.id, containerId);
+                    setSelectedBoxId(containerId);
+                    setSelectedLayer('block');
+                    return;
+                }
+                const toolType = e.dataTransfer.getData('application/tool-type');
+                if (toolType === 'image' || toolType === 'text' || toolType === 'button') {
+                    setBlockType(containerId, toolType);
+                    setSelectedBoxId(containerId);
+                    setSelectedLayer('block');
+                }
+            }}
         >
             {/* Block content */}
             <BlockLayer
@@ -508,16 +533,16 @@ const ContainerLayer = ({
             />
 
             {/* Container Overlay — CSS hover, suppressed when block is hovered */}
-            <div className={`absolute inset-0 pointer-events-none transition-opacity duration-200 z-[40] ${isContainerSelected ? 'opacity-100' : 'opacity-0 group-hover/container:opacity-100 group-has-[.group\\/block:hover]/container:!opacity-0'}`}>
+            <div className={`absolute inset-0 pointer-events-none transition-opacity duration-200 z-[40] ${isContainerSelected ? 'opacity-100' : 'opacity-0 group-hover/container:opacity-100 group-has-[[data-layer=block]:hover]/container:!opacity-0'}`}>
                 {/* Container border */}
                 <div className={`absolute inset-0 border-[2px] rounded-[4px] pointer-events-none ${isContainerSelected ? 'border-blue-500' : 'border-blue-400'}`} />
 
                 {/* Hitbox bridges */}
-                <div className={`absolute left-[28px] w-[75px] pointer-events-auto ${isTopRow ? '-bottom-[28px] h-[28px]' : '-top-[28px] h-[28px]'}`} />
-                <div className="absolute top-1/2 -translate-y-1/2 -left-[44px] w-[44px] h-[36px] pointer-events-auto" />
+                <div className={`absolute left-[28px] w-[75px] pointer-events-auto ${isTopRow ? '-bottom-[28px] h-[28px]' : '-top-[28px] h-[28px]'} group-has-[[data-layer=block]:hover]/container:pointer-events-none`} />
+                <div className="absolute top-1/2 -translate-y-1/2 -left-[44px] w-[44px] h-[36px] pointer-events-auto group-has-[[data-layer=block]:hover]/container:pointer-events-none" />
 
                 {/* Layer breadcrumb pill */}
-                <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[19px]' : '-top-[28px]'} left-[28px] w-auto flex flex-col items-start transition-opacity duration-300 z-50`}>
+                <div className={`group/layerpill absolute ${isTopRow ? '-bottom-[19px]' : '-top-[28px]'} left-[28px] w-auto flex flex-col items-start transition-opacity duration-300 z-50 group-has-[[data-layer=block]:hover]/container:pointer-events-none`}>
                     <div className="absolute inset-x-0 top-[28px] h-[28px] pointer-events-none group-hover/layerpill:pointer-events-auto z-[60]" />
                     {[
                         { id: 'container', label: 'Container', color: isContainerSelected ? '#3b82f6' : '#60a5fa' },
@@ -574,7 +599,7 @@ const ContainerLayer = ({
                 {/* Left delete button */}
                 <div
                     style={{ backgroundColor: isContainerSelected ? '#3b82f6' : '#60a5fa' }}
-                    className="absolute top-1/2 -translate-y-1/2 -left-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-all duration-300 group/delbtn z-[50]"
+                    className={`absolute top-1/2 -translate-y-1/2 -left-[44px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-all duration-300 group/delbtn z-[50] group-has-[[data-layer=block]:hover]/container:pointer-events-none`}
                     onClick={(e) => { e.stopPropagation(); handleDeleteContainer(containerId); }}
                 >
                     <TooltipProvider delayDuration={0}>
