@@ -343,7 +343,7 @@ const ContainerLayer = ({
             <div
                 data-layer="container"
                 style={{ flex: columnFlex }}
-                className={`structure-container w-full min-h-[120px] group/container border-[2px] rounded-[4px] flex flex-col items-center justify-center cursor-default relative transition-all duration-300 flex-1 ${isSelected ? 'border-solid border-blue-500 bg-blue-50/50 text-blue-500/90' : (isDragOver ? 'border-solid border-blue-400 bg-blue-50 dark:bg-blue-900/40 text-blue-500' : 'border-dashed border-blue-400/20 bg-[#f0f7ff] dark:bg-blue-900/10 text-blue-400 group-hover/container:border-solid group-hover/container:border-blue-400')} ${isSelected ? 'z-[20]' : 'z-[1]'}`}
+                className={`structure-container w-full min-h-[120px] group/container border-[2px] rounded-[4px] flex flex-col items-center justify-center cursor-default relative transition-all duration-300 flex-1 ${isSelected ? 'border-solid border-blue-500 bg-blue-50/50 text-blue-500/90' : (isDragOver ? 'border-solid border-blue-400 bg-blue-50 dark:bg-blue-900/40 text-blue-500' : 'border-dashed border-blue-400/20 bg-[#f0f7ff] dark:bg-blue-900/10 text-blue-400 hover:border-solid hover:border-blue-400/80') } ${isSelected ? 'z-[20]' : 'z-[1]'}`}
                 onClick={handleContainerClick}
                 onDragOver={(e) => {
                     e.preventDefault();
@@ -482,7 +482,7 @@ const ContainerLayer = ({
         <div
             data-layer="container"
             style={{ flex: columnFlex }}
-            className={`structure-container w-full relative border-[2px] rounded-[4px] bg-white group/container cursor-default flex flex-col ${isContainerSelected ? 'border-blue-500' : (isSelected && selectedLayer !== 'block') ? 'border-blue-300' : 'border-transparent group-hover/container:border-blue-400'} ${isSelected ? 'z-[20]' : 'z-[1]'}`}
+            className={`structure-container w-full relative border-[2px] rounded-[4px] bg-white group/container cursor-default flex flex-col ${isContainerSelected ? 'border-blue-500' : (isSelected && selectedLayer !== 'block') ? 'border-blue-300' : 'border-transparent hover:border-blue-400/80'} ${isSelected ? 'z-[20]' : 'z-[1]'}`}
             onClick={handleContainerClick}
         >
             {/* Block content */}
