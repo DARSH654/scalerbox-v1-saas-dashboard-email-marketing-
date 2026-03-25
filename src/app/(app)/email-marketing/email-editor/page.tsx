@@ -36,6 +36,8 @@ import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors, type DragStartEvent, type DragEndEvent } from '@dnd-kit/core';
+import { useDraggable, useDroppable } from '@dnd-kit/core';
 
 const DomainIcon = ({ size = 20, className }: { size?: number, className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" height={size} viewBox="0 0 24 24" width={size} fill="currentColor" className={className}>
@@ -136,18 +138,110 @@ const RichTextEditor = ({ boxId, isSelected, boxProperties, onEditorFocus, onEdi
     );
 };
 
+// dnd-kit draggable wrapper for sidebar tool icons
+const DraggableToolIcon = ({ icon, toolType, tooltip, children }: {
+    icon: string,
+    toolType: string,
+    tooltip: string,
+    children: React.ReactNode,
+}) => {
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+        id: `sidebar-tool-${toolType}-${icon}`,
+        data: { type: 'tool', toolType, icon },
+    });
+
+    return (
+        <div
+            ref={setNodeRef}
+            {...listeners}
+            {...attributes}
+            className={`w-12 h-12 aspect-square bg-white dark:bg-background border-[2px] border-gray-200 dark:border-white/10 hover:border-primary rounded-[16px] flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-gray-50 dark:hover:bg-accent transition-all text-gray-500 dark:text-muted-foreground ${isDragging ? 'opacity-40' : ''}`}
+        >
+            {children}
+        </div>
+    );
+};
+
+// dnd-kit draggable layout card (sidebar structure palette)
+const DraggableLayoutCard = ({ columns, children }: { columns: number[], children: React.ReactNode }) => {
+    const id = `layout-${columns.join('-')}`;
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+        id,
+        data: { type: 'layout', columns },
+    });
+    return (
+        <div
+            ref={setNodeRef}
+            {...listeners}
+            {...attributes}
+            className={`w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[14px] p-2.5 cursor-grab hover:border-primary hover:shadow-md transition-colors h-[54px] shadow-sm flex gap-2 ${isDragging ? 'opacity-40' : ''}`}
+        >
+            {children}
+        </div>
+    );
+};
+// dnd-kit draggable wrapper for structure reorder (breadcrumb pill + StructureWrapper handle)
+const StructureDragPill = ({ structureId, children, className, style, onClick }: {
+    structureId: string,
+    children: React.ReactNode,
+    className?: string,
+    style?: React.CSSProperties,
+    onClick?: (e: React.MouseEvent) => void,
+}) => {
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+        id: `structure-drag-${structureId}`,
+        data: { type: 'move_structure', structureId },
+    });
+    return (
+        <div
+            ref={setNodeRef}
+            {...listeners}
+            {...attributes}
+            className={className}
+            style={{ ...style, opacity: isDragging ? 0.4 : undefined }}
+            onClick={onClick}
+        >
+            {children}
+        </div>
+    );
+};
+
+// dnd-kit draggable block drag pill
+const BlockDragPill = ({ blockId, containerId, isTopRow, isBlockSelected }: {
+    blockId: string,
+    containerId: string,
+    isTopRow: boolean,
+    isBlockSelected: boolean,
+}) => {
+    const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+        id: `block-drag-${blockId}`,
+        data: { type: 'move_block', blockId, containerId },
+    });
+    return (
+        <div
+            ref={setNodeRef}
+            {...listeners}
+            {...attributes}
+            className={`absolute ${isTopRow ? '-bottom-[30px]' : '-top-[34px]'} left-[16px] text-white rounded-[12px] w-[36px] h-[24px] flex items-center justify-center pointer-events-auto cursor-grab active:cursor-grabbing shadow-md hover:scale-105 transition-all z-[50] ${isBlockSelected ? 'opacity-100 bg-[#4b5b75]' : 'opacity-0 group-hover/block:opacity-100 bg-[#647082] hover:bg-[#4b5b75]'} ${isDragging ? 'opacity-50' : ''}`}
+            onClick={(e) => e.stopPropagation()}
+        >
+            <div className={`absolute inset-x-0 ${isTopRow ? 'top-[-8px] h-[30px]' : 'top-0 h-[32px]'} pointer-events-auto z-[60]`} />
+            <span className="material-symbols-outlined text-[18px] rotate-90">drag_indicator</span>
+        </div>
+    );
+};
+
 const BlockLayer = ({
     containerId,
     structureId,
     block,
+    blockId,
     isTopRow,
     selectedBoxId,
     selectedLayer,
     setSelectedBoxId,
     setSelectedLayer,
     setSelectedBackdropRowId,
-    draggingTool,
-    setDraggingTool,
     activeBlockNode,
     activeEditor,
     setActiveEditor,
@@ -159,14 +253,13 @@ const BlockLayer = ({
     containerId: string,
     structureId: string,
     block: BlockData,
+    blockId: string,
     isTopRow: boolean,
     selectedBoxId: string | null,
     selectedLayer: 'block' | 'container' | 'structure' | 'backdrop' | null,
     setSelectedBoxId: (id: string | null) => void,
     setSelectedLayer: (layer: 'block' | 'container' | 'structure' | 'backdrop' | null) => void,
     setSelectedBackdropRowId: (id: string | null) => void,
-    draggingTool: any,
-    setDraggingTool: (tool: any) => void,
     activeBlockNode: BlockData | null,
     activeEditor: any,
     setActiveEditor: (editor: any) => void,
@@ -175,44 +268,47 @@ const BlockLayer = ({
     blockPropertiesMap: Record<string, Record<string, any>>,
     handleBoxClick: (boxId: string, type: string, e: React.MouseEvent) => void,
 }) => {
-    const isSelected = selectedBoxId === containerId;
-    const isBlockSelected = isSelected && selectedLayer === 'block';
+    const isBlockSelected = selectedBoxId === blockId && selectedLayer === 'block';
+    const [isHovered, setIsHovered] = useState(false);
 
     const handleBlockSelection = (e: React.MouseEvent) => {
         e.stopPropagation();
-        setSelectedBoxId(containerId);
+        setSelectedBoxId(blockId);
         setSelectedLayer('block');
         setSelectedBackdropRowId(null);
     };
 
     return (
-        // FIX 1: Added `flex-1 flex flex-col` so the block stretches to the bottom of the container
-        <div data-layer="block" className="relative group/block w-full flex-1 flex flex-col" onClick={handleBlockSelection}>
-            {/* INVISIBLE HITBOX EXPANDER: Bridges the 2px gap to swallow edge hovers */}
-            <div className="absolute -inset-[2px]" />
-
-            {/* Block Content (added relative z-10 to stay above hitbox) */}
+        <div
+            data-layer="block"
+            className={`relative group/block w-full flex flex-col border-[2px] rounded-[4px] transition-colors ${
+                isBlockSelected ? 'border-[#4b5b75]' : isHovered ? 'border-[#647082]' : 'border-transparent'
+            }`}
+            onClick={handleBlockSelection}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
+            {/* Block Content */}
             {block.type === 'image' && (
-                // FIX 2: Added `flex-1` to the image wrapper
-                <div className="relative z-10 w-full flex-1 flex items-center justify-center min-h-[80px]">
+                <div className="relative z-10 w-full flex items-center justify-center min-h-[80px]">
                     <span className="material-symbols-outlined text-[24px] text-gray-400 pointer-events-none">image</span>
                 </div>
             )}
             {block.type === 'text' && (
-                <div className="relative z-10 flex-1 p-3 w-full cursor-default">
+                <div className="relative z-10 p-3 w-full cursor-default">
                     <RichTextEditor
-                        key={containerId}
-                        boxId={containerId}
+                        key={blockId}
+                        boxId={blockId}
                         isSelected={isBlockSelected}
-                        boxProperties={blockPropertiesMap[containerId] || {}}
+                        boxProperties={blockPropertiesMap[blockId] || {}}
                         onEditorFocus={(editor: any) => {
                             setActiveEditor(editor);
-                            setSelectedBoxId(containerId);
+                            setSelectedBoxId(blockId);
                             setSelectedLayer('block');
                             setSelectedBackdropRowId(null);
                         }}
                         onEditorBlur={(editor: any) => {
-                            updateBlockProperty(containerId, 'content', editor.getHTML());
+                            updateBlockProperty(blockId, 'content', editor.getHTML());
                         }}
                         onTransaction={(editor: any) => {
                             if (activeEditor === editor) setEditorUpdateTicker(t => t + 1);
@@ -221,25 +317,21 @@ const BlockLayer = ({
                 </div>
             )}
             {block.type === 'button' && (
-                // FIX 3: Added `flex-1 items-center` to center the button vertically if it stretches
-                <div className="relative z-10 flex-1 px-8 py-2 w-full flex items-center justify-center">
+                <div className="relative z-10 px-8 py-2 w-full flex items-center justify-center">
                     <button
                         className="px-8 py-2.5 font-medium text-[15px] transition-colors border shadow-sm pointer-events-none"
                         style={{
-                            backgroundColor: blockPropertiesMap[containerId]?.bgColor || '#22c55e',
-                            color: blockPropertiesMap[containerId]?.textColor || '#ffffff',
-                            borderRadius: `${blockPropertiesMap[containerId]?.borderRadius ?? 12}px`,
+                            backgroundColor: blockPropertiesMap[blockId]?.bgColor || '#22c55e',
+                            color: blockPropertiesMap[blockId]?.textColor || '#ffffff',
+                            borderRadius: `${blockPropertiesMap[blockId]?.borderRadius ?? 12}px`,
                         }}
                     >
-                        {blockPropertiesMap[containerId]?.label || 'Button'}
+                        {blockPropertiesMap[blockId]?.label || 'Button'}
                     </button>
                 </div>
             )}
 
-            {/* 2. VISUAL BORDER: Changed to -inset-[2px] so it perfectly overrides container boundary */}
-            <div className={`absolute -inset-[2px] border-[2px] rounded-[4px] pointer-events-none transition-opacity duration-200 z-[50] ${isBlockSelected ? 'opacity-100 border-[#4b5b75]' : 'opacity-0 group-hover/block:opacity-100 border-[#647082]'}`} />
-
-            {/* Right 3-dot button — Adjusted -right position to account for new boundary */}
+            {/* Right 3-dot button */}
             <div
                 className={`absolute top-1/2 -translate-y-1/2 -right-[46px] text-white rounded-[12px] w-[36px] h-[36px] flex items-center justify-center pointer-events-auto cursor-pointer shadow-md hover:scale-105 transition-transform z-[50] ${isBlockSelected ? 'opacity-100 bg-[#4b5b75]' : 'opacity-0 group-hover/block:opacity-100 bg-[#647082] hover:bg-[#4b5b75]'}`}
                 onClick={(e) => e.stopPropagation()}
@@ -252,24 +344,8 @@ const BlockLayer = ({
                 </div>
             </div>
 
-            {/* Drag pill — Adjusted top/bottom position to account for new boundary */}
-            <div
-                className={`absolute ${isTopRow ? '-bottom-[30px]' : '-top-[34px]'} left-[16px] text-white rounded-[12px] w-[36px] h-[24px] flex items-center justify-center pointer-events-auto cursor-grab active:cursor-grabbing shadow-md hover:scale-105 transition-all z-[50] ${isBlockSelected ? 'opacity-100 bg-[#4b5b75]' : 'opacity-0 group-hover/block:opacity-100 bg-[#647082] hover:bg-[#4b5b75]'}`}
-                onClick={(e) => e.stopPropagation()}
-                draggable
-                onDragStart={(e) => {
-                    e.stopPropagation();
-                    e.dataTransfer.effectAllowed = 'move';
-                    const img = new window.Image();
-                    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                    e.dataTransfer.setDragImage(img, 0, 0);
-                    setDraggingTool({ icon: 'drag_indicator', type: 'move_block', id: containerId });
-                }}
-                onDragEnd={() => setDraggingTool(null)}
-            >
-                <div className={`absolute inset-x-0 ${isTopRow ? 'top-[-8px] h-[30px]' : 'top-0 h-[32px]'} pointer-events-auto z-[60]`} />
-                <span className="material-symbols-outlined text-[18px] rotate-90">drag_indicator</span>
-            </div>
+            {/* Drag pill — dnd-kit */}
+            <BlockDragPill blockId={blockId} containerId={containerId} isTopRow={isTopRow} isBlockSelected={isBlockSelected} />
         </div>
     );
 };
@@ -278,7 +354,7 @@ const ContainerLayer = ({
     containerId,
     structureId,
     backdropId,
-    block,
+    blocks,
     columnFlex,
     isTopRow,
     selectedBoxId,
@@ -289,10 +365,10 @@ const ContainerLayer = ({
     setActiveRightSidebarTab,
     draggedOverBox,
     setDraggedOverBox,
-    draggingTool,
     setDraggingTool,
     swapBlocks,
     setBlockType,
+    addBlockToContainer,
     handleDeleteContainer,
     handleBoxClick,
     blockPropertiesMap,
@@ -306,7 +382,7 @@ const ContainerLayer = ({
     containerId: string,
     structureId: string,
     backdropId: string,
-    block: BlockData | null,
+    blocks: BlockData[],
     columnFlex: number,
     isTopRow: boolean,
     selectedBoxId: string | null,
@@ -317,10 +393,10 @@ const ContainerLayer = ({
     setActiveRightSidebarTab: (tab: 'general' | 'message') => void,
     draggedOverBox: string | null,
     setDraggedOverBox: (id: string | null) => void,
-    draggingTool: any,
-    setDraggingTool: (tool: any) => void,
+    setDraggingTool: (tool: any) => void, // used by structure drag (Phase 4 will remove)
     swapBlocks: (sourceId: string, targetId: string) => void,
-    setBlockType: (containerId: string, type: string) => void,
+    setBlockType: (containerId: string, type: string) => string | null,
+    addBlockToContainer: (containerId: string, type: string) => string,
     handleDeleteContainer: (boxId: string) => void,
     handleBoxClick: (boxId: string, type: string, e: React.MouseEvent) => void,
     blockPropertiesMap: Record<string, Record<string, any>>,
@@ -334,6 +410,9 @@ const ContainerLayer = ({
     const isSelected = selectedBoxId === containerId;
     const isContainerSelected = isSelected && selectedLayer === 'container';
     const isDragOver = draggedOverBox === containerId;
+    const { setNodeRef: setDroppableRef, isOver: isOverDndKit } = useDroppable({ id: `container-drop-${containerId}`, data: { type: 'container', containerId } });
+    const isDragOverAny = isDragOver || isOverDndKit;
+    const hasBlocks = blocks.length > 0;
     const colors = { container: '#498dfc', structure: '#9a5353', backdrop: '#64748b' };
 
     const handleContainerClick = (e: React.MouseEvent) => {
@@ -343,13 +422,14 @@ const ContainerLayer = ({
         setSelectedBackdropRowId(null);
     };
 
-    if (!block) {
+    if (!hasBlocks) {
         // Empty drop zone
         return (
             <div
                 data-layer="container"
                 style={{ flex: columnFlex }}
-                className={`structure-container w-full min-h-[120px] group/container border-[2px] rounded-[4px] flex flex-col items-center justify-center cursor-default relative transition-all duration-300 flex-1 ${isSelected ? 'border-solid border-blue-500 bg-blue-50/50 text-blue-500/90' : (isDragOver ? 'border-solid border-blue-400 bg-blue-50 dark:bg-blue-900/40 text-blue-500' : 'border-dashed border-blue-400/20 bg-[#f0f7ff] dark:bg-blue-900/10 text-blue-400 hover:border-solid hover:border-blue-400/80') } ${isSelected ? 'z-[20]' : 'z-[1]'}`}
+                ref={setDroppableRef}
+                className={`structure-container w-full min-h-[120px] group/container border-[2px] rounded-[4px] flex flex-col items-center justify-center cursor-default relative transition-all duration-300 flex-1 ${isSelected ? 'border-solid border-blue-500 bg-blue-50/50 text-blue-500/90' : (isDragOverAny ? 'border-solid border-blue-400 bg-blue-50 dark:bg-blue-900/40 text-blue-500' : 'border-dashed border-blue-400/20 bg-[#f0f7ff] dark:bg-blue-900/10 text-blue-400 hover:border-solid hover:border-blue-400/80') } ${isSelected ? 'z-[20]' : 'z-[1]'}`}
                 onClick={handleContainerClick}
                 onDragOver={(e) => {
                     e.preventDefault();
@@ -363,21 +443,17 @@ const ContainerLayer = ({
                     e.preventDefault();
                     e.stopPropagation();
                     setDraggedOverBox(null);
-                    if (draggingTool?.type === 'move_block' && draggingTool.id) {
-                        swapBlocks(draggingTool.id, containerId);
-                        setSelectedBoxId(containerId);
-                        setSelectedLayer('block');
-                        return;
-                    }
                     const toolType = e.dataTransfer.getData('application/tool-type');
                     if (toolType === 'image' || toolType === 'text' || toolType === 'button') {
-                        setBlockType(containerId, toolType);
-                        setSelectedBoxId(containerId);
-                        setSelectedLayer('block');
+                        const newBlockId = setBlockType(containerId, toolType);
+                        if (newBlockId) {
+                            setSelectedBoxId(newBlockId);
+                            setSelectedLayer('block');
+                        }
                     }
                 }}
             >
-                {isDragOver ? (
+                {isDragOverAny ? (
                     <div className="bg-[#333] text-white text-[11px] font-medium px-3 py-1 rounded-full shadow-md whitespace-nowrap pointer-events-none z-[65]">
                         Drop here
                     </div>
@@ -408,52 +484,51 @@ const ContainerLayer = ({
                             { id: 'container', label: 'Container', color: isContainerSelected ? '#3b82f6' : '#60a5fa' },
                             { id: 'structure', label: 'Structure', color: colors.structure },
                             { id: 'backdrop', label: 'Backdrop', color: colors.backdrop },
-                        ].map((layer, idx) => (
-                            <div
-                                key={layer.id}
-                                draggable={layer.id === 'structure'}
-                                onDragStart={(e) => {
-                                    if (layer.id === 'structure') {
-                                        e.dataTransfer.effectAllowed = 'move';
-                                        const img = new window.Image();
-                                        img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                                        e.dataTransfer.setDragImage(img, 0, 0);
-                                        setDraggingTool({ icon: 'layout', type: 'move_structure', id: structureId });
-                                    }
-                                }}
-                                onDragEnd={() => {
-                                    if (layer.id === 'structure') {
-                                        setDraggingTool(null);
-                                    }
-                                }}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (layer.id === 'backdrop') {
-                                        setSelectedBackdropRowId(backdropId);
-                                        setSelectedBoxId(null);
-                                        setSelectedLayer('backdrop');
-                                        setActiveRightSidebarTab('general');
-                                    } else if (layer.id === 'structure') {
-                                        setSelectedBoxId(structureId);
-                                        setSelectedLayer('structure');
-                                        setSelectedBackdropRowId(null);
-                                    } else {
-                                        setSelectedBoxId(containerId);
-                                        setSelectedLayer('container');
-                                        setSelectedBackdropRowId(null);
-                                    }
-                                }}
-                                style={{ backgroundColor: layer.color, borderColor: layer.color, zIndex: 30 - idx }}
-                                className={`px-3 py-[3px] rounded-full border-0 text-[10.5px] font-medium text-white transition-all duration-300 ease-in-out shadow-sm flex items-center justify-start hover:scale-105 active:scale-95 pointer-events-auto ${idx === 0 ? 'relative cursor-pointer' : '-mt-[26px] opacity-0 pointer-events-none group-hover/layerpill:mt-[4px] group-hover/layerpill:opacity-100 group-hover/layerpill:pointer-events-auto cursor-grab active:cursor-grabbing'}`}
-                            >
-                                <span className="capitalize tracking-wide">{layer.label}</span>
-                                {idx !== 0 && (
-                                    <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor" className="opacity-80 rotate-90 ml-1.5 -mr-1 pointer-events-none">
-                                        <path d="M360-160q-33 0-56.5-23.5T280-240q0-33 23.5-56.5T360-320q33 0 56.5 23.5T440-240q0 33-23.5 56.5T360-160Zm240 0q-33 0-56.5-23.5T520-240q0-33 23.5-56.5T600-320q33 0 56.5 23.5T680-240q0 33-23.5 56.5T600-160ZM360-400q-33 0-56.5-23.5T280-480q0-33 23.5-56.5T360-560q33 0 56.5 23.5T440-480q0 33-23.5 56.5T360-400Zm240 0q-33 0-56.5-23.5T520-480q0-33 23.5-56.5T600-560q33 0 56.5 23.5T680-480q0 33-23.5 56.5T600-400ZM360-640q-33 0-56.5-23.5T280-720q0-33 23.5-56.5T360-800q33 0 56.5 23.5T440-720q0 33-23.5 56.5T360-640Zm240 0q-33 0-56.5-23.5T520-720q0-33 23.5-56.5T600-800q33 0 56.5 23.5T680-720q0 33-23.5 56.5T600-640Z" />
-                                    </svg>
-                                )}
-                            </div>
-                        ))}
+                        ].map((layer, idx) => {
+                            if (layer.id === 'structure') {
+                                return (
+                                    <StructureDragPill
+                                        key={layer.id}
+                                        structureId={structureId}
+                                        style={{ backgroundColor: layer.color, borderColor: layer.color, zIndex: 30 - idx }}
+                                        className={`px-3 py-[3px] rounded-full border-0 text-[10.5px] font-medium text-white transition-all duration-300 ease-in-out shadow-sm flex items-center justify-start hover:scale-105 active:scale-95 pointer-events-auto -mt-[26px] opacity-0 pointer-events-none group-hover/layerpill:mt-[4px] group-hover/layerpill:opacity-100 group-hover/layerpill:pointer-events-auto cursor-grab active:cursor-grabbing`}
+                                        onClick={(e) => { e.stopPropagation(); setSelectedBoxId(structureId); setSelectedLayer('structure'); setSelectedBackdropRowId(null); }}
+                                    >
+                                        <span className="capitalize tracking-wide">{layer.label}</span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor" className="opacity-80 rotate-90 ml-1.5 -mr-1 pointer-events-none">
+                                            <path d="M360-160q-33 0-56.5-23.5T280-240q0-33 23.5-56.5T360-320q33 0 56.5 23.5T440-240q0 33-23.5 56.5T360-160Zm240 0q-33 0-56.5-23.5T520-240q0-33 23.5-56.5T600-320q33 0 56.5 23.5T680-240q0 33-23.5 56.5T600-160ZM360-400q-33 0-56.5-23.5T280-480q0-33 23.5-56.5T360-560q33 0 56.5 23.5T440-480q0 33-23.5 56.5T360-400Zm240 0q-33 0-56.5-23.5T520-480q0-33 23.5-56.5T600-560q33 0 56.5 23.5T680-480q0 33-23.5 56.5T600-400ZM360-640q-33 0-56.5-23.5T280-720q0-33 23.5-56.5T360-800q33 0 56.5 23.5T440-720q0 33-23.5 56.5T360-640Zm240 0q-33 0-56.5-23.5T520-720q0-33 23.5-56.5T600-800q33 0 56.5 23.5T680-720q0 33-23.5 56.5T600-640Z" />
+                                        </svg>
+                                    </StructureDragPill>
+                                );
+                            }
+                            return (
+                                <div
+                                    key={layer.id}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (layer.id === 'backdrop') {
+                                            setSelectedBackdropRowId(backdropId);
+                                            setSelectedBoxId(null);
+                                            setSelectedLayer('backdrop');
+                                            setActiveRightSidebarTab('general');
+                                        } else {
+                                            setSelectedBoxId(containerId);
+                                            setSelectedLayer('container');
+                                            setSelectedBackdropRowId(null);
+                                        }
+                                    }}
+                                    style={{ backgroundColor: layer.color, borderColor: layer.color, zIndex: 30 - idx }}
+                                    className={`px-3 py-[3px] rounded-full border-0 text-[10.5px] font-medium text-white transition-all duration-300 ease-in-out shadow-sm flex items-center justify-start hover:scale-105 active:scale-95 pointer-events-auto ${idx === 0 ? 'relative cursor-pointer' : '-mt-[26px] opacity-0 pointer-events-none group-hover/layerpill:mt-[4px] group-hover/layerpill:opacity-100 group-hover/layerpill:pointer-events-auto cursor-pointer'}`}
+                                >
+                                    <span className="capitalize tracking-wide">{layer.label}</span>
+                                    {idx !== 0 && (
+                                        <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor" className="opacity-80 rotate-90 ml-1.5 -mr-1 pointer-events-none">
+                                            <path d="M360-160q-33 0-56.5-23.5T280-240q0-33 23.5-56.5T360-320q33 0 56.5 23.5T440-240q0 33-23.5 56.5T360-160Zm240 0q-33 0-56.5-23.5T520-240q0-33 23.5-56.5T600-320q33 0 56.5 23.5T680-240q0 33-23.5 56.5T600-160ZM360-400q-33 0-56.5-23.5T280-480q0-33 23.5-56.5T360-560q33 0 56.5 23.5T440-480q0 33-23.5 56.5T360-400Zm240 0q-33 0-56.5-23.5T520-480q0-33 23.5-56.5T600-560q33 0 56.5 23.5T680-480q0 33-23.5 56.5T600-400ZM360-640q-33 0-56.5-23.5T280-720q0-33 23.5-56.5T360-800q33 0 56.5 23.5T440-720q0 33-23.5 56.5T360-640Zm240 0q-33 0-56.5-23.5T520-720q0-33 23.5-56.5T600-800q33 0 56.5 23.5T680-720q0 33-23.5 56.5T600-640Z" />
+                                        </svg>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
 
                     {/* Left delete button */}
@@ -483,12 +558,13 @@ const ContainerLayer = ({
         );
     }
 
-    // Container with block inside
+    // Container with blocks inside
     return (
         <div
+            ref={setDroppableRef}
             data-layer="container"
             style={{ flex: columnFlex }}
-            className={`structure-container w-full relative border-[2px] rounded-[4px] bg-white group/container cursor-default flex flex-col ${isContainerSelected ? 'border-blue-500' : isDragOver ? 'border-solid border-blue-400 bg-blue-50/20' : (isSelected && selectedLayer !== 'block') ? 'border-blue-300' : 'border-transparent group-hover/container:border-blue-400 group-has-[[data-layer=block]:hover]/container:!border-transparent'} ${isSelected ? 'z-[20]' : 'z-[1]'}`}
+            className={`structure-container w-full relative border-[2px] rounded-[4px] bg-white group/container cursor-default flex flex-col ${isContainerSelected ? 'border-blue-500' : isDragOverAny ? 'border-solid border-blue-400 bg-blue-50/20' : 'border-transparent group-hover/container:border-blue-400 group-has-[[data-layer=block]:hover]/container:!border-transparent'} ${isContainerSelected ? 'z-[20]' : 'z-[1]'}`}
             onClick={handleContainerClick}
             onDragOver={(e) => {
                 e.preventDefault();
@@ -502,41 +578,44 @@ const ContainerLayer = ({
                 e.preventDefault();
                 e.stopPropagation();
                 setDraggedOverBox(null);
-                if (draggingTool?.type === 'move_block' && draggingTool.id) {
-                    swapBlocks(draggingTool.id, containerId);
-                    setSelectedBoxId(containerId);
-                    setSelectedLayer('block');
-                    return;
-                }
                 const toolType = e.dataTransfer.getData('application/tool-type');
                 if (toolType === 'image' || toolType === 'text' || toolType === 'button') {
-                    setBlockType(containerId, toolType);
-                    setSelectedBoxId(containerId);
+                    const newBlockId = addBlockToContainer(containerId, toolType);
+                    setSelectedBoxId(newBlockId);
                     setSelectedLayer('block');
                 }
             }}
         >
-            {/* Block content */}
-            <BlockLayer
-                containerId={containerId}
-                structureId={structureId}
-                block={block}
-                isTopRow={isTopRow}
-                selectedBoxId={selectedBoxId}
-                selectedLayer={selectedLayer}
-                setSelectedBoxId={setSelectedBoxId}
-                setSelectedLayer={setSelectedLayer}
-                setSelectedBackdropRowId={setSelectedBackdropRowId}
-                draggingTool={draggingTool}
-                setDraggingTool={setDraggingTool}
-                activeBlockNode={activeBlockNode}
-                activeEditor={activeEditor}
-                setActiveEditor={setActiveEditor}
-                updateBlockProperty={updateBlockProperty}
-                setEditorUpdateTicker={setEditorUpdateTicker}
-                blockPropertiesMap={blockPropertiesMap}
-                handleBoxClick={handleBoxClick}
-            />
+            {/* Blocks stacked vertically */}
+            {blocks.map((block) => (
+                <BlockLayer
+                    key={block.id}
+                    containerId={containerId}
+                    structureId={structureId}
+                    block={block}
+                    blockId={block.id}
+                    isTopRow={isTopRow}
+                    selectedBoxId={selectedBoxId}
+                    selectedLayer={selectedLayer}
+                    setSelectedBoxId={setSelectedBoxId}
+                    setSelectedLayer={setSelectedLayer}
+                    setSelectedBackdropRowId={setSelectedBackdropRowId}
+                    activeBlockNode={activeBlockNode}
+                    activeEditor={activeEditor}
+                    setActiveEditor={setActiveEditor}
+                    updateBlockProperty={updateBlockProperty}
+                    setEditorUpdateTicker={setEditorUpdateTicker}
+                    blockPropertiesMap={blockPropertiesMap}
+                    handleBoxClick={handleBoxClick}
+                />
+            ))}
+
+            {/* Drop here indicator when dragging over a container that already has blocks */}
+            {isDragOverAny && (
+                <div className="w-full flex items-center justify-center py-2">
+                    <div className="bg-[#333] text-white text-[11px] font-medium px-3 py-1 rounded-full shadow-md whitespace-nowrap pointer-events-none z-[65]">Drop here</div>
+                </div>
+            )}
 
             {/* Container Overlay — CSS hover, suppressed when block is hovered */}
             <div className={`absolute inset-0 pointer-events-none transition-opacity duration-200 z-[40] ${isContainerSelected ? 'opacity-100' : 'opacity-0 group-hover/container:opacity-100 group-has-[[data-layer=block]:hover]/container:!opacity-0'}`}>
@@ -554,53 +633,51 @@ const ContainerLayer = ({
                         { id: 'container', label: 'Container', color: isContainerSelected ? '#3b82f6' : '#60a5fa' },
                         { id: 'structure', label: 'Structure', color: colors.structure },
                         { id: 'backdrop', label: 'Backdrop', color: colors.backdrop },
-                    ].map((layer, idx) => (
-                        <div
-                            key={layer.id}
-                            draggable={layer.id === 'structure'}
-                            onDragStart={(e) => {
-                                if (layer.id === 'structure') {
-                                    e.dataTransfer.effectAllowed = 'move';
-                                    const img = new window.Image();
-                                    img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                                    e.dataTransfer.setDragImage(img, 0, 0);
-                                    setDraggingTool({ icon: 'layout', type: 'move_structure', id: structureId });
-                                }
-                            }}
-                            onDragEnd={() => {
-                                if (layer.id === 'structure') {
-                                    setDraggingTool(null);
-                                }
-                            }}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                if (layer.id === 'backdrop') {
-                                    setSelectedBackdropRowId(backdropId);
-                                    setSelectedBoxId(null);
-                                    setSelectedLayer('backdrop');
-                                    setActiveRightSidebarTab('general');
-                                } else if (layer.id === 'structure') {
-                                    setSelectedBoxId(structureId);
-                                    setSelectedLayer('structure');
-                                    setSelectedBackdropRowId(null);
-                                } else {
-                                    setSelectedBoxId(containerId);
-                                    setSelectedLayer('container');
-                                    setSelectedBackdropRowId(null);
-                                }
-                            }}
-                            style={{ backgroundColor: layer.color, borderColor: layer.color, zIndex: 30 - idx }}
-                            className={`px-3 py-[3px] rounded-full border-0 text-[10.5px] font-medium text-white transition-all duration-300 ease-in-out shadow-sm flex items-center justify-start hover:scale-105 active:scale-95 pointer-events-auto ${idx === 0 ? 'relative cursor-pointer' : '-mt-[26px] opacity-0 pointer-events-none group-hover/layerpill:mt-[4px] group-hover/layerpill:opacity-100 group-hover/layerpill:pointer-events-auto cursor-grab active:cursor-grabbing'}`}
-                        >
-                            <span className="capitalize tracking-wide">{layer.label}</span>
-                            {idx !== 0 && (
-                                <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor" className="opacity-80 rotate-90 ml-1.5 -mr-1 pointer-events-none">
-                                    <path d="M360-160q-33 0-56.5-23.5T280-240q0-33 23.5-56.5T360-320q33 0 56.5 23.5T440-240q0 33-23.5 56.5T360-160Zm240 0q-33 0-56.5-23.5T520-240q0-33 23.5-56.5T600-320q33 0 56.5 23.5T680-240q0 33-23.5 56.5T600-160ZM360-400q-33 0-56.5-23.5T280-480q0-33 23.5-56.5T360-560q33 0 56.5 23.5T440-480q0 33-23.5 56.5T360-400Zm240 0q-33 0-56.5-23.5T520-480q0-33 23.5-56.5T600-560q33 0 56.5 23.5T680-480q0 33-23.5 56.5T600-400ZM360-640q-33 0-56.5-23.5T280-720q0-33 23.5-56.5T360-800q33 0 56.5 23.5T440-720q0 33-23.5 56.5T360-640Zm240 0q-33 0-56.5-23.5T520-720q0-33 23.5-56.5T600-800q33 0 56.5 23.5T680-720q0 33-23.5 56.5T600-640Z" />
-                                </svg>
-                            )}
-                        </div>
-                    ))}
-                </div>
+                    ].map((layer, idx) => {
+                        if (layer.id === 'structure') {
+                            return (
+                                <StructureDragPill
+                                    key={layer.id}
+                                    structureId={structureId}
+                                    style={{ backgroundColor: layer.color, borderColor: layer.color, zIndex: 30 - idx }}
+                                    className={`px-3 py-[3px] rounded-full border-0 text-[10.5px] font-medium text-white transition-all duration-300 ease-in-out shadow-sm flex items-center justify-start hover:scale-105 active:scale-95 pointer-events-auto -mt-[26px] opacity-0 pointer-events-none group-hover/layerpill:mt-[4px] group-hover/layerpill:opacity-100 group-hover/layerpill:pointer-events-auto cursor-grab active:cursor-grabbing`}
+                                    onClick={(e) => { e.stopPropagation(); setSelectedBoxId(structureId); setSelectedLayer('structure'); setSelectedBackdropRowId(null); }}
+                                >
+                                    <span className="capitalize tracking-wide">{layer.label}</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor" className="opacity-80 rotate-90 ml-1.5 -mr-1 pointer-events-none">
+                                        <path d="M360-160q-33 0-56.5-23.5T280-240q0-33 23.5-56.5T360-320q33 0 56.5 23.5T440-240q0 33-23.5 56.5T360-160Zm240 0q-33 0-56.5-23.5T520-240q0-33 23.5-56.5T600-320q33 0 56.5 23.5T680-240q0 33-23.5 56.5T600-160ZM360-400q-33 0-56.5-23.5T280-480q0-33 23.5-56.5T360-560q33 0 56.5 23.5T440-480q0 33-23.5 56.5T360-400Zm240 0q-33 0-56.5-23.5T520-480q0-33 23.5-56.5T600-560q33 0 56.5 23.5T680-480q0 33-23.5 56.5T600-400ZM360-640q-33 0-56.5-23.5T280-720q0-33 23.5-56.5T360-800q33 0 56.5 23.5T440-720q0 33-23.5 56.5T360-640Zm240 0q-33 0-56.5-23.5T520-720q0-33 23.5-56.5T600-800q33 0 56.5 23.5T680-720q0 33-23.5 56.5T600-640Z" />
+                                    </svg>
+                                </StructureDragPill>
+                            );
+                        }
+                        return (
+                            <div
+                                key={layer.id}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (layer.id === 'backdrop') {
+                                        setSelectedBackdropRowId(backdropId);
+                                        setSelectedBoxId(null);
+                                        setSelectedLayer('backdrop');
+                                        setActiveRightSidebarTab('general');
+                                    } else {
+                                        setSelectedBoxId(containerId);
+                                        setSelectedLayer('container');
+                                        setSelectedBackdropRowId(null);
+                                    }
+                                }}
+                                style={{ backgroundColor: layer.color, borderColor: layer.color, zIndex: 30 - idx }}
+                                className={`px-3 py-[3px] rounded-full border-0 text-[10.5px] font-medium text-white transition-all duration-300 ease-in-out shadow-sm flex items-center justify-start hover:scale-105 active:scale-95 pointer-events-auto ${idx === 0 ? 'relative cursor-pointer' : '-mt-[26px] opacity-0 pointer-events-none group-hover/layerpill:mt-[4px] group-hover/layerpill:opacity-100 group-hover/layerpill:pointer-events-auto cursor-pointer'}`}
+                            >
+                                <span className="capitalize tracking-wide">{layer.label}</span>
+                                {idx !== 0 && (
+                                    <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor" className="opacity-80 rotate-90 ml-1.5 -mr-1 pointer-events-none">
+                                        <path d="M360-160q-33 0-56.5-23.5T280-240q0-33 23.5-56.5T360-320q33 0 56.5 23.5T440-240q0 33-23.5 56.5T360-160Zm240 0q-33 0-56.5-23.5T520-240q0-33 23.5-56.5T600-320q33 0 56.5 23.5T680-240q0 33-23.5 56.5T600-160ZM360-400q-33 0-56.5-23.5T280-480q0-33 23.5-56.5T360-560q33 0 56.5 23.5T440-480q0 33-23.5 56.5T360-400Zm240 0q-33 0-56.5-23.5T520-480q0-33 23.5-56.5T600-560q33 0 56.5 23.5T680-480q0 33-23.5 56.5T600-400ZM360-640q-33 0-56.5-23.5T280-720q0-33 23.5-56.5T360-800q33 0 56.5 23.5T440-720q0 33-23.5 56.5T360-640Zm240 0q-33 0-56.5-23.5T520-720q0-33 23.5-56.5T600-800q33 0 56.5 23.5T680-720q0 33-23.5 56.5T600-640Z" />
+                                    </svg>
+                                )}
+                            </div>
+                        );
+                    })}                </div>
 
                 {/* Left delete button */}
                 <div
@@ -881,7 +958,7 @@ export interface BlockData {
 
 export interface ContainerData {
     id: string;
-    block: BlockData | null; // null = empty drop zone
+    blocks: BlockData[]; // array of blocks, empty = drop zone
 }
 
 export interface StructureData {
@@ -906,8 +983,8 @@ const buildInitialTree = (): BackdropData[] => [
             id: 'row1',
             columns: [0.3, 0.7],
             containers: [
-                { id: `container-${crypto.randomUUID()}`, block: null },
-                { id: `container-${crypto.randomUUID()}`, block: null },
+                { id: `container-${crypto.randomUUID()}`, blocks: [] },
+                { id: `container-${crypto.randomUUID()}`, blocks: [] },
             ],
         }],
     },
@@ -918,7 +995,7 @@ const buildInitialTree = (): BackdropData[] => [
             id: 'row2',
             columns: [1],
             containers: [
-                { id: `container-${crypto.randomUUID()}`, block: null },
+                { id: `container-${crypto.randomUUID()}`, blocks: [] },
             ],
         }],
     },
@@ -929,8 +1006,8 @@ const buildInitialTree = (): BackdropData[] => [
             id: 'row3',
             columns: [1, 1],
             containers: [
-                { id: `container-${crypto.randomUUID()}`, block: null },
-                { id: `container-${crypto.randomUUID()}`, block: null },
+                { id: `container-${crypto.randomUUID()}`, blocks: [] },
+                { id: `container-${crypto.randomUUID()}`, blocks: [] },
             ],
         }],
     },
@@ -976,6 +1053,178 @@ export default function EmailEditorPage() {
     const [isGlobalColorPickerOpen, setIsGlobalColorPickerOpen] = useState(false);
     const [isBgImageEnabled, setIsBgImageEnabled] = useState(false);
 
+    // ─── dnd-kit: sensors + drag state ───
+    const dndSensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+    const [activeDragTool, setActiveDragTool] = useState<{ icon: string; toolType: string } | null>(null);
+
+    const handleDndDragStart = (event: DragStartEvent) => {
+        const data = event.active.data.current;
+        if (data?.type === 'tool') {
+            setActiveDragTool({ icon: data.icon, toolType: data.toolType });
+        } else if (data?.type === 'layout') {
+            setActiveDragTool({ icon: 'layout', toolType: 'layout' });
+            setIsDraggingStructures(true);
+        } else if (data?.type === 'move_structure') {
+            setActiveDragTool({ icon: 'layout', toolType: 'move_structure' });
+            setIsDraggingStructures(true);
+        }
+    };
+
+    // Phase 3: compute dropInsertIndex during layout/structure drag via pointer position
+    const handleDndDragMove = useCallback((event: { activatorEvent: Event; delta: { x: number; y: number } }) => {
+        const activeType = (event as any).active?.data?.current?.type;
+        if (activeType !== 'layout' && activeType !== 'move_structure') return;
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const pointerEvent = (event as any).activatorEvent as PointerEvent;
+        // get current pointer clientY from the drag event delta
+        const nativeEvent = window.event as PointerEvent | null;
+        const mouseY = nativeEvent?.clientY ?? 0;
+        if (!mouseY) return;
+        const children = Array.from(canvas.querySelectorAll('[data-structure-row]'));
+        if (children.length === 0) { setDropInsertIndex(0); return; }
+        let closestIndex = 0;
+        let closestDist = Infinity;
+        const firstRect = children[0].getBoundingClientRect();
+        const distToTop = Math.abs(mouseY - firstRect.top);
+        if (distToTop < closestDist) { closestDist = distToTop; closestIndex = 0; }
+        for (let i = 0; i < children.length - 1; i++) {
+            const bottomOfCurrent = children[i].getBoundingClientRect().bottom;
+            const topOfNext = children[i + 1].getBoundingClientRect().top;
+            const gapCenter = (bottomOfCurrent + topOfNext) / 2;
+            const dist = Math.abs(mouseY - gapCenter);
+            if (dist < closestDist) { closestDist = dist; closestIndex = i + 1; }
+        }
+        const lastRect = children[children.length - 1].getBoundingClientRect();
+        if (Math.abs(mouseY - lastRect.bottom) < closestDist) { closestIndex = children.length; }
+        setDropInsertIndex(closestIndex);
+    }, [canvasRef]);
+
+    const handleDndDragEnd = (event: DragEndEvent) => {
+        setActiveDragTool(null);
+        const { active, over } = event;
+        if (!over) return;
+
+        const activeData = active.data.current;
+        const overData = over.data.current;
+
+        // Tool → Container drop
+        if (activeData?.type === 'tool' && overData?.type === 'container') {
+            const containerId = overData.containerId as string;
+            const toolType = activeData.toolType as string;
+            if (toolType === 'image' || toolType === 'text' || toolType === 'button') {
+                // Check if container has blocks
+                let hasBlocks = false;
+                for (const bd of emailTree) {
+                    for (const st of bd.structures) {
+                        for (const c of st.containers) {
+                            if (c.id === containerId && c.blocks.length > 0) { hasBlocks = true; break; }
+                        }
+                        if (hasBlocks) break;
+                    }
+                    if (hasBlocks) break;
+                }
+                if (hasBlocks) {
+                    const newBlockId = addBlockToContainer(containerId, toolType);
+                    setSelectedBoxId(newBlockId);
+                    setSelectedLayer('block');
+                } else {
+                    const newBlockId = setBlockType(containerId, toolType);
+                    if (newBlockId) {
+                        setSelectedBoxId(newBlockId);
+                        setSelectedLayer('block');
+                    }
+                }
+            }
+        }
+
+        // Block drag pill → Container drop (Phase 2)
+        if (activeData?.type === 'move_block' && overData?.type === 'container') {
+            const sourceBlockId = activeData.blockId as string;
+            const targetContainerId = overData.containerId as string;
+            swapBlocks(sourceBlockId, targetContainerId);
+        }
+
+        // Layout card → Canvas drop (Phase 3)
+        if (activeData?.type === 'layout' && activeData.columns) {
+            setIsDraggingStructures(false);
+            const cols = activeData.columns as number[];
+            const capturedIdx = dropInsertIndex ?? 0;
+            setDropInsertIndex(null);
+            setEmailTree(prev => {
+                const newRowId = `row-${Date.now()}`;
+                const containers: ContainerData[] = cols.map(() => ({
+                    id: `container-${crypto.randomUUID()}`,
+                    blocks: [],
+                }));
+                const newSt: StructureData = { id: newRowId, columns: cols, containers };
+                if (prev.length === 0) {
+                    return [{ id: newRowId, backgroundColor: '', structures: [newSt] }];
+                }
+                const next = [...prev];
+                let count = 0;
+                let inserted = false;
+                for (let b = 0; b < next.length; b++) {
+                    const len = next[b].structures.length;
+                    if (capturedIdx <= count + len) {
+                        next[b] = { ...next[b], structures: [...next[b].structures] };
+                        next[b].structures.splice(capturedIdx - count, 0, newSt);
+                        inserted = true;
+                        break;
+                    }
+                    count += len;
+                }
+                if (!inserted) {
+                    next[next.length - 1] = { ...next[next.length - 1], structures: [...next[next.length - 1].structures, newSt] };
+                }
+                return next;
+            });
+        }
+
+        // Structure reorder (Phase 4)
+        if (activeData?.type === 'move_structure' && activeData.structureId && dropInsertIndex !== null) {
+            setIsDraggingStructures(false);
+            const draggedId = activeData.structureId as string;
+            const capturedIdx = dropInsertIndex;
+            setDropInsertIndex(null);
+            setEmailTree(prev => {
+                let draggedSt: StructureData | null = null;
+                let oldFlatIndex = -1;
+                let currentFlat = 0;
+                const cleaned = prev.map(bd => {
+                    const stIdx = bd.structures.findIndex(s => s.id === draggedId);
+                    if (stIdx !== -1) { draggedSt = bd.structures[stIdx]; oldFlatIndex = currentFlat + stIdx; }
+                    currentFlat += bd.structures.length;
+                    return { ...bd, structures: bd.structures.filter(s => s.id !== draggedId) };
+                }).filter(bd => bd.structures.length > 0);
+                if (!draggedSt) return prev;
+                if (cleaned.length === 0) return [{ id: `row-${Date.now()}`, backgroundColor: '', structures: [draggedSt!] }];
+                const effectiveIdx = (oldFlatIndex !== -1 && capturedIdx > oldFlatIndex) ? capturedIdx - 1 : capturedIdx;
+                const next = [...cleaned];
+                let count = 0;
+                let inserted = false;
+                for (let b = 0; b < next.length; b++) {
+                    const len = next[b].structures.length;
+                    if (effectiveIdx <= count + len) {
+                        next[b] = { ...next[b], structures: [...next[b].structures] };
+                        next[b].structures.splice(effectiveIdx - count, 0, draggedSt!);
+                        inserted = true;
+                        break;
+                    }
+                    count += len;
+                }
+                if (!inserted) next[next.length - 1] = { ...next[next.length - 1], structures: [...next[next.length - 1].structures, draggedSt!] };
+                return next;
+            });
+        }
+    };
+
+    const handleDndDragCancel = () => {
+        setActiveDragTool(null);
+        setIsDraggingStructures(false);
+        setDropInsertIndex(null);
+    };
+
     const canvasScrollRef = useRef<HTMLDivElement>(null);
 
     const [selectedLayer, setSelectedLayer] = useState<'block' | 'container' | 'structure' | 'backdrop' | null>(null);
@@ -1007,7 +1256,8 @@ export default function EmailEditorPage() {
         for (const bd of emailTree) {
             for (const st of bd.structures) {
                 for (const c of st.containers) {
-                    if (c.id === selectedBoxId && c.block) return c.block;
+                    const found = c.blocks.find(b => b.id === selectedBoxId);
+                    if (found) return found;
                 }
             }
         }
@@ -1025,7 +1275,9 @@ export default function EmailEditorPage() {
         for (const bd of emailTree) {
             for (const st of bd.structures) {
                 for (const c of st.containers) {
-                    if (c.block) map[c.id] = c.block.properties;
+                    for (const b of c.blocks) {
+                        map[b.id] = b.properties;
+                    }
                 }
             }
         }
@@ -1081,65 +1333,108 @@ export default function EmailEditorPage() {
 
 
     // Helper: update a single block property directly in emailTree
-    const updateBlockProperty = (containerId: string, key: string, value: any) => {
+    const updateBlockProperty = (blockId: string, key: string, value: any) => {
         setEmailTree(prev => prev.map(bd => ({
             ...bd,
             structures: bd.structures.map(st => ({
                 ...st,
-                containers: st.containers.map(c => {
-                    if (c.id !== containerId || !c.block) return c;
-                    return {
-                        ...c,
-                        block: {
-                            ...c.block,
-                            properties: { ...c.block.properties, [key]: value },
-                        },
-                    };
-                }),
+                containers: st.containers.map(c => ({
+                    ...c,
+                    blocks: c.blocks.map(b => {
+                        if (b.id !== blockId) return b;
+                        return { ...b, properties: { ...b.properties, [key]: value } };
+                    }),
+                })),
             })),
         })));
     };
 
-    // Helper: set block type on a container directly in emailTree
-    const setBlockType = (containerId: string, type: string) => {
+    // Helper: set block type on an EMPTY container (first block via shortcut icons)
+    // Returns the new block's ID for selection
+    const setBlockType = (containerId: string, type: string): string | null => {
+        if (type === 'empty') {
+            setEmailTree(prev => prev.map(bd => ({
+                ...bd,
+                structures: bd.structures.map(st => ({
+                    ...st,
+                    containers: st.containers.map(c => c.id !== containerId ? c : { ...c, blocks: [] }),
+                })),
+            })));
+            return null;
+        }
+        const newBlockId = `block-${crypto.randomUUID()}`;
         setEmailTree(prev => prev.map(bd => ({
             ...bd,
             structures: bd.structures.map(st => ({
                 ...st,
                 containers: st.containers.map(c => {
                     if (c.id !== containerId) return c;
-                    if (type === 'empty') return { ...c, block: null };
                     return {
                         ...c,
-                        block: {
-                            id: `block-${crypto.randomUUID()}`,
+                        blocks: [{
+                            id: newBlockId,
                             type: type as BlockData['type'],
-                            properties: c.block?.properties ?? {},
-                        },
+                            properties: {},
+                        }],
                     };
                 }),
             })),
         })));
+        return newBlockId;
     };
 
-    // Helper: Swap blocks between two containers
-    const swapBlocks = (sourceContainerId: string, targetContainerId: string) => {
+    // Helper: add a block to a container (appends to existing blocks)
+    // Returns the new block's ID for selection
+    const addBlockToContainer = (containerId: string, type: string): string => {
+        const newBlockId = `block-${crypto.randomUUID()}`;
+        setEmailTree(prev => prev.map(bd => ({
+            ...bd,
+            structures: bd.structures.map(st => ({
+                ...st,
+                containers: st.containers.map(c => {
+                    if (c.id !== containerId) return c;
+                    const newBlock: BlockData = {
+                        id: newBlockId,
+                        type: type as BlockData['type'],
+                        properties: {},
+                    };
+                    return { ...c, blocks: [...c.blocks, newBlock] };
+                }),
+            })),
+        })));
+        return newBlockId;
+    };
+
+    // Helper: Swap blocks between two containers (for drag-move)
+    const swapBlocks = (sourceBlockId: string, targetContainerId: string) => {
         setEmailTree(prev => {
             let sourceBlock: BlockData | null = null;
-            let targetBlock: BlockData | null = null;
+            let sourceContainerId: string | null = null;
 
+            // Find the source block and its container
             prev.forEach(bd => bd.structures.forEach(st => st.containers.forEach(c => {
-                if (c.id === sourceContainerId) sourceBlock = c.block ?? null;
-                if (c.id === targetContainerId) targetBlock = c.block ?? null;
+                const found = c.blocks.find(b => b.id === sourceBlockId);
+                if (found) {
+                    sourceBlock = found;
+                    sourceContainerId = c.id;
+                }
             })));
+
+            if (!sourceBlock || !sourceContainerId) return prev;
 
             return prev.map(bd => ({
                 ...bd,
                 structures: bd.structures.map(st => ({
                     ...st,
                     containers: st.containers.map(c => {
-                        if (c.id === sourceContainerId) return { ...c, block: targetBlock };
-                        if (c.id === targetContainerId) return { ...c, block: sourceBlock };
+                        // Remove from source container
+                        if (c.id === sourceContainerId) {
+                            return { ...c, blocks: c.blocks.filter(b => b.id !== sourceBlockId) };
+                        }
+                        // Add to target container
+                        if (c.id === targetContainerId) {
+                            return { ...c, blocks: [...c.blocks, sourceBlock!] };
+                        }
                         return c;
                     }),
                 })),
@@ -1223,9 +1518,11 @@ export default function EmailEditorPage() {
 
     const handleBoxClick = (boxId: string, type: string, e: React.MouseEvent) => {
         e.stopPropagation();
-        setBlockType(boxId, type);
-        setSelectedBoxId(boxId);
-        setSelectedLayer('block');
+        const newBlockId = setBlockType(boxId, type);
+        if (newBlockId) {
+            setSelectedBoxId(newBlockId);
+            setSelectedLayer('block');
+        }
     };
 
     const handleDeleteStructure = (structureId: string) => {
@@ -1255,7 +1552,7 @@ export default function EmailEditorPage() {
             cloned.containers = cloned.containers.map((c) => ({
                 ...c,
                 id: `container-${crypto.randomUUID()}`,
-                block: c.block ? { ...c.block, id: `block-${crypto.randomUUID()}`, properties: { ...c.block.properties } } : null,
+                blocks: c.blocks.map(b => ({ ...b, id: `block-${crypto.randomUUID()}`, properties: { ...b.properties } })),
             }));
             const newStructures = [...bd.structures];
             newStructures.splice(idx + 1, 0, cloned);
@@ -1295,7 +1592,7 @@ export default function EmailEditorPage() {
                     containers: st.containers.map((c) => ({
                         ...c,
                         id: `container-${crypto.randomUUID()}`,
-                        block: c.block ? { ...c.block, id: `block-${crypto.randomUUID()}`, properties: { ...c.block.properties } } : null,
+                        blocks: c.blocks.map(b => ({ ...b, id: `block-${crypto.randomUUID()}`, properties: { ...b.properties } })),
                     })),
                 };
             });
@@ -1409,6 +1706,7 @@ export default function EmailEditorPage() {
     };
 
     return (
+        <DndContext sensors={dndSensors} onDragStart={handleDndDragStart} onDragMove={handleDndDragMove as any} onDragEnd={handleDndDragEnd} onDragCancel={handleDndDragCancel}>
         <div
             className="fixed inset-0 z-[40] h-full w-full flex flex-col overflow-hidden bg-[#f3f4f6] dark:bg-background"
         >
@@ -1793,39 +2091,24 @@ export default function EmailEditorPage() {
                                         { icon: "view_carousel", tooltip: "Carousel" },
                                         { icon: "expand_all", tooltip: "AMP Accordion" },
                                         { icon: "dynamic_form", tooltip: "AMP Form" }
-                                    ].map((tool, index) => (
-                                        <Tooltip key={index}>
-                                            <TooltipTrigger asChild>
-                                                <div
-                                                    className="w-12 h-12 aspect-square bg-white dark:bg-background border-[2px] border-gray-200 dark:border-white/10 hover:border-primary rounded-[16px] flex items-center justify-center cursor-grab active:cursor-grabbing hover:bg-gray-50 dark:hover:bg-accent transition-all text-gray-500 dark:text-muted-foreground"
-                                                    draggable
-                                                    onDragStart={(e) => {
-                                                        const keyMap: Record<string, string> = {
-                                                            'image': 'image',
-                                                            'title': 'text',
-                                                            'smart_button': 'button'
-                                                        };
-                                                        e.dataTransfer.setData('application/tool-type', keyMap[tool.icon] || tool.icon);
-                                                        e.dataTransfer.effectAllowed = 'copyMove';
-
-                                                        // Replace native semi-transparent ghost with a 1x1 transparent image
-                                                        const img = new window.Image();
-                                                        img.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
-                                                        e.dataTransfer.setDragImage(img, 0, 0);
-
-                                                        // Start manual coordinate tracking
-                                                        setDraggingTool({ icon: tool.icon });
-                                                    }}
-                                                    onDragEnd={() => {
-                                                        setDraggingTool(null);
-                                                    }}
-                                                >
-                                                    <span className="material-symbols-outlined text-[24px] leading-none select-none pointer-events-none">{tool.icon}</span>
-                                                </div>
-                                            </TooltipTrigger>
-                                            <TooltipContent side={structuresPanelPosition === 'right' ? 'left' : 'right'} className="z-[200]">{tool.tooltip}</TooltipContent>
-                                        </Tooltip>
-                                    ))}
+                                    ].map((tool, index) => {
+                                        const keyMap: Record<string, string> = {
+                                            'image': 'image',
+                                            'title': 'text',
+                                            'smart_button': 'button'
+                                        };
+                                        const toolType = keyMap[tool.icon] || tool.icon;
+                                        return (
+                                            <Tooltip key={index}>
+                                                <TooltipTrigger asChild>
+                                                    <DraggableToolIcon icon={tool.icon} toolType={toolType} tooltip={tool.tooltip}>
+                                                        <span className="material-symbols-outlined text-[24px] leading-none select-none pointer-events-none">{tool.icon}</span>
+                                                    </DraggableToolIcon>
+                                                </TooltipTrigger>
+                                                <TooltipContent side={structuresPanelPosition === 'right' ? 'left' : 'right'} className="z-[200]">{tool.tooltip}</TooltipContent>
+                                            </Tooltip>
+                                        );
+                                    })}
                                 </TooltipProvider>
                             </div>
 
@@ -2012,132 +2295,123 @@ export default function EmailEditorPage() {
                                         <p className="text-[12px] text-gray-400 dark:text-muted-foreground font-medium uppercase tracking-wider px-1">Structures</p>
                                         <div className="flex flex-col gap-2">
                                             {/* 1. 1 Column */}
-                                            <div draggable onDragStart={(e) => handleLayoutDragStart(e, [1])} onDragEnd={() => { setIsDraggingStructures(false); setDraggingTool(null); }} className="w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[14px] p-2.5 cursor-grab hover:border-primary hover:shadow-md transition-colors h-[54px] shadow-sm flex gap-2">
+                                            <DraggableLayoutCard columns={[1]}>
                                                 <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
-                                            </div>
+                                            </DraggableLayoutCard>
 
                                             {/* 2. 2 Columns */}
-                                            <div draggable onDragStart={(e) => handleLayoutDragStart(e, [1, 1])} onDragEnd={() => { setIsDraggingStructures(false); setDraggingTool(null); }} className="w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[14px] p-2.5 cursor-grab hover:border-primary hover:shadow-md transition-colors h-[54px] shadow-sm flex gap-2">
+                                            <DraggableLayoutCard columns={[1, 1]}>
                                                 <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
                                                 <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
-                                            </div>
+                                            </DraggableLayoutCard>
 
                                             {/* 3. 3 Columns */}
-                                            <div draggable onDragStart={(e) => handleLayoutDragStart(e, [1, 1, 1])} onDragEnd={() => { setIsDraggingStructures(false); setDraggingTool(null); }} className="w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[14px] p-2.5 cursor-grab hover:border-primary hover:shadow-md transition-colors h-[54px] shadow-sm flex gap-2">
+                                            <DraggableLayoutCard columns={[1, 1, 1]}>
                                                 <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
                                                 <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
                                                 <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
-                                            </div>
+                                            </DraggableLayoutCard>
 
                                             {/* 4. 4 Columns */}
-                                            <div draggable onDragStart={(e) => handleLayoutDragStart(e, [1, 1, 1, 1])} onDragEnd={() => { setIsDraggingStructures(false); setDraggingTool(null); }} className="w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[14px] p-2.5 cursor-grab hover:border-primary hover:shadow-md transition-colors h-[54px] shadow-sm flex gap-2">
+                                            <DraggableLayoutCard columns={[1, 1, 1, 1]}>
                                                 <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
                                                 <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
                                                 <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
                                                 <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
-                                            </div>
+                                            </DraggableLayoutCard>
 
                                             {/* 5. 5 Columns */}
-                                            <div draggable onDragStart={(e) => handleLayoutDragStart(e, [1, 1, 1, 1, 1])} onDragEnd={() => { setIsDraggingStructures(false); setDraggingTool(null); }} className="w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[14px] p-2.5 cursor-grab hover:border-primary hover:shadow-md transition-colors h-[54px] shadow-sm flex gap-2">
-                                                <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
-                                                <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
-                                                <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
-                                                <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
-                                                <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
-                                            </div>
+                                            <DraggableLayoutCard columns={[1, 1, 1, 1, 1]}>
+                                                {[...Array(5)].map((_, i) => <div key={i} className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>)}
+                                            </DraggableLayoutCard>
 
                                             {/* 6. 6 Columns */}
-                                            <div draggable onDragStart={(e) => handleLayoutDragStart(e, [1, 1, 1, 1, 1, 1])} onDragEnd={() => { setIsDraggingStructures(false); setDraggingTool(null); }} className="w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[14px] p-2.5 cursor-grab hover:border-primary hover:shadow-md transition-colors h-[54px] shadow-sm flex gap-2">
-                                                <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
-                                                <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
-                                                <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
-                                                <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
-                                                <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
-                                                <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
-                                            </div>
+                                            <DraggableLayoutCard columns={[1, 1, 1, 1, 1, 1]}>
+                                                {[...Array(6)].map((_, i) => <div key={i} className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>)}
+                                            </DraggableLayoutCard>
 
                                             {/* 7. 7 Columns */}
-                                            <div draggable onDragStart={(e) => handleLayoutDragStart(e, [1, 1, 1, 1, 1, 1, 1])} onDragEnd={() => { setIsDraggingStructures(false); setDraggingTool(null); }} className="w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[14px] p-2.5 cursor-grab hover:border-primary hover:shadow-md transition-colors h-[54px] shadow-sm flex gap-2">
+                                            <DraggableLayoutCard columns={[1, 1, 1, 1, 1, 1, 1]}>
                                                 {[...Array(7)].map((_, i) => <div key={i} className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>)}
-                                            </div>
+                                            </DraggableLayoutCard>
 
                                             {/* 8. 8 Columns */}
-                                            <div draggable onDragStart={(e) => handleLayoutDragStart(e, [1, 1, 1, 1, 1, 1, 1, 1])} onDragEnd={() => { setIsDraggingStructures(false); setDraggingTool(null); }} className="w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[14px] p-2.5 cursor-grab hover:border-primary hover:shadow-md transition-colors h-[54px] shadow-sm flex gap-2">
+                                            <DraggableLayoutCard columns={[1, 1, 1, 1, 1, 1, 1, 1]}>
                                                 {[...Array(8)].map((_, i) => <div key={i} className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>)}
-                                            </div>
+                                            </DraggableLayoutCard>
 
                                             {/* 9. 9 Columns */}
-                                            <div draggable onDragStart={(e) => handleLayoutDragStart(e, [1, 1, 1, 1, 1, 1, 1, 1, 1])} onDragEnd={() => { setIsDraggingStructures(false); setDraggingTool(null); }} className="w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[14px] p-2.5 cursor-grab hover:border-primary hover:shadow-md transition-colors h-[54px] shadow-sm flex gap-2">
+                                            <DraggableLayoutCard columns={[1, 1, 1, 1, 1, 1, 1, 1, 1]}>
                                                 {[...Array(9)].map((_, i) => <div key={i} className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>)}
-                                            </div>
+                                            </DraggableLayoutCard>
 
                                             {/* 10. 10 Columns */}
-                                            <div draggable onDragStart={(e) => handleLayoutDragStart(e, [1, 1, 1, 1, 1, 1, 1, 1, 1, 1])} onDragEnd={() => { setIsDraggingStructures(false); setDraggingTool(null); }} className="w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[14px] p-2.5 cursor-grab hover:border-primary hover:shadow-md transition-colors h-[54px] shadow-sm flex gap-2">
+                                            <DraggableLayoutCard columns={[1, 1, 1, 1, 1, 1, 1, 1, 1, 1]}>
                                                 {[...Array(10)].map((_, i) => <div key={i} className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>)}
-                                            </div>
+                                            </DraggableLayoutCard>
 
                                             {/* 11. Left Heavy (1:2) */}
-                                            <div draggable onDragStart={(e) => handleLayoutDragStart(e, [1, 2])} onDragEnd={() => { setIsDraggingStructures(false); setDraggingTool(null); }} className="w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[14px] p-2.5 cursor-grab hover:border-primary hover:shadow-md transition-colors h-[54px] shadow-sm flex gap-2">
+                                            <DraggableLayoutCard columns={[1, 2]}>
                                                 <div className="w-[33%] h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
                                                 <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
-                                            </div>
+                                            </DraggableLayoutCard>
 
                                             {/* 12. Right Heavy (2:1) */}
-                                            <div draggable onDragStart={(e) => handleLayoutDragStart(e, [2, 1])} onDragEnd={() => { setIsDraggingStructures(false); setDraggingTool(null); }} className="w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[14px] p-2.5 cursor-grab hover:border-primary hover:shadow-md transition-colors h-[54px] shadow-sm flex gap-2">
+                                            <DraggableLayoutCard columns={[2, 1]}>
                                                 <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
                                                 <div className="w-[33%] h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
-                                            </div>
+                                            </DraggableLayoutCard>
 
                                             {/* 13. Center Heavy (1:2:1) */}
-                                            <div draggable onDragStart={(e) => handleLayoutDragStart(e, [1, 2, 1])} onDragEnd={() => { setIsDraggingStructures(false); setDraggingTool(null); }} className="w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[14px] p-2.5 cursor-grab hover:border-primary hover:shadow-md transition-colors h-[54px] shadow-sm flex gap-2">
+                                            <DraggableLayoutCard columns={[1, 2, 1]}>
                                                 <div className="w-[20%] h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
                                                 <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
                                                 <div className="w-[20%] h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
-                                            </div>
+                                            </DraggableLayoutCard>
 
                                             {/* 14. Left Heavy Double (2:1:1) */}
-                                            <div draggable onDragStart={(e) => handleLayoutDragStart(e, [2, 1, 1])} onDragEnd={() => { setIsDraggingStructures(false); setDraggingTool(null); }} className="w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[14px] p-2.5 cursor-grab hover:border-primary hover:shadow-md transition-colors h-[54px] shadow-sm flex gap-2">
+                                            <DraggableLayoutCard columns={[2, 1, 1]}>
                                                 <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
                                                 <div className="w-[25%] h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
                                                 <div className="w-[25%] h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
-                                            </div>
+                                            </DraggableLayoutCard>
 
                                             {/* 11. Left/Right Sidebar (1:4:1) */}
-                                            <div draggable onDragStart={(e) => handleLayoutDragStart(e, [1, 4, 1])} onDragEnd={() => { setIsDraggingStructures(false); setDraggingTool(null); }} className="w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[14px] p-2.5 cursor-grab hover:border-primary hover:shadow-md transition-colors h-[54px] shadow-sm flex gap-2">
+                                            <DraggableLayoutCard columns={[1, 4, 1]}>
                                                 <div className="w-[16%] h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
                                                 <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
                                                 <div className="w-[16%] h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
-                                            </div>
+                                            </DraggableLayoutCard>
 
                                             {/* 12. Right Heavy Double (1:1:2) */}
-                                            <div draggable onDragStart={(e) => handleLayoutDragStart(e, [1, 1, 2])} onDragEnd={() => { setIsDraggingStructures(false); setDraggingTool(null); }} className="w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[14px] p-2.5 cursor-grab hover:border-primary hover:shadow-md transition-colors h-[54px] shadow-sm flex gap-2">
+                                            <DraggableLayoutCard columns={[1, 1, 2]}>
                                                 <div className="w-[25%] h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
                                                 <div className="w-[25%] h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
                                                 <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
-                                            </div>
+                                            </DraggableLayoutCard>
 
                                             {/* 13. Heavy Middle (2:3:2) */}
-                                            <div draggable onDragStart={(e) => handleLayoutDragStart(e, [2, 3, 2])} onDragEnd={() => { setIsDraggingStructures(false); setDraggingTool(null); }} className="w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[14px] p-2.5 cursor-grab hover:border-primary hover:shadow-md transition-colors h-[54px] shadow-sm flex gap-2">
+                                            <DraggableLayoutCard columns={[2, 3, 2]}>
                                                 <div className="w-[28%] h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
                                                 <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
                                                 <div className="w-[28%] h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
-                                            </div>
+                                            </DraggableLayoutCard>
 
                                             {/* 14. 4-Column Asymmetric (1:2:2:1) */}
-                                            <div draggable onDragStart={(e) => handleLayoutDragStart(e, [1, 2, 2, 1])} onDragEnd={() => { setIsDraggingStructures(false); setDraggingTool(null); }} className="w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[14px] p-2.5 cursor-grab hover:border-primary hover:shadow-md transition-colors h-[54px] shadow-sm flex gap-2">
+                                            <DraggableLayoutCard columns={[1, 2, 2, 1]}>
                                                 <div className="w-[16%] h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
                                                 <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
                                                 <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
                                                 <div className="w-[16%] h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
-                                            </div>
+                                            </DraggableLayoutCard>
 
                                             {/* 15. Splits (1:1:1:3) */}
-                                            <div draggable onDragStart={(e) => handleLayoutDragStart(e, [1, 1, 1, 3])} onDragEnd={() => { setIsDraggingStructures(false); setDraggingTool(null); }} className="w-full bg-white dark:bg-background border-[2px] border-gray-200 dark:border-border rounded-[14px] p-2.5 cursor-grab hover:border-primary hover:shadow-md transition-colors h-[54px] shadow-sm flex gap-2">
+                                            <DraggableLayoutCard columns={[1, 1, 1, 3]}>
                                                 <div className="w-[16%] h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
                                                 <div className="w-[16%] h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
                                                 <div className="w-[16%] h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
                                                 <div className="flex-1 h-full border-[1.5px] border-dashed border-blue-300 dark:border-blue-500/30 bg-[#f0f7ff] dark:bg-blue-900/10 rounded-[6px]"></div>
-                                            </div>
+                                            </DraggableLayoutCard>
                                         </div>
                                     </div>
                                 )}
@@ -2340,7 +2614,7 @@ export default function EmailEditorPage() {
                                     setEmailTree(prev => {
                                         const containers: ContainerData[] = cols.map(() => ({
                                             id: `container-${crypto.randomUUID()}`,
-                                            block: null,
+                                            blocks: [],
                                         }));
                                         const newSt: StructureData = { id: newRowId, columns: cols, containers };
 
@@ -2625,7 +2899,7 @@ export default function EmailEditorPage() {
                                                                 columns,
                                                                 containers: columns.map(() => ({
                                                                     id: `container-${crypto.randomUUID()}`,
-                                                                    block: null,
+                                                                    blocks: [],
                                                                 })),
                                                             };
                                                             setEmailTree(prev => prev.map(bd => {
@@ -2637,14 +2911,14 @@ export default function EmailEditorPage() {
                                                             }));
                                                         }}
                                                     >
-                                                        <div className="flex gap-4 w-full items-start isolation-auto" style={{ height: 'auto' }}>
+                                                        <div className="flex gap-4 w-full items-stretch isolation-auto" style={{ height: 'auto' }}>
                                                             {structure.containers.map((container, ci) => (
                                                                 <ContainerLayer
                                                                     key={container.id}
                                                                     containerId={container.id}
                                                                     structureId={structure.id}
                                                                     backdropId={backdrop.id}
-                                                                    block={container.block}
+                                                                    blocks={container.blocks}
                                                                     columnFlex={structure.columns[ci] ?? 1}
                                                                     isTopRow={isTopRow}
                                                                     selectedBoxId={selectedBoxId}
@@ -2655,10 +2929,10 @@ export default function EmailEditorPage() {
                                                                     setActiveRightSidebarTab={setActiveRightSidebarTab}
                                                                     draggedOverBox={draggedOverBox}
                                                                     setDraggedOverBox={setDraggedOverBox}
-                                                                    draggingTool={draggingTool}
                                                                     setDraggingTool={setDraggingTool}
                                                                     swapBlocks={swapBlocks}
                                                                     setBlockType={setBlockType}
+                                                                    addBlockToContainer={addBlockToContainer}
                                                                     handleDeleteContainer={handleDeleteContainer}
                                                                     handleBoxClick={handleBoxClick}
                                                                     blockPropertiesMap={blockPropertiesMap}
@@ -4021,5 +4295,18 @@ a[x-apple-data-detectors],
                 )
             }
         </div >
+            {/* dnd-kit DragOverlay for tool + layout drags */}
+            <DragOverlay dropAnimation={null}>
+                {activeDragTool ? (
+                    <div className="w-12 h-12 aspect-square bg-white dark:bg-background border-[2px] border-primary rounded-[16px] flex items-center justify-center text-primary shadow-2xl overflow-hidden">
+                        {activeDragTool.icon === 'layout' ? (
+                            <LayoutIcon size={22} />
+                        ) : (
+                            <span className="material-symbols-outlined text-[24px] leading-none select-none">{activeDragTool.icon}</span>
+                        )}
+                    </div>
+                ) : null}
+            </DragOverlay>
+        </DndContext>
     );
 }
